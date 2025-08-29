@@ -9,7 +9,7 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
 
 async function processImage(imageUrl, originalWidth, originalHeight) {
   try {
-    const settings = await chrome.storage.local.get(['apiKey', 'model', 'prompt']);
+    const settings = await chrome.storage.local.get(['apiKey', 'model', 'prompt', 'quality']);
     
     if (!settings.apiKey) {
       throw new Error('OpenAI API key not configured');
@@ -40,7 +40,15 @@ async function processImage(imageUrl, originalWidth, originalHeight) {
       headers: {
         'Authorization': `Bearer ${settings.apiKey}`,
       },
-      body: createFormData(base64Image, settings.model, settings.prompt, originalWidth, originalHeight, maskBlob)
+      body: createFormData({
+        model: settings.model,
+        prompt: settings.prompt,
+        quality: settings.quality,
+        base64Image,
+        maskBlob: maskBlob,
+        originalWidth: originalWidth,
+        originalHeight: originalHeight,
+      })
     });
     
     if (!response.ok) {
@@ -100,7 +108,9 @@ function blobToBase64(blob) {
   });
 }
 
-function createFormData(base64Image, model, prompt, originalWidth, originalHeight, maskBlob) {
+function createFormData(params) {
+  const { model, quality, prompt, base64Image, maskBlob, originalWidth, originalHeight } = params;
+
   const formData = new FormData();
   
   const imageBlob = base64ToBlob(base64Image, 'image/png');
@@ -112,7 +122,9 @@ function createFormData(base64Image, model, prompt, originalWidth, originalHeigh
   if (chosen && chosen.label) {
     formData.append('size', chosen.label);
   }
-  // formData.append('quality', 'medium');
+  if (quality) {
+    formData.append('quality', quality);
+  }
   if (maskBlob) {
     formData.append('mask', maskBlob, 'mask.png');
   }

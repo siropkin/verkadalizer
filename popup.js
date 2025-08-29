@@ -1,5 +1,5 @@
 const DEFAULT_MODEL = 'gpt-image-1';
-
+const DEFAULT_QUALITY = 'medium';
 const DEFAULT_PROMPT = `# Food Menu Analysis and Visualization AI Prompt
 
 You are a specialized AI system designed to analyze food menu images and create professional food visualizations. Your primary objective is to transform static menu text into an enhanced visual dining experience.
@@ -110,12 +110,13 @@ The final output should achieve:
 document.addEventListener('DOMContentLoaded', async () => {
   const apiKeyInput = document.getElementById('apiKey');
   const modelInput = document.getElementById('model');
+  const qualitySelect = document.getElementById('quality');
   const promptTextarea = document.getElementById('prompt');
   const saveSettingsBtn = document.getElementById('saveSettings');
   const statusDiv = document.getElementById('status');
 
   async function loadSettings() {
-    const result = await chrome.storage.local.get(['apiKey', 'model', 'prompt']);
+    const result = await chrome.storage.local.get(['apiKey', 'model', 'prompt', 'quality']);
     if (result.apiKey) {
       apiKeyInput.value = result.apiKey;
     }
@@ -123,6 +124,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       modelInput.value = result.model;
     } else {
       modelInput.value = DEFAULT_MODEL;
+    }
+    if (result.quality) {
+      qualitySelect.value = result.quality;
+    } else {
+      qualitySelect.value = DEFAULT_QUALITY;
     }
     if (result.prompt) {
       promptTextarea.value = result.prompt;
@@ -144,12 +150,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   saveSettingsBtn.addEventListener('click', async () => {
     const apiKey = apiKeyInput.value.trim();
     const model = modelInput.value.trim();
+    const quality = qualitySelect.value;
     const prompt = promptTextarea.value.trim();
     
     try {
       await chrome.storage.local.set({
         apiKey: apiKey,
         model: model || DEFAULT_MODEL,
+        quality: quality || DEFAULT_QUALITY,
         prompt: prompt || DEFAULT_PROMPT,
       });
       
