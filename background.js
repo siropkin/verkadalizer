@@ -1,15 +1,15 @@
 chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
   if (request.action === 'processImage') {
-    processImage(request.imageUrl, request.originalWidth, request.originalHeight)
+    processImage(request.imageUrl)
       .then(result => sendResponse(result))
       .catch(error => sendResponse({ success: false, error: error.message }));
     return true;
   }
 });
 
-async function processImage(imageUrl, originalWidth, originalHeight) {
+async function processImage(imageUrl) {
   try {
-    const settings = await chrome.storage.local.get(['apiKey', 'model', 'prompt', 'quality']);
+    const settings = await chrome.storage.local.get(['apiKey', 'model', 'prompt', 'quality', 'size']);
     
     if (!settings.apiKey) {
       throw new Error('OpenAI API key not configured');
@@ -44,10 +44,9 @@ async function processImage(imageUrl, originalWidth, originalHeight) {
         model: settings.model,
         prompt: settings.prompt,
         quality: settings.quality,
+        size: settings.size,
         base64Image,
         maskBlob: maskBlob,
-        originalWidth: originalWidth,
-        originalHeight: originalHeight,
       })
     });
     
@@ -69,10 +68,7 @@ async function processImage(imageUrl, originalWidth, originalHeight) {
 
     return {
       success: true,
-      b64: first.b64_json,
-      chosenSize: chooseOpenAIImageSize(originalWidth, originalHeight).label,
-      originalWidth,
-      originalHeight
+      b64_json: first.b64_json,
     };
     
   } catch (error) {
@@ -109,7 +105,7 @@ function blobToBase64(blob) {
 }
 
 function createFormData(params) {
-  const { model, quality, prompt, base64Image, maskBlob, originalWidth, originalHeight } = params;
+  const { model, quality, size, prompt, base64Image, maskBlob } = params;
 
   const formData = new FormData();
   
@@ -118,12 +114,11 @@ function createFormData(params) {
   formData.append('model', model);
   formData.append('prompt', prompt);
   formData.append('n', '1');
-  const chosen = chooseOpenAIImageSize(originalWidth, originalHeight);
-  if (chosen && chosen.label) {
-    formData.append('size', chosen.label);
-  }
   if (quality) {
     formData.append('quality', quality);
+  }
+  if (size) {
+    formData.append('size', size);
   }
   if (maskBlob) {
     formData.append('mask', maskBlob, 'mask.png');
@@ -142,33 +137,6 @@ function base64ToBlob(base64, mimeType) {
   
   const byteArray = new Uint8Array(byteNumbers);
   return new Blob([byteArray], { type: mimeType });
-}
-
-function chooseOpenAIImageSize(originalWidth, originalHeight) {
-  const options = [
-    { label: '1024x1024', w: 1024, h: 1024, ratio: 1024 / 1024 },
-    { label: '1536x1024', w: 1536, h: 1024, ratio: 1536 / 1024 },
-    { label: '1024x1536', w: 1024, h: 1536, ratio: 1024 / 1536 },
-  ];
-
-  if (!originalWidth || !originalHeight || originalWidth <= 0 || originalHeight <= 0) {
-    // Fallback by orientation if unknown
-    return options[0];
-  }
-
-  const originalRatio = originalWidth / originalHeight;
-
-  // Pick by closest aspect ratio
-  let best = options[0];
-  let bestDelta = Math.abs(options[0].ratio - originalRatio);
-  for (let i = 1; i < options.length; i++) {
-    const delta = Math.abs(options[i].ratio - originalRatio);
-    if (delta < bestDelta) {
-      best = options[i];
-      bestDelta = delta;
-    }
-  }
-  return best;
 }
 
 // Creates a PNG mask from an input image using block-based averaging.
