@@ -151,27 +151,7 @@ async function processSingleImage(img, relatedButton) {
     });
 
     if (response && response.success) {
-      // const displayWidth = img.clientWidth;
-      // const displayHeight = img.clientHeight;
-      // if (displayWidth && displayHeight) {
-      //   img.style.width = displayWidth + 'px';
-      //   img.style.height = displayHeight + 'px';
-      // }
-
-      if (response.b64 && originalWidth && originalHeight) {
-        try {
-          const dataUrl = await resizeToExactSize(
-            `data:image/png;base64,${response.b64}`,
-            originalWidth,
-            originalHeight
-          );
-          img.src = dataUrl;
-        } catch (_e) {
-          img.src = response.processedImageUrl;
-        }
-      } else {
-        img.src = response.processedImageUrl;
-      }
+      img.src = `data:image/png;base64,${response.b64}`;
     } else {
       console.error('Failed to process image:', response?.error);
     }
@@ -185,38 +165,6 @@ async function processSingleImage(img, relatedButton) {
       btn.style.cursor = originalCursor;
     }
   }
-}
-
-async function resizeToExactSize(srcDataUrl, targetWidth, targetHeight) {
-  const imgEl = await loadImage(srcDataUrl);
-  const canvas = document.createElement('canvas');
-  canvas.width = targetWidth;
-  canvas.height = targetHeight;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) throw new Error('Canvas context not available');
-
-  const sourceWidth = imgEl.width;
-  const sourceHeight = imgEl.height;
-  const scale = Math.max(targetWidth / sourceWidth, targetHeight / sourceHeight);
-  const drawWidth = sourceWidth * scale;
-  const drawHeight = sourceHeight * scale;
-  const dx = (targetWidth - drawWidth) / 2;
-  const dy = (targetHeight - drawHeight) / 2;
-
-  ctx.imageSmoothingEnabled = true;
-  ctx.imageSmoothingQuality = 'high';
-  ctx.clearRect(0, 0, targetWidth, targetHeight);
-  ctx.drawImage(imgEl, dx, dy, drawWidth, drawHeight);
-  return canvas.toDataURL('image/png');
-}
-
-function loadImage(src) {
-  return new Promise((resolve, reject) => {
-    const i = new Image();
-    i.onload = () => resolve(i);
-    i.onerror = reject;
-    i.src = src;
-  });
 }
 
 function init() {

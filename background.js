@@ -32,12 +32,15 @@ async function processImage(imageUrl, originalWidth, originalHeight) {
       throw new Error('Base64 image encoding is empty');
     }
     
+    // Build a PNG mask where white pixels become transparent and others opaque
+    const maskBlob = await generateMaskFromImageBlob(imageBlob);
+
     const response = await fetch('https://api.openai.com/v1/images/edits', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${settings.apiKey}`,
       },
-      body: createFormData(base64Image, settings.model, settings.prompt, originalWidth, originalHeight)
+      body: createFormData(base64Image, settings.model, settings.prompt, originalWidth, originalHeight, maskBlob)
     });
     
     if (!response.ok) {
@@ -59,7 +62,6 @@ async function processImage(imageUrl, originalWidth, originalHeight) {
     return {
       success: true,
       b64: first.b64_json,
-      processedImageUrl: `data:image/png;base64,${first.b64_json}`,
       chosenSize: chooseOpenAIImageSize(originalWidth, originalHeight).label,
       originalWidth,
       originalHeight
@@ -98,7 +100,7 @@ function blobToBase64(blob) {
   });
 }
 
-function createFormData(base64Image, model, prompt, originalWidth, originalHeight) {
+function createFormData(base64Image, model, prompt, originalWidth, originalHeight, maskBlob) {
   const formData = new FormData();
   
   const imageBlob = base64ToBlob(base64Image, 'image/png');
@@ -111,6 +113,9 @@ function createFormData(base64Image, model, prompt, originalWidth, originalHeigh
     formData.append('size', chosen.label);
   }
   // formData.append('quality', 'medium');
+  if (maskBlob) {
+    formData.append('mask', maskBlob, 'mask.png');
+  }
 
   return formData;
 }
@@ -152,4 +157,79 @@ function chooseOpenAIImageSize(originalWidth, originalHeight) {
     }
   }
   return best;
+}
+
+// Creates a PNG mask from an input image using block-based averaging.
+// For each block (default 32x32), if the average color is near-white
+// (>= whiteThreshold per channel), the block becomes fully transparent;
+// otherwise it becomes fully opaque black. The mask keeps original dimensions.
+async function generateMaskFromImageBlob(imageBlob, whiteThreshold = 250, blockSize = 128) {
+  try {
+    const bitmap = await createImageBitmap(imageBlob);
+    const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(bitmap, 0, 0);
+
+    const { width, height } = canvas;
+    const imageData = ctx.getImageData(0, 0, width, height);
+    const data = imageData.data;
+
+    for (let by = 0; by < height; by += blockSize) {
+      const blockH = Math.min(blockSize, height - by);
+      for (let bx = 0; bx < width; bx += blockSize) {
+        const blockW = Math.min(blockSize, width - bx);
+
+        let sumR = 0;
+        let sumG = 0;
+        let sumB = 0;
+        let count = 0;
+
+        // First pass: compute average color for the block
+        for (let y = 0; y < blockH; y++) {
+          const rowStart = (by + y) * width;
+          for (let x = 0; x < blockW; x++) {
+            const idx = ((rowStart + (bx + x)) << 2);
+            sumR += data[idx];
+            sumG += data[idx + 1];
+            sumB += data[idx + 2];
+            count++;
+          }
+        }
+
+        const avgR = sumR / count;
+        const avgG = sumG / count;
+        const avgB = sumB / count;
+        const isWhiteBlock = avgR >= whiteThreshold && avgG >= whiteThreshold && avgB >= whiteThreshold;
+
+        // Second pass: write mask values for the block
+        if (isWhiteBlock) {
+          // Transparent indicates editable area
+          for (let y = 0; y < blockH; y++) {
+            const rowStart = (by + y) * width;
+            for (let x = 0; x < blockW; x++) {
+              const idx = ((rowStart + (bx + x)) << 2);
+              data[idx + 3] = 0; // alpha
+            }
+          }
+        } else {
+          // Opaque black indicates preserved area
+          for (let y = 0; y < blockH; y++) {
+            const rowStart = (by + y) * width;
+            for (let x = 0; x < blockW; x++) {
+              const idx = ((rowStart + (bx + x)) << 2);
+              data[idx] = 0;
+              data[idx + 1] = 0;
+              data[idx + 2] = 0;
+              data[idx + 3] = 255;
+            }
+          }
+        }
+      }
+    }
+
+    ctx.putImageData(imageData, 0, 0);
+    return await canvas.convertToBlob({ type: 'image/png' });
+  } catch (err) {
+    throw new Error(`Failed to generate mask: ${err.message}`);
+  }
 }
