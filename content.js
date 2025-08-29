@@ -140,18 +140,13 @@ async function processSingleImage(img, relatedButton) {
   createSpinner(img);
 
   try {
-    const originalWidth = img.naturalWidth || img.width || img.clientWidth;
-    const originalHeight = img.naturalHeight || img.height || img.clientHeight;
-
     const response = await chrome.runtime.sendMessage({
       action: 'processImage',
       imageUrl: img.src,
-      originalWidth,
-      originalHeight
     });
 
     if (response && response.success) {
-      img.src = `data:image/png;base64,${response.b64}`;
+      img.src = `data:image/png;base64,${response.b64_json}`;
     } else {
       console.error('Failed to process image:', response?.error);
     }

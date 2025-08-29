@@ -1,5 +1,5 @@
 const DEFAULT_MODEL = 'gpt-image-1';
-const DEFAULT_QUALITY = 'medium';
+const DEFAULT_QUALITY = 'high';
 const DEFAULT_SIZE = '1536x1024';
 const DEFAULT_PROMPT = `# Food Menu Analysis and Visualization AI Prompt
 
@@ -115,6 +115,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const sizeSelect = document.getElementById('size');
   const promptTextarea = document.getElementById('prompt');
   const saveSettingsBtn = document.getElementById('saveSettings');
+  const resetSettingsBtn = document.getElementById('resetSettings');
   const statusDiv = document.getElementById('status');
 
   async function loadSettings() {
@@ -176,7 +177,35 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  
+  if (resetSettingsBtn) {
+    resetSettingsBtn.addEventListener('click', async () => {
+      try {
+        const current = await chrome.storage.local.get(['apiKey']);
+        const preservedApiKey = current.apiKey || '';
+
+        await chrome.storage.local.set({
+          apiKey: preservedApiKey,
+          model: DEFAULT_MODEL,
+          quality: DEFAULT_QUALITY,
+          size: DEFAULT_SIZE,
+          prompt: DEFAULT_PROMPT,
+        });
+
+        // Reflect defaults in UI while keeping API key intact
+        if (typeof preservedApiKey === 'string') {
+          apiKeyInput.value = preservedApiKey;
+        }
+        modelInput.value = DEFAULT_MODEL;
+        qualitySelect.value = DEFAULT_QUALITY;
+        sizeSelect.value = DEFAULT_SIZE;
+        promptTextarea.value = DEFAULT_PROMPT;
+
+        showStatus('Settings reset to defaults (API key preserved).', 'success');
+      } catch (error) {
+        showStatus('Failed to reset settings', 'error');
+      }
+    });
+  }
 
   await loadSettings();
 });
