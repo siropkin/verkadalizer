@@ -1,0 +1,38 @@
+{
+  "manifest_version": 3,
+  "name": "Verkadalizer",
+  "version": "1.0",
+  "description": "Automatically processes food menu images from Verkada Menu pages using OpenAI's API to create beautiful, appetizing visualizations.",
+  "permissions": [
+    "activeTab",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://sites.google.com/verkada.com/verkada-menu*",
+    "https://api.openai.com/*",
+    "https://*.googleusercontent.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://sites.google.com/verkada.com/verkada-menu*"],
+      "js": ["content.js"],
+      "run_at": "document_end"
+    }
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icon.png",
+      "48": "icon.png",
+      "128": "icon.png"
+    }
+  },
+  "icons": {
+    "16": "icon.png",
+    "48": "icon.png",
+    "128": "icon.png"
+  }
+}
