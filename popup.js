@@ -1,6 +1,4 @@
 const DEFAULT_MODEL = 'gpt-image-1';
-const DEFAULT_QUALITY = 'high';
-const DEFAULT_SIZE = '1536x1024';
 const DEFAULT_PROMPT = `# Food Menu Analysis and Visualization AI Prompt
 
 You are a specialized AI system designed to analyze food menu images and create professional food visualizations. Your primary objective is to transform static menu text into an enhanced visual dining experience.
@@ -108,104 +106,228 @@ The final output should achieve:
 - Seamless integration with original menu design
 - Print and digital display readiness`
 
+// Model-agnostic schema to render settings dynamically
+const MODEL_SCHEMAS = {
+  'gpt-image-1': {
+    fields: [
+      {
+        key: 'quality',
+        label: 'Quality',
+        type: 'select',
+        options: [
+          { value: 'auto', label: 'Auto' },
+          { value: 'low', label: 'Low' },
+          { value: 'medium', label: 'Medium' },
+          { value: 'high', label: 'High' },
+        ],
+        default: 'high',
+      },
+      {
+        key: 'size',
+        label: 'Output size',
+        type: 'select',
+        options: [
+          { value: 'auto', label: 'Auto' },
+          { value: '1024x1024', label: '1024 x 1024' },
+          { value: '1536x1024', label: '1536 x 1024' },
+          { value: '1024x1536', label: '1024 x 1536' },
+        ],
+        default: '1536x1024',
+      },
+      {
+        key: 'prompt',
+        label: 'Processing Prompt',
+        type: 'textarea',
+        default: DEFAULT_PROMPT,
+        placeholder: 'Enter custom prompt for image processing...'
+      }
+    ]
+  }
+};
+
+function showStatus(statusDiv, message, type) {
+  statusDiv.textContent = message;
+  statusDiv.className = `status ${type}`;
+  statusDiv.style.display = 'block';
+  setTimeout(() => {
+    statusDiv.style.display = 'none';
+  }, 5000);
+}
+
+function ensureModelOptions(modelInput) {
+  const models = Object.keys(MODEL_SCHEMAS);
+  const existing = new Set(Array.from(modelInput.options).map(o => o.value));
+  for (const m of models) {
+    if (!existing.has(m)) {
+      const opt = document.createElement('option');
+      opt.value = m;
+      opt.textContent = m;
+      modelInput.appendChild(opt);
+    }
+  }
+}
+
+function getDefaultValuesForModel(model) {
+  const schema = MODEL_SCHEMAS[model];
+  const values = {};
+  if (schema && Array.isArray(schema.fields)) {
+    for (const field of schema.fields) {
+      values[field.key] = field.default;
+    }
+  }
+  return values;
+}
+
+function renderModelSettings(modelSettingsContainer, model, values) {
+  modelSettingsContainer.innerHTML = '';
+  const schema = MODEL_SCHEMAS[model];
+  if (!schema) return;
+  for (const field of schema.fields) {
+    const section = document.createElement('div');
+    section.className = 'section';
+
+    const label = document.createElement('label');
+    label.setAttribute('for', `field-${field.key}`);
+    label.textContent = field.label + ':';
+    section.appendChild(label);
+
+    let inputEl;
+    if (field.type === 'select') {
+      inputEl = document.createElement('select');
+      inputEl.id = `field-${field.key}`;
+      for (const opt of field.options || []) {
+        const optionEl = document.createElement('option');
+        optionEl.value = opt.value;
+        optionEl.textContent = opt.label || opt.value;
+        inputEl.appendChild(optionEl);
+      }
+      inputEl.value = values[field.key] ?? field.default ?? '';
+    } else if (field.type === 'textarea') {
+      inputEl = document.createElement('textarea');
+      inputEl.id = `field-${field.key}`;
+      inputEl.placeholder = field.placeholder || '';
+      inputEl.value = values[field.key] ?? field.default ?? '';
+    } else {
+      inputEl = document.createElement('input');
+      inputEl.type = 'text';
+      inputEl.id = `field-${field.key}`;
+      inputEl.placeholder = field.placeholder || '';
+      inputEl.value = values[field.key] ?? field.default ?? '';
+    }
+
+    section.appendChild(inputEl);
+    modelSettingsContainer.appendChild(section);
+  }
+}
+
+function readUiValuesForModel(model) {
+  const schema = MODEL_SCHEMAS[model];
+  const values = {};
+  if (!schema) return values;
+  for (const field of schema.fields) {
+    const el = document.getElementById(`field-${field.key}`);
+    if (!el) continue;
+    if (field.type === 'textarea' || field.type === 'text') {
+      values[field.key] = String(el.value || '').trim();
+    } else {
+      values[field.key] = el.value;
+    }
+  }
+  return values;
+}
+
+async function loadSettingsIntoUi(apiKeyInput, modelInput, modelSettingsContainer) {
+  const stored = await chrome.storage.local.get(['default_model', 'model', 'perModel', 'apiKey', 'quality', 'size', 'prompt']);
+  ensureModelOptions(modelInput);
+  const model = stored.default_model || stored.model || DEFAULT_MODEL;
+  modelInput.value = model;
+  if (stored.apiKey) {
+    apiKeyInput.value = stored.apiKey;
+  }
+  const perModel = stored.perModel || {};
+  const modelValues = {
+    ...getDefaultValuesForModel(model),
+    ...perModel[model],
+  };
+  if (!perModel[model]) {
+    if (stored.quality !== undefined) modelValues.quality = stored.quality;
+    if (stored.size !== undefined) modelValues.size = stored.size;
+    if (stored.prompt !== undefined) modelValues.prompt = stored.prompt;
+  }
+  renderModelSettings(modelSettingsContainer, model, modelValues);
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
-  const apiKeyInput = document.getElementById('apiKey');
   const modelInput = document.getElementById('model');
-  const qualitySelect = document.getElementById('quality');
-  const sizeSelect = document.getElementById('size');
-  const promptTextarea = document.getElementById('prompt');
+  const apiKeyInput = document.getElementById('apiKey');
+  const modelSettingsContainer = document.getElementById('modelSettingsContainer');
   const saveSettingsBtn = document.getElementById('saveSettings');
   const resetSettingsBtn = document.getElementById('resetSettings');
   const statusDiv = document.getElementById('status');
 
-  async function loadSettings() {
-    const result = await chrome.storage.local.get(['apiKey', 'model', 'quality', 'size', 'prompt']);
-    if (result.apiKey) {
-      apiKeyInput.value = result.apiKey;
-    }
-    if (result.model) {
-      modelInput.value = result.model;
-    } else {
-      modelInput.value = DEFAULT_MODEL;
-    }
-    if (result.quality) {
-      qualitySelect.value = result.quality;
-    } else {
-      qualitySelect.value = DEFAULT_QUALITY;
-    }
-    if (result.size) {
-      sizeSelect.value = result.size;
-    } else {
-      sizeSelect.value = DEFAULT_SIZE;
-    }
-    if (result.prompt) {
-      promptTextarea.value = result.prompt;
-    } else {
-      promptTextarea.value = DEFAULT_PROMPT;
-    }
-  }
-
-  function showStatus(message, type) {
-    statusDiv.textContent = message;
-    statusDiv.className = `status ${type}`;
-    statusDiv.style.display = 'block';
-    
-    setTimeout(() => {
-      statusDiv.style.display = 'none';
-    }, 5000);
-  }
+  modelInput.addEventListener('change', async () => {
+    const stored = await chrome.storage.local.get(['perModel', 'default_model', 'model']);
+    const model = modelInput.value || stored.default_model || stored.model || DEFAULT_MODEL;
+    const values = {
+      ...getDefaultValuesForModel(model),
+      ...(stored.perModel ? stored.perModel[model] : {}),
+    };
+    renderModelSettings(modelSettingsContainer, model, values);
+  });
 
   saveSettingsBtn.addEventListener('click', async () => {
+    const model = modelInput.value.trim() || DEFAULT_MODEL;
     const apiKey = apiKeyInput.value.trim();
-    const model = modelInput.value.trim();
-    const quality = qualitySelect.value;
-    const size = sizeSelect.value;
-    const prompt = promptTextarea.value.trim();
-    
+    const modelValues = readUiValuesForModel(model);
     try {
+      const existing = await chrome.storage.local.get(['perModel']);
+      const perModel = existing.perModel || {};
+      perModel[model] = { ...(perModel[model] || {}), ...modelValues };
+      // Maintain flat keys for backward compatibility
+      const flatCompat = {
+        quality: modelValues.quality ?? MODEL_SCHEMAS[model]?.fields.find(f => f.key === 'quality')?.default,
+        size: modelValues.size ?? MODEL_SCHEMAS[model]?.fields.find(f => f.key === 'size')?.default,
+        prompt: modelValues.prompt ?? MODEL_SCHEMAS[model]?.fields.find(f => f.key === 'prompt')?.default,
+      };
       await chrome.storage.local.set({
-        apiKey: apiKey,
-        model: model || DEFAULT_MODEL,
-        quality: quality || DEFAULT_QUALITY,
-        size: size || DEFAULT_SIZE,
-        prompt: prompt || DEFAULT_PROMPT,
+        default_model: model,
+        perModel,
+        apiKey,
+        ...flatCompat,
       });
-      
-      showStatus('Settings saved successfully!', 'success');
+      showStatus(statusDiv, 'Settings saved successfully!', 'success');
     } catch (error) {
-      showStatus('Failed to save settings', 'error');
+      showStatus(statusDiv, 'Failed to save settings', 'error');
     }
   });
 
   if (resetSettingsBtn) {
     resetSettingsBtn.addEventListener('click', async () => {
       try {
-        const current = await chrome.storage.local.get(['apiKey']);
+        const current = await chrome.storage.local.get(['perModel', 'apiKey']);
         const preservedApiKey = current.apiKey || '';
-
+        const model = modelInput.value || DEFAULT_MODEL;
+        const defaults = getDefaultValuesForModel(model);
+        const perModel = current.perModel || {};
+        perModel[model] = { ...defaults };
         await chrome.storage.local.set({
+          default_model: model,
+          perModel,
           apiKey: preservedApiKey,
-          model: DEFAULT_MODEL,
-          quality: DEFAULT_QUALITY,
-          size: DEFAULT_SIZE,
-          prompt: DEFAULT_PROMPT,
+          quality: defaults.quality,
+          size: defaults.size,
+          prompt: defaults.prompt,
         });
-
-        // Reflect defaults in UI while keeping API key intact
         if (typeof preservedApiKey === 'string') {
           apiKeyInput.value = preservedApiKey;
         }
-        modelInput.value = DEFAULT_MODEL;
-        qualitySelect.value = DEFAULT_QUALITY;
-        sizeSelect.value = DEFAULT_SIZE;
-        promptTextarea.value = DEFAULT_PROMPT;
-
-        showStatus('Settings reset to defaults (API key preserved)', 'success');
+        renderModelSettings(modelSettingsContainer, model, defaults);
+        showStatus(statusDiv, 'Settings reset to defaults (API key preserved)', 'success');
       } catch (error) {
-        showStatus('Failed to reset settings', 'error');
+        showStatus(statusDiv, 'Failed to reset settings', 'error');
       }
     });
   }
 
-  await loadSettings();
+  await loadSettingsIntoUi(apiKeyInput, modelInput, modelSettingsContainer);
 });

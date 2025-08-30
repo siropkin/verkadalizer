@@ -105,9 +105,7 @@
   <div class="section">
     <label for="model">Model:</label>
     <!-- TODO: add ability to change model -->
-    <select id="model" disabled>
-      <option value="gpt-image-1">gpt-image-1</option>
-      <option value="dall-e-2">dall-e-2</option>
+    <select id="model">
     </select>
   </div>
   
@@ -116,30 +114,7 @@
     <input type="password" id="apiKey" placeholder="Enter your OpenAI API key">
   </div>
  
-  <div class="section">
-    <label for="quality">Quality:</label>
-    <select id="quality">
-      <option value="auto">Auto</option>
-      <option value="low">Low</option>
-      <option value="medium">Medium</option>
-      <option value="high">High</option>
-    </select>
-  </div>
-
-  <div class="section">
-    <label for="size">Output size:</label>
-    <select id="size">
-      <option value="auto">Auto</option>
-      <option value="1024x1024">1024 x 1024</option>
-      <option value="1536x1024">1536 x 1024</option>
-      <option value="1024x1536">1024 x 1536</option>
-    </select>
-  </div>
-  
-  <div class="section">
-    <label for="prompt">Processing Prompt:</label>
-    <textarea id="prompt" placeholder="Enter custom prompt for image processing..."></textarea>
-  </div>
+  <div id="modelSettingsContainer"></div>
   
   <div class="section">
     <button id="saveSettings" class="primary">Save settings</button>

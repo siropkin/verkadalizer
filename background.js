@@ -99,8 +99,18 @@ async function processImageRequest({ imageUrl, requestId, signal }) {
 
 // Settings and validation helpers
 async function loadSettings() {
-  const stored = await chrome.storage.local.get(['model', 'apiKey', 'prompt', 'quality', 'size', 'timeoutMs']);
-  return stored;
+  // Support new per-model settings shape with backward-compatible fallback to flat keys
+  const stored = await chrome.storage.local.get(['default_model', 'model', 'apiKey', 'perModel', 'prompt', 'quality', 'size', 'timeoutMs']);
+  const model = stored.default_model || stored.model;
+  const common = { model, apiKey: stored.apiKey, timeoutMs: stored.timeoutMs };
+  const flat = {
+    prompt: stored.prompt,
+    quality: stored.quality,
+    size: stored.size,
+  };
+  const perModel = stored.perModel && model ? (stored.perModel[model] || {}) : {};
+  // Prefer per-model values over flat ones if both are present
+  return { ...common, ...flat, ...perModel };
 }
 
 // Validate settings value
