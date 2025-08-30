@@ -55,7 +55,7 @@ function createImageProcessButton(img) {
   if (window.MutationObserver) {
     const mutationObserver = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
-        if (mutation.attributeName === 'data-vk-is-processing' && mutation.target.dataset.vkIsProcessing === 'true') {
+        if (mutation.target.dataset.vkIsProcessing === 'true') {
           button.style.display = 'none';
         } else {
           button.style.display = 'block';
@@ -117,7 +117,7 @@ function createShowOriginalButton(img) {
   if (window.MutationObserver) {
     const mutationObserver = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
-        if (mutation.attributeName === 'data-vk-is-processing' && mutation.target.dataset.vkIsProcessing === 'true') {
+        if (mutation.target.dataset.vkIsProcessing === 'true') {
           button.style.display = 'none';
           return;
         }
@@ -127,7 +127,7 @@ function createShowOriginalButton(img) {
         } else {
           button.style.display = 'none';
         }
-        
+
         button.textContent = img.src === img.dataset.vkGeneratedSrc ? 'Show original' : 'Hide original';
       });
     });
@@ -160,35 +160,32 @@ function createSpinner(img) {
   spinner.style.display = 'flex';
   spinner.style.alignItems = 'center';
   spinner.style.justifyContent = 'center';
-  spinner.style.background = 'rgba(30, 30, 30, 0.35)';
+  spinner.style.background = 'rgba(30, 30, 30, 0.75)';
   spinner.style.zIndex = '2';
   spinner.style.pointerEvents = 'none';
 
   spinner.innerHTML = `
     <div style="
-      width: 48px;
-      height: 48px;
-      border: 5px solid #fff;
-      border-top: 5px solid rgb(130, 81, 170);
-      border-radius: 50%;
-      animation: menu-spin 1s linear infinite;
-      box-shadow: 0 0 8px rgb(130, 81, 170);
-    "></div>
+      font-family: Arial, sans-serif;
+      font-size: 16px;
+      animation: verkada-color-change 2s ease-in-out infinite;
+    ">Verkadalizing...</div>
   `;
 
   img.parentElement.style.position = 'relative';
   img.parentElement.appendChild(spinner);
 
-  img.style.transition = 'opacity 0.5s';
-  img.style.opacity = '0.6';
-
   if (!document.getElementById('menu-image-spinner-keyframes')) {
     const style = document.createElement('style');
     style.id = 'menu-image-spinner-keyframes';
     style.textContent = `
-      @keyframes menu-spin {
-        0% { transform: rotate(0deg);}
-        100% { transform: rotate(360deg);}
+      @keyframes verkada-color-change {
+        0% { color: rgb(130, 81, 170); }
+        20% { color: rgb(255, 107, 107); }
+        40% { color: rgb(255, 193, 7); }
+        60% { color: rgb(40, 167, 69); }
+        80% { color: rgb(23, 162, 184); }
+        100% { color: rgb(130, 81, 170); }
       }
     `;
     document.head.appendChild(style);
