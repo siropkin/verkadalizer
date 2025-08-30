@@ -152,7 +152,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     setTimeout(() => {
       statusDiv.style.display = 'none';
-    }, 3000);
+    }, 5000);
   }
 
   saveSettingsBtn.addEventListener('click', async () => {
@@ -200,7 +200,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         sizeSelect.value = DEFAULT_SIZE;
         promptTextarea.value = DEFAULT_PROMPT;
 
-        showStatus('Settings reset to defaults (API key preserved).', 'success');
+        showStatus('Settings reset to defaults (API key preserved)', 'success');
       } catch (error) {
         showStatus('Failed to reset settings', 'error');
       }

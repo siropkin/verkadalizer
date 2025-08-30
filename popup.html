@@ -3,6 +3,10 @@
 <head>
   <meta charset="utf-8">
   <style>
+    :root {
+      --color: rgb(130, 81, 170);
+    }
+
     body {
       width: 300px;
       padding: 20px;
@@ -42,9 +46,6 @@
     }
     
     button {
-      background: #4CAF50;
-      color: white;
-      border: none;
       padding: 10px 15px;
       border-radius: 4px;
       cursor: pointer;
@@ -52,9 +53,18 @@
       width: 100%;
       margin-top: 10px;
     }
+
+    button.primary {
+      border: 1px solid var(--color);
+      color: white;
+      background: var(--color);
+    }
     
-    button:hover {
-      background: #45a049;
+    
+    button.secondary {
+      border: 1px solid var(--color);
+      background: white;
+      color: var(--color);
     }
     
     button:disabled {
@@ -132,15 +142,15 @@
   </div>
   
   <div class="section">
-    <button id="saveSettings">Save Settings</button>
+    <button id="saveSettings" class="primary">Save settings</button>
   </div>
   
   <div class="section">
-    <button id="resetSettings">Reset To Defaults</button>
+    <button id="resetSettings" class="secondary">Reset to defaults</button>
   </div>
   
   <div class="section">
-    <div class="info">Built with ❤️ by <a href="mailto:ivan.seredkin@verkada.com">Ivan Seredkin</a></div>
+    <div class="info">Built with 🥑 by <a href="mailto:ivan.seredkin@verkada.com">Ivan Seredkin</a></div>
   </div>
   
   <div id="status" class="status"></div>
