@@ -39,7 +39,7 @@ function createImageProcessButton(img) {
 
   const onClick = async (e) => {
     e.stopPropagation();
-    await processImage(img, button);
+    await processImage(img);
   };
   button.addEventListener('click', onClick);
 
@@ -52,12 +52,101 @@ function createImageProcessButton(img) {
     resizeObserver.observe(img);
   }
 
+  if (window.MutationObserver) {
+    const mutationObserver = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.attributeName === 'data-vk-is-processing' && mutation.target.dataset.vkIsProcessing === 'true') {
+          button.style.display = 'none';
+        } else {
+          button.style.display = 'block';
+        }
+      });
+    });
+
+    mutationObserver.observe(img, {
+      attributes: true,
+    });
+  }
+
   img.dataset.vkProcessButtonAttached = 'true';
 }
 
+function createShowOriginalButton(img) {
+  if (!img || img.dataset.vkShowOriginalButtonAttached === 'true') return;
+
+  const button = document.createElement('button');
+  button.className = 'verkada-image-show-original-button';
+  button.textContent = 'Show original';
+  button.style.cssText = `
+    position: absolute;
+    z-index: 1;
+    background: white;
+    color: rgb(130, 81, 170);
+    border: 1px solid rgb(130, 81, 170);
+    padding: 8px;
+    cursor: pointer;
+    font-family: Arial, sans-serif;
+    font-size: 16px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    border-radius: 4px;
+    display: none;
+  `;
+
+  img.parentElement.style.position = 'relative';
+  img.parentElement.appendChild(button);
+
+  const onClick = async (e) => {
+    e.stopPropagation();
+    if (img.src === img.dataset.vkGeneratedSrc) {
+      img.src = img.dataset.vkOriginalSrc;
+    } else {
+      img.src = img.dataset.vkGeneratedSrc;
+    }
+  };
+  button.addEventListener('click', onClick);
+
+  if (window.ResizeObserver) {
+    const resizeObserver = new ResizeObserver(() => {
+      button.style.top = (img.offsetTop + 8) + 'px';
+      button.style.right = (img.offsetLeft + 64) + 'px';
+    });
+    resizeObserver.observe(img);
+  }
+
+  // let's show button only if image is verkadalized based on mutation observer
+  if (window.MutationObserver) {
+    const mutationObserver = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.attributeName === 'data-vk-is-processing' && mutation.target.dataset.vkIsProcessing === 'true') {
+          button.style.display = 'none';
+          return;
+        }
+        
+        if (mutation.target.dataset.vkGeneratedSrc) {
+          button.style.display = 'block';
+        } else {
+          button.style.display = 'none';
+        }
+        
+        button.textContent = img.src === img.dataset.vkGeneratedSrc ? 'Show original' : 'Hide original';
+      });
+    });
+
+    mutationObserver.observe(img, {
+      attributes: true,
+    });
+  }
+
+  img.dataset.vkShowOriginalButtonAttached = 'true';
+}
+
+
 function addButtonsToMenuImages() {
   const menuImages = findMenuImages();
-  menuImages.forEach(img => createImageProcessButton(img));
+  menuImages.forEach(img => {
+    createImageProcessButton(img);
+    createShowOriginalButton(img);
+  });
 }
 
 function createSpinner(img) {
@@ -118,40 +207,30 @@ function removeSpinner(img) {
   img.style.opacity = '1';
 }
 
-async function processImage(img, relatedButton) {
+async function processImage(img) {
   if (!img) return;
 
-  const btn = relatedButton || img.parentElement.querySelector('.verkada-image-process-button');
-  const originalText = btn ? btn.textContent : null;
-  const originalCursor = btn ? btn.style.cursor : null;
-  if (btn) {
-    btn.disabled = true;
-    btn.textContent = 'Verkadalizing...';
-    btn.style.cursor = 'default';
-  }
-
+  img.dataset.vkIsProcessing = 'true';
   createSpinner(img);
 
   try {
     const response = await chrome.runtime.sendMessage({
       action: 'processImage',
-      imageUrl: img.src,
+      imageUrl: img.dataset.vkOriginalSrc || img.src,
     });
 
     if (response && response.success) {
+      img.dataset.vkOriginalSrc = img.dataset.vkOriginalSrc || img.src;
+      img.dataset.vkGeneratedSrc = `data:image/png;base64,${response.b64_json}`;
       img.src = `data:image/png;base64,${response.b64_json}`;
     } else {
-      console.error('Failed to process image:', response?.error);
+      throw new Error(response?.error);
     }
   } catch (error) {
     console.error('Error processing image:', error);
   } finally {
+    img.dataset.vkIsProcessing = 'false';
     removeSpinner(img);
-    if (btn) {
-      btn.disabled = false;
-      btn.textContent = originalText;
-      btn.style.cursor = originalCursor;
-    }
   }
 }
 
