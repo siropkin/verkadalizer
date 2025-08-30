@@ -1,5 +1,3 @@
-let isBulkProcessing = false;
-
 const FOOD_EMOJIS = ['🍕', '🍔', '🌮', '🌯', '🥗', '🍣', '🍜', '🍝', '🍗', '🥪', '🥙', '🍤', '🥟', '🍩', '🍪', '🍿', '🧁', '🍦', '🍱', '🥞'];
 
 function getRandomFoodEmoji() {
@@ -7,13 +5,17 @@ function getRandomFoodEmoji() {
   return FOOD_EMOJIS[index];
 }
 
-function positionButtonRelativeToImage(img, btn) {
-  btn.style.top = (img.offsetTop + 8) + 'px';
-  btn.style.right = (img.offsetLeft + 8) + 'px';
+function findMenuImages() {
+  const images = Array.from(document.querySelectorAll('img'));
+  const menuImages = images.filter(img => {
+    return img.src && img.src.includes('googleusercontent.com') && img.src.includes('=w1280');
+  });
+  
+  return menuImages;
 }
 
 function createImageProcessButton(img) {
-  if (!img || img.dataset.vkButtonAttached === 'true') return;
+  if (!img || img.dataset.vkProcessButtonAttached === 'true') return;
 
   const button = document.createElement('button');
   button.className = 'verkada-image-process-button';
@@ -33,22 +35,29 @@ function createImageProcessButton(img) {
   `;
 
   img.parentElement.style.position = 'relative';
-  positionButtonRelativeToImage(img, button);
   img.parentElement.appendChild(button);
 
   const onClick = async (e) => {
     e.stopPropagation();
-    await processSingleImage(img, button);
+    await processImage(img, button);
   };
   button.addEventListener('click', onClick);
 
   // Keep button positioned if image resizes
   if (window.ResizeObserver) {
-    const resizeObserver = new ResizeObserver(() => positionButtonRelativeToImage(img, button));
+    const resizeObserver = new ResizeObserver(() => {
+      button.style.top = (img.offsetTop + 8) + 'px';
+      button.style.right = (img.offsetLeft + 8) + 'px';
+    });
     resizeObserver.observe(img);
   }
 
-  img.dataset.vkButtonAttached = 'true';
+  img.dataset.vkProcessButtonAttached = 'true';
+}
+
+function addButtonsToMenuImages() {
+  const menuImages = findMenuImages();
+  menuImages.forEach(img => createImageProcessButton(img));
 }
 
 function createSpinner(img) {
@@ -109,23 +118,7 @@ function removeSpinner(img) {
   img.style.opacity = '1';
 }
 
-function findMenuImages() {
-  const images = Array.from(document.querySelectorAll('img'));
-  const menuImages = images.filter(img => {
-    return img.src && img.src.includes('googleusercontent.com') && img.src.includes('=w1280');
-  });
-  
-  return menuImages;
-}
-
-function addButtonsToMenuImages() {
-  const menuImages = findMenuImages();
-  menuImages.forEach(img => createImageProcessButton(img));
-}
-
-// Removed bulk processImages feature
-
-async function processSingleImage(img, relatedButton) {
+async function processImage(img, relatedButton) {
   if (!img) return;
 
   const btn = relatedButton || img.parentElement.querySelector('.verkada-image-process-button');
@@ -184,8 +177,6 @@ function init() {
     });
   }
 }
-
-// Removed listener for bulk processImages action
 
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', init);
