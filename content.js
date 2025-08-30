@@ -5,151 +5,180 @@ function getRandomFoodEmoji() {
   return FOOD_EMOJIS[index];
 }
 
-function findMenuImages() {
-  const images = Array.from(document.querySelectorAll('img'));
-  const menuImages = images.filter(img => {
-    return img.src && img.src.includes('googleusercontent.com') && img.src.includes('=w1280');
-  });
-  
-  return menuImages;
+const ACTIONS = {
+  PROCESS_IMAGE: 'processImage',
+  CANCEL_REQUEST: 'cancelRequest',
+};
+
+function isMenuImage(img) {
+  return !!(img && img.src && img.src.includes('googleusercontent.com') && img.src.includes('=w1280'));
 }
 
-function createImageProcessButton(img) {
-  if (!img || img.dataset.vkProcessButtonAttached === 'true') return;
+function queryMenuImages() {
+  const images = Array.from(document.querySelectorAll('img'));
+  return images.filter(isMenuImage);
+}
 
-  const button = document.createElement('button');
-  button.className = 'verkada-image-process-button';
-  button.textContent = '✨' + getRandomFoodEmoji();
-  button.style.cssText = `
+function ensureControllerAttached(img) {
+  if (!img || !img.parentElement) { 
+    return null; 
+  }
+
+  if (img.dataset.vkControllerAttached === 'true') {
+    return img.parentElement.querySelector('.vk-controller');
+  }
+
+  const container = document.createElement('div');
+  container.className = 'vk-controller';
+  container.style.cssText = `
     position: absolute;
-    z-index: 1;
-    background:rgb(130, 81, 170);
-    color: white;
+    z-index: 3;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    background: transparent;
+    border: none;
+    padding: 0;
+    top: 8px;
+    right: 8px;
+  `;
+
+  img.parentElement.style.position = 'relative';
+  img.parentElement.appendChild(container);
+
+  img.dataset.vkControllerAttached = 'true';
+  return container;
+}
+
+function createButton({ className, text, variant = 'primary' }) {
+  const btn = document.createElement('button');
+  btn.className = className;
+  btn.textContent = text;
+  const base = `
     border: none;
     padding: 8px;
     cursor: pointer;
     font-family: Arial, sans-serif;
     font-size: 16px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
     border-radius: 4px;
+    white-space: nowrap;
   `;
-
-  img.parentElement.style.position = 'relative';
-  img.parentElement.appendChild(button);
-
-  const onClick = async (e) => {
-    e.stopPropagation();
-    await processImage(img);
-  };
-  button.addEventListener('click', onClick);
-
-  // Keep button positioned if image resizes
-  if (window.ResizeObserver) {
-    const resizeObserver = new ResizeObserver(() => {
-      button.style.top = (img.offsetTop + 8) + 'px';
-      button.style.right = (img.offsetLeft + 8) + 'px';
-    });
-    resizeObserver.observe(img);
-  }
-
-  if (window.MutationObserver) {
-    const mutationObserver = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (mutation.target.dataset.vkIsProcessing === 'true') {
-          button.style.display = 'none';
-        } else {
-          button.style.display = 'block';
-        }
-      });
-    });
-
-    mutationObserver.observe(img, {
-      attributes: true,
-    });
-  }
-
-  img.dataset.vkProcessButtonAttached = 'true';
+  const primary = `background: rgb(130, 81, 170); color: white;`;
+  const secondary = `background: white; color: rgb(130, 81, 170); border: 1px solid rgb(130, 81, 170);`;
+  btn.style.cssText = base + (variant === 'primary' ? primary : secondary);
+  return btn;
 }
 
-function createShowOriginalButton(img) {
-  if (!img || img.dataset.vkShowOriginalButtonAttached === 'true') return;
+function renderController(img) {
+  const container = ensureControllerAttached(img);
+  if (!container) {
+    return;
+  }
 
-  const button = document.createElement('button');
-  button.className = 'verkada-image-show-original-button';
-  button.textContent = 'Show original';
-  button.style.cssText = `
-    position: absolute;
-    z-index: 1;
-    background: white;
-    color: rgb(130, 81, 170);
-    border: 1px solid rgb(130, 81, 170);
-    padding: 8px;
-    cursor: pointer;
-    font-family: Arial, sans-serif;
-    font-size: 16px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    border-radius: 4px;
-    display: none;
-  `;
-
-  img.parentElement.style.position = 'relative';
-  img.parentElement.appendChild(button);
-
-  const onClick = async (e) => {
-    e.stopPropagation();
-    if (img.src === img.dataset.vkGeneratedSrc) {
-      img.src = img.dataset.vkOriginalSrc;
-    } else {
-      img.src = img.dataset.vkGeneratedSrc;
+  // Lazily create buttons once; then just toggle/retarget handlers and visibility
+  // Ensure left-to-right ordering: [showOriginal] [showGenerated] [generate OR stop]
+  // We will create or move elements to preserve this order.
+  let generateBtn = container.querySelector('.vk-btn-generate');
+  if (!generateBtn) {
+    // Pick and store a stable emoji per image on first render
+    if (!img.dataset.vkEmoji) {
+      img.dataset.vkEmoji = getRandomFoodEmoji();
     }
-  };
-  button.addEventListener('click', onClick);
-
-  if (window.ResizeObserver) {
-    const resizeObserver = new ResizeObserver(() => {
-      button.style.top = (img.offsetTop + 8) + 'px';
-      button.style.right = (img.offsetLeft + 64) + 'px';
+    generateBtn = createButton({ className: 'vk-btn-generate', text: '✨' + img.dataset.vkEmoji, variant: 'primary' });
+    container.appendChild(generateBtn);
+    generateBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      startImageProcessing(img);
     });
-    resizeObserver.observe(img);
   }
 
-  // let's show button only if image is verkadalized based on mutation observer
+  let stopBtn = container.querySelector('.vk-btn-stop');
+  if (!stopBtn) {
+    stopBtn = createButton({ className: 'vk-btn-stop', text: '🟥', variant: 'primary' });
+    container.appendChild(stopBtn);
+    stopBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      cancelImageProcessing(img);
+    });
+  }
+
+  let showOriginalBtn = container.querySelector('.vk-btn-show-original');
+  if (!showOriginalBtn) {
+    showOriginalBtn = createButton({ className: 'vk-btn-show-original', text: 'Show original', variant: 'secondary' });
+    container.insertBefore(showOriginalBtn, container.firstChild);
+    showOriginalBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (img.dataset.vkOriginalSrc) {
+        img.src = img.dataset.vkOriginalSrc;
+        img.dataset.vkView = 'original';
+        renderController(img);
+      }
+    });
+  }
+
+  let showGeneratedBtn = container.querySelector('.vk-btn-show-generated');
+  if (!showGeneratedBtn) {
+    showGeneratedBtn = createButton({ className: 'vk-btn-show-generated', text: 'Show generated', variant: 'secondary' });
+    // place to the right of showOriginal but left of generate/stop
+    if (showOriginalBtn && showOriginalBtn.nextSibling) {
+      container.insertBefore(showGeneratedBtn, showOriginalBtn.nextSibling);
+    } else {
+      container.appendChild(showGeneratedBtn);
+    }
+    showGeneratedBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (img.dataset.vkGeneratedSrc) {
+        img.src = img.dataset.vkGeneratedSrc;
+        img.dataset.vkView = 'generated';
+        renderController(img);
+      }
+    });
+  }
+
+  const hasGenerated = !!img.dataset.vkGeneratedSrc;
+  const isProcessing = img.dataset.vkIsProcessing === 'true';
+  const currentView = img.dataset.vkView || (hasGenerated && img.src === img.dataset.vkGeneratedSrc ? 'generated' : 'original');
+
+  // Toggle visibility based on state
+  generateBtn.style.display = isProcessing ? 'none' : 'inline-block';
+  stopBtn.style.display = isProcessing ? 'inline-block' : 'none';
+  showOriginalBtn.style.display = (!isProcessing && hasGenerated && currentView !== 'original') ? 'inline-block' : 'none';
+  showGeneratedBtn.style.display = (!isProcessing && hasGenerated && currentView !== 'generated') ? 'inline-block' : 'none';
+  showOriginalBtn.disabled = false;
+  showGeneratedBtn.disabled = false;
+
+  // Ensure rightmost action is generate/stop
+  if (!isProcessing) {
+    container.appendChild(generateBtn);
+  } else {
+    container.appendChild(stopBtn);
+  }
+}
+
+function attachController(img) {
+  if (!img) {
+    return;
+  }
+
+  renderController(img);
+  if (img.dataset.vkControllerObserverAttached === 'true') {
+    return;
+  }
+
+  // Re-render controller whenever relevant attributes change
   if (window.MutationObserver) {
-    const mutationObserver = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (mutation.target.dataset.vkIsProcessing === 'true') {
-          button.style.display = 'none';
-          return;
-        }
-        
-        if (mutation.target.dataset.vkGeneratedSrc) {
-          button.style.display = 'block';
-        } else {
-          button.style.display = 'none';
-        }
-
-        button.textContent = img.src === img.dataset.vkGeneratedSrc ? 'Show original' : 'Hide original';
-      });
+    const observer = new MutationObserver((mutations) => {
+      // Guard: ignore attribute changes that belong to the controller itself
+      const target = mutations[0]?.target;
+      if (target && target.classList && target.classList.contains('vk-controller')) return;
+      renderController(img);
     });
-
-    mutationObserver.observe(img, {
-      attributes: true,
-    });
+    observer.observe(img, { attributes: true, attributeFilter: ['src', 'data-vk-is-processing', 'data-vk-generated-src', 'data-vk-view'] });
   }
-
-  img.dataset.vkShowOriginalButtonAttached = 'true';
+  img.dataset.vkControllerObserverAttached = 'true';
 }
 
-
-function addButtonsToMenuImages() {
-  const menuImages = findMenuImages();
-  menuImages.forEach(img => {
-    createImageProcessButton(img);
-    createShowOriginalButton(img);
-  });
-}
-
-function createSpinner(img) {
+function createSpinnerOverlay(img) {
   const spinner = document.createElement('div');
   spinner.className = 'menu-image-spinner-overlay';
   spinner.style.position = 'absolute';
@@ -175,6 +204,19 @@ function createSpinner(img) {
   img.parentElement.style.position = 'relative';
   img.parentElement.appendChild(spinner);
 
+  // Keep overlay aligned to image on resize
+  const reposition = () => {
+    spinner.style.top = img.offsetTop + 'px';
+    spinner.style.left = img.offsetLeft + 'px';
+    spinner.style.width = img.offsetWidth + 'px';
+    spinner.style.height = img.offsetHeight + 'px';
+  };
+  reposition();
+  if (window.ResizeObserver) {
+    const ro = new ResizeObserver(reposition);
+    ro.observe(img);
+  }
+
   if (!document.getElementById('menu-image-spinner-keyframes')) {
     const style = document.createElement('style');
     style.id = 'menu-image-spinner-keyframes';
@@ -194,7 +236,7 @@ function createSpinner(img) {
   return spinner;
 }
 
-function removeSpinner(img) {
+function removeSpinnerOverlay(img) {
   const spinner = img.parentElement.querySelector('.menu-image-spinner-overlay');
   if (spinner) {
     spinner.remove();
@@ -204,54 +246,110 @@ function removeSpinner(img) {
   img.style.opacity = '1';
 }
 
-async function processImage(img) {
+function generateRequestId() {
+  return `img_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+async function startImageProcessing(img) {
   if (!img) return;
 
+  // Set initial state
   img.dataset.vkIsProcessing = 'true';
-  createSpinner(img);
+  img.dataset.vkRequestId = generateRequestId();
+  img.dataset.vkOriginalSrc = img.dataset.vkOriginalSrc || img.src;
+  createSpinnerOverlay(img);
+  renderController(img);
 
   try {
     const response = await chrome.runtime.sendMessage({
-      action: 'processImage',
-      imageUrl: img.dataset.vkOriginalSrc || img.src,
+      action: ACTIONS.PROCESS_IMAGE,
+      imageUrl: img.dataset.vkOriginalSrc,
+      requestId: img.dataset.vkRequestId,
     });
 
     if (response && response.success) {
-      img.dataset.vkOriginalSrc = img.dataset.vkOriginalSrc || img.src;
-      img.dataset.vkGeneratedSrc = `data:image/png;base64,${response.b64}`;
-      img.src = `data:image/png;base64,${response.b64}`;
+      const generated = `data:image/png;base64,${response.b64}`;
+      img.dataset.vkGeneratedSrc = generated;
+      img.src = generated;
+      img.dataset.vkView = 'generated';
     } else {
-      throw new Error(response?.error);
+      if (!response?.canceled) {
+        throw new Error(response?.error || 'Unknown error');
+      }
     }
   } catch (error) {
     console.error('Error processing image:', error);
   } finally {
     img.dataset.vkIsProcessing = 'false';
-    removeSpinner(img);
+    delete img.dataset.vkRequestId;
+    removeSpinnerOverlay(img);
+    renderController(img);
   }
 }
 
+async function cancelImageProcessing(img) {
+  if (!img) return;
+  const requestId = img.dataset.vkRequestId;
+  try {
+    if (requestId) {
+      await chrome.runtime.sendMessage({ action: ACTIONS.CANCEL_REQUEST, requestId });
+    }
+  } catch (_) {}
+  img.dataset.vkIsProcessing = 'false';
+  delete img.dataset.vkRequestId;
+  removeSpinnerOverlay(img);
+  renderController(img);
+}
+
 function init() {
-  if (window.location.href.includes('sites.google.com/verkada.com/verkada-menu')) {
-    // Add buttons to current images
-    addButtonsToMenuImages();
-
-    const refreshButtons = () => {
-      // Throttle refresh slightly for DOM bursts
-      if (refreshButtons._raf) cancelAnimationFrame(refreshButtons._raf);
-      refreshButtons._raf = requestAnimationFrame(addButtonsToMenuImages);
-    };
-
-    // Observe DOM changes to attach buttons to newly added images
-    const observer = new MutationObserver((_mutations) => {
-      refreshButtons();
-    });
-
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true
-    });
+  if (!window.location.href.includes('sites.google.com/verkada.com/verkada-menu')) {
+    return;
   }
+  
+  // Attach controller to existing images
+  const attachControllers = () => {
+    const menuImages = queryMenuImages();
+    menuImages.forEach((img) => attachController(img));
+  };
+  attachControllers();
+
+  const refreshButtons = () => {
+    // Throttle refresh slightly for DOM bursts
+    if (refreshButtons._raf) cancelAnimationFrame(refreshButtons._raf);
+    refreshButtons._raf = requestAnimationFrame(() => {
+      attachControllers();
+    });
+  };
+
+  // Observe DOM changes to attach buttons to newly added images
+  const observer = new MutationObserver((mutations) => {
+    // Ignore mutations caused by our own controller/spinner DOM
+    let shouldRefresh = false;
+    for (const mutation of mutations) {
+      if (mutation.type !== 'childList') continue;
+      const changedNodes = [
+        ...Array.from(mutation.addedNodes || []),
+        ...Array.from(mutation.removedNodes || []),
+      ];
+      const affectsExternalNodes = changedNodes.some((node) => {
+        if (!(node && node.nodeType === 1)) return false;
+        const el = /** @type {Element} */ (node);
+        const isController = el.classList && (el.classList.contains('vk-controller') || el.classList.contains('menu-image-spinner-overlay'));
+        const insideController = typeof el.closest === 'function' && (el.closest('.vk-controller') || el.closest('.menu-image-spinner-overlay'));
+        return !(isController || insideController);
+      });
+      if (affectsExternalNodes) {
+        shouldRefresh = true;
+        break;
+      }
+    }
+    if (shouldRefresh) refreshButtons();
+  });
+
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true
+  });
 }
 
 if (document.readyState === 'loading') {

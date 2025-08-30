@@ -10,7 +10,7 @@ const inFlightRequests = new Map(); // requestId -> { controller, timeoutId }
 // Entry point: listen for messages from the extension UI/content
 chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
   if (request && request.action === ACTIONS.PROCESS_IMAGE) {
-    const requestId = request.requestId || generateRequestId();
+    const requestId = request.requestId;
     const controller = new AbortController();
     inFlightRequests.set(requestId, { controller, timeoutId: null });
 
@@ -34,11 +34,6 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     return true;
   }
 });
-
-// Generate a unique request ID
-function generateRequestId() {
-  return `req_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
-}
 
 // Clear in-flight requests
 function clearInFlight(requestId) {
@@ -212,8 +207,8 @@ async function generateMaskFromImageBlob(imageBlob, whiteThreshold = 250, blockS
 }
 
 // Provider selection
-function selectAiProviderByModel(modelName) {
-  switch (modelName.toLowerCase()) {
+function selectAiProviderByModel(model) {
+  switch (model.toLowerCase()) {
     case 'gpt-image-1':
       return gptImage1;
     default:
