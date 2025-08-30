@@ -218,8 +218,8 @@ async function processImage(img) {
 
     if (response && response.success) {
       img.dataset.vkOriginalSrc = img.dataset.vkOriginalSrc || img.src;
-      img.dataset.vkGeneratedSrc = `data:image/png;base64,${response.b64_json}`;
-      img.src = `data:image/png;base64,${response.b64_json}`;
+      img.dataset.vkGeneratedSrc = `data:image/png;base64,${response.b64}`;
+      img.src = `data:image/png;base64,${response.b64}`;
     } else {
       throw new Error(response?.error);
     }

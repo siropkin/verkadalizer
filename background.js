@@ -1,141 +1,138 @@
+// Background service worker: process image edits via provider-agnostic adapter
+const ACTIONS = {
+  PROCESS_IMAGE: 'processImage',
+  CANCEL_REQUEST: 'cancelRequest',
+};
+
+// Tracks in-flight requests by requestId
+const inFlightRequests = new Map(); // requestId -> { controller, timeoutId }
+
+// Entry point: listen for messages from the extension UI/content
 chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
-  if (request.action === 'processImage') {
-    processImage(request.imageUrl)
-      .then(result => sendResponse(result))
-      .catch(error => sendResponse({ success: false, error: error.message }));
+  if (request && request.action === ACTIONS.PROCESS_IMAGE) {
+    const requestId = request.requestId || generateRequestId();
+    const controller = new AbortController();
+    inFlightRequests.set(requestId, { controller, timeoutId: null });
+
+    processImageRequest({ imageUrl: request.imageUrl, requestId, signal: controller.signal })
+      .then(result => sendResponse({ ...result, requestId }))
+      .catch(error => sendResponse({ success: false, error: error.message, requestId }))
+      .finally(() => clearInFlight(requestId));
+    return true; // keep the message channel open for async response
+  }
+
+  if (request && request.action === ACTIONS.CANCEL_REQUEST) {
+    const requestId = request.requestId;
+    const entry = requestId ? inFlightRequests.get(requestId) : null;
+    if (entry) {
+      try { entry.controller.abort(); } catch (_) {}
+      clearInFlight(requestId);
+      sendResponse({ success: true, canceled: true, requestId });
+    } else {
+      sendResponse({ success: false, error: 'No in-flight request for given requestId', requestId });
+    }
     return true;
   }
 });
 
-async function processImage(imageUrl) {
-  try {
-    const settings = await chrome.storage.local.get(['apiKey', 'model', 'prompt', 'quality', 'size']);
-    
-    if (!settings.apiKey) {
-      throw new Error('OpenAI API key not configured');
-    }
+// Generate a unique request ID
+function generateRequestId() {
+  return `req_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+}
 
-    if (!settings.model) {
-      throw new Error('Model not configured');
-    }
-
-    if (!settings.prompt) {
-      throw new Error('Prompt not configured');
-    }
-    
-    const imageBlob = await fetchImageAsBlob(imageUrl);
-    if (!imageBlob || imageBlob.size === 0) {
-      throw new Error('Fetched image is empty');
-    }
-    const base64Image = await blobToBase64(imageBlob);
-    if (!base64Image || base64Image.length === 0) {
-      throw new Error('Base64 image encoding is empty');
-    }
-    
-    // Build a PNG mask where white pixels become transparent and others opaque
-    const maskBlob = await generateMaskFromImageBlob(imageBlob);
-
-    const response = await fetch('https://api.openai.com/v1/images/edits', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${settings.apiKey}`,
-      },
-      body: createFormData({
-        model: settings.model,
-        prompt: settings.prompt,
-        quality: settings.quality,
-        size: settings.size,
-        base64Image,
-        maskBlob: maskBlob,
-      })
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(`OpenAI API error: ${errorData.error?.message || response.statusText}`);
-    }
-    
-    const data = await response.json();
-
-    if (!data.data || data.data.length === 0) {
-      throw new Error('No processed image returned from OpenAI');
-    }
-
-    const first = data.data[0];
-    if (!first.b64_json) {
-      throw new Error('OpenAI returned image without url or b64_json');
-    }
-
-    return {
-      success: true,
-      b64_json: first.b64_json,
-    };
-    
-  } catch (error) {
-    console.error('Error processing image:', error);
-    return {
-      success: false,
-      error: error.message
-    };
+// Clear in-flight requests
+function clearInFlight(requestId) {
+  const entry = inFlightRequests.get(requestId);
+  if (entry) {
+    clearTimeout(entry.timeoutId)
+    inFlightRequests.delete(requestId);
   }
 }
 
-async function fetchImageAsBlob(imageUrl) {
+// Main request pipeline: fetch image, build mask, call provider, return base64
+async function processImageRequest({ imageUrl, requestId, signal }) {
   try {
-    const response = await fetch(imageUrl);
+    const settings = await loadSettings();
+
+    assertSetting(settings.model, 'Model not configured');
+    assertSetting(settings.apiKey, 'API key not configured');
+    assertSetting(settings.prompt, 'Prompt not configured');
+
+    // Enforce timeout via AbortController (only if a positive timeout is set)
+    const entry = inFlightRequests.get(requestId);
+    if (entry && !entry.timeoutId && typeof settings.timeoutMs === 'number' && settings.timeoutMs > 0) {
+      entry.timeoutId = setTimeout(() => {
+        try { entry.controller.abort(); } catch (_) {}
+      }, settings.timeoutMs);
+    }
+
+    const imageBlob = await fetchImageAsBlob(imageUrl, signal);
+    if (!imageBlob || imageBlob.size === 0) {
+      throw new Error('Fetched image is empty');
+    }
+
+    // Build a PNG mask where white pixels become transparent and others opaque
+    throwIfAborted(signal);
+    const maskBlob = await generateMaskFromImageBlob(imageBlob);
+
+    const aiProvider = selectAiProviderByModel(settings.model);
+    const request = aiProvider.buildRequest({ settings, imageBlob, maskBlob, signal });
+
+    const response = await fetch(request.url, request.options);
+    if (!response.ok) {
+      let errorMessage = response.statusText;
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.error?.message || errorMessage;
+      } catch (_) {}
+      throw new Error(`${aiProvider.name} API error: ${errorMessage}`);
+    }
+
+    const b64 = await aiProvider.extractResult(response);
+    if (!b64) {
+      throw new Error(`${aiProvider.name} returned no image data`);
+    }
+    return { success: true, b64 };
+  } catch (error) {
+    if (error && (error.name === 'AbortError' || /aborted|abort/i.test(error.message))) {
+      return { success: false, canceled: true, error: 'Request canceled' };
+    }
+    console.error('Error processing image:', error);
+    return { success: false, error: error?.message || 'Unknown error' };
+  }
+}
+
+// Settings and validation helpers
+async function loadSettings() {
+  const stored = await chrome.storage.local.get(['model', 'apiKey', 'prompt', 'quality', 'size', 'timeoutMs']);
+  return stored;
+}
+
+// Validate settings value
+function assertSetting(value, message) {
+  if (value === undefined || value === null || value === '') throw new Error(message);
+}
+
+// Throw if the request is aborted
+function throwIfAborted(signal) {
+  if (signal && signal.aborted) throw new DOMException('Aborted', 'AbortError');
+}
+
+// Network/image helpers
+async function fetchImageAsBlob(imageUrl, signal) {
+  try {
+    const response = await fetch(imageUrl, { signal });
     if (!response.ok) {
       throw new Error(`Failed to fetch image: ${response.statusText}`);
     }
     return await response.blob();
   } catch (error) {
+    // Normalize AbortError
+    if (signal?.aborted) {
+      throw new DOMException('Aborted', 'AbortError');
+    }
     throw new Error(`Failed to fetch image: ${error.message}`);
   }
-}
-
-function blobToBase64(blob) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64String = reader.result.split(',')[1];
-      resolve(base64String);
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
-}
-
-function createFormData(params) {
-  const { model, quality, size, prompt, base64Image, maskBlob } = params;
-
-  const formData = new FormData();
-  formData.append('model', model);
-  formData.append('prompt', prompt);
-  formData.append('n', '1');
-  if (quality && quality !== 'auto') {
-    formData.append('quality', quality);
-  }
-  if (size && size !== 'auto') {
-    formData.append('size', size);
-  }
-  if (maskBlob) {
-    formData.append('mask', maskBlob, 'mask.png');
-  }
-  const imageBlob = base64ToBlob(base64Image, 'image/png');
-  formData.append('image', imageBlob, 'menu.png');
-
-  return formData;
-}
-
-function base64ToBlob(base64, mimeType) {
-  const byteCharacters = atob(base64);
-  const byteNumbers = new Array(byteCharacters.length);
-  
-  for (let i = 0; i < byteCharacters.length; i++) {
-    byteNumbers[i] = byteCharacters.charCodeAt(i);
-  }
-  
-  const byteArray = new Uint8Array(byteNumbers);
-  return new Blob([byteArray], { type: mimeType });
 }
 
 // Creates a PNG mask from an input image using block-based averaging.
@@ -206,9 +203,78 @@ async function generateMaskFromImageBlob(imageBlob, whiteThreshold = 250, blockS
       }
     }
 
-    ctx.putImageData(imageData, 0, 0);
+    const ctxPut = ctx; // maintain naming clarity
+    ctxPut.putImageData(imageData, 0, 0);
     return await canvas.convertToBlob({ type: 'image/png' });
   } catch (err) {
     throw new Error(`Failed to generate mask: ${err.message}`);
   }
+}
+
+// Provider selection
+function selectAiProviderByModel(modelName) {
+  switch (modelName.toLowerCase()) {
+    case 'gpt-image-1':
+      return gptImage1;
+    default:
+      return gptImage1;
+  }
+}
+
+// Providers
+const gptImage1 = {
+  name: 'GPT-Image-1',
+  buildRequest({ settings, imageBlob, maskBlob, signal }) {
+    const formData = new FormData();
+    formData.append('model', settings.model);
+    formData.append('prompt', settings.prompt);
+    formData.append('n', '1');
+    if (settings.quality && settings.quality !== 'auto') {
+      formData.append('quality', settings.quality);
+    }
+    if (settings.size && settings.size !== 'auto') {
+      formData.append('size', settings.size);
+    }
+    if (maskBlob) {
+      formData.append('mask', maskBlob, 'mask.png');
+    }
+    formData.append('image', imageBlob, 'image.png');
+
+    return {
+      url: 'https://api.openai.com/v1/images/edits',
+      options: {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${settings.apiKey}`,
+        },
+        body: formData,
+        signal,
+      }
+    };
+  },
+  async extractResult(response) {
+    const data = await response.json();
+    const first = data?.data?.[0];
+    return first?.b64_json || null;
+  }
+};
+
+// Misc utilities
+async function fetchUrlToBase64(url, signal) {
+  const res = await fetch(url, { signal });
+  if (!res.ok) throw new Error(`Failed to fetch image URL: ${res.statusText}`);
+  const blob = await res.blob();
+  return await blobToBase64(blob);
+}
+
+function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = String(reader.result).split(',')[1];
+      resolve(base64String);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
 }
