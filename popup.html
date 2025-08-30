@@ -99,14 +99,19 @@
     
   <div class="section">
     <label for="model">Model:</label>
-    <input type="text" id="model" placeholder="gpt-image-1">
+    <!-- TODO: add ability to change model -->
+    <select id="model" disabled>
+      <option value="gpt-image-1">gpt-image-1</option>
+      <option value="dall-e-2">dall-e-2</option>
+    </select>
   </div>
  
   <div class="section">
     <label for="quality">Quality:</label>
     <select id="quality">
+      <option value="auto">Auto</option>
       <option value="low">Low</option>
-      <option value="medium" selected>Medium</option>
+      <option value="medium">Medium</option>
       <option value="high">High</option>
     </select>
   </div>
@@ -114,8 +119,9 @@
   <div class="section">
     <label for="size">Output size:</label>
     <select id="size">
+      <option value="auto">Auto</option>
       <option value="1024x1024">1024 x 1024</option>
-      <option value="1536x1024" selected>1536 x 1024</option>
+      <option value="1536x1024">1536 x 1024</option>
       <option value="1024x1536">1024 x 1536</option>
     </select>
   </div>
@@ -134,8 +140,7 @@
   </div>
   
   <div class="section">
-    <label>Author</label>
-    <div class="info">Ivan Seredkin — <a href="mailto:ivan.seredkin@verkada.com">ivan.seredkin@verkada.com</a></div>
+    <div class="info">Built with ❤️ by <a href="mailto:ivan.seredkin@verkada.com">Ivan Seredkin</a></div>
   </div>
   
   <div id="status" class="status"></div>

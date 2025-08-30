@@ -108,21 +108,20 @@ function createFormData(params) {
   const { model, quality, size, prompt, base64Image, maskBlob } = params;
 
   const formData = new FormData();
-  
-  const imageBlob = base64ToBlob(base64Image, 'image/png');
-  formData.append('image', imageBlob, 'menu.png');
   formData.append('model', model);
   formData.append('prompt', prompt);
   formData.append('n', '1');
-  if (quality) {
+  if (quality && quality !== 'auto') {
     formData.append('quality', quality);
   }
-  if (size) {
+  if (size && size !== 'auto') {
     formData.append('size', size);
   }
   if (maskBlob) {
     formData.append('mask', maskBlob, 'mask.png');
   }
+  const imageBlob = base64ToBlob(base64Image, 'image/png');
+  formData.append('image', imageBlob, 'menu.png');
 
   return formData;
 }
@@ -140,7 +139,7 @@ function base64ToBlob(base64, mimeType) {
 }
 
 // Creates a PNG mask from an input image using block-based averaging.
-// For each block (default 32x32), if the average color is near-white
+// For each block, if the average color is near-white
 // (>= whiteThreshold per channel), the block becomes fully transparent;
 // otherwise it becomes fully opaque black. The mask keeps original dimensions.
 async function generateMaskFromImageBlob(imageBlob, whiteThreshold = 250, blockSize = 128) {
