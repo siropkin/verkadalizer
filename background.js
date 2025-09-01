@@ -1,7 +1,11 @@
 // Background service worker: process image edits via provider-agnostic adapter
 const ACTIONS = {
+  GENERATE_REQUEST_ID: 'generateRequestId',
   PROCESS_IMAGE: 'processImage',
   CANCEL_REQUEST: 'cancelRequest',
+  SAVE_GENERATED_IMAGE: 'saveGeneratedImage',
+  LOAD_SAVED_IMAGE: 'loadSavedImage',
+  CLEANUP_OLD_IMAGES: 'cleanupOldImages',
 };
 
 // Tracks in-flight requests by requestId
@@ -31,6 +35,34 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     } else {
       sendResponse({ success: false, error: 'No in-flight request for given requestId', requestId });
     }
+    return true;
+  }
+
+  if (request && request.action === ACTIONS.GENERATE_REQUEST_ID) {
+    generateRequestIdFromImage(request.imageUrl)
+      .then(requestId => sendResponse({ success: true, requestId }))
+      .catch(error => sendResponse({ success: false, error: error.message }));
+    return true;
+  }
+
+  if (request && request.action === ACTIONS.SAVE_GENERATED_IMAGE) {
+    saveGeneratedImageToStorage(request.requestId, request.generatedSrc)
+      .then(result => sendResponse({ success: true }))
+      .catch(error => sendResponse({ success: false, error: error.message }));
+    return true;
+  }
+
+  if (request && request.action === ACTIONS.LOAD_SAVED_IMAGE) {
+    loadSavedImageFromStorage(request.requestId)
+      .then(result => sendResponse({ success: true, data: result }))
+      .catch(error => sendResponse({ success: false, error: error.message }));
+    return true;
+  }
+
+  if (request && request.action === ACTIONS.CLEANUP_OLD_IMAGES) {
+    cleanupOldSavedImages()
+      .then(result => sendResponse({ success: true }))
+      .catch(error => sendResponse({ success: false, error: error.message }));
     return true;
   }
 });
@@ -282,4 +314,75 @@ function blobToBase64(blob) {
     reader.onerror = reject;
     reader.readAsDataURL(blob);
   });
+}
+
+// Storage functions for generated images
+async function saveGeneratedImageToStorage(requestId, generatedSrc) {
+  try {
+    const result = await chrome.storage.local.get(['verkadalizer_saved_images']);
+    const savedImages = result.verkadalizer_saved_images || {};
+    
+    savedImages[requestId] = {
+      generatedSrc,
+      timestamp: Date.now()
+    };
+    
+    await chrome.storage.local.set({ verkadalizer_saved_images: savedImages });
+  } catch (error) {
+    console.warn('Failed to save generated image:', error);
+    throw error;
+  }
+}
+
+async function loadSavedImageFromStorage(requestId) {
+  try {
+    const result = await chrome.storage.local.get(['verkadalizer_saved_images']);
+    const savedImages = result.verkadalizer_saved_images || {};
+    return savedImages[requestId] || null;
+  } catch (error) {
+    console.warn('Failed to load saved image:', error);
+    throw error;
+  }
+}
+
+async function cleanupOldSavedImages() {
+  try {
+    const result = await chrome.storage.local.get(['verkadalizer_saved_images']);
+    const savedImages = result.verkadalizer_saved_images || {};
+    const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+    let cleaned = false;
+    
+    for (const [requestId, data] of Object.entries(savedImages)) {
+      if (data.timestamp < sevenDaysAgo) {
+        delete savedImages[requestId];
+        cleaned = true;
+      }
+    }
+    
+    if (cleaned) {
+      await chrome.storage.local.set({ verkadalizer_saved_images: savedImages });
+    }
+  } catch (error) {
+    console.warn('Failed to cleanup old saved images:', error);
+    throw error;
+  }
+}
+
+async function generateRequestIdFromImage(imageUrl) {
+  const imageBlob = await fetchImageAsBlob(imageUrl);
+  const bitmap = await createImageBitmap(imageBlob);
+  const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  
+  ctx.drawImage(bitmap, 0, 0);
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  
+  // Simple hash calculation from image data
+  let hash = 0;
+  for (let i = 0; i < imageData.data.length; i += 4) {
+    hash = ((hash << 5) - hash + imageData.data[i] + imageData.data[i+1] + imageData.data[i+2]) & 0xffffffff;
+  }
+  
+  const requestId = `img_${Math.abs(hash).toString(36)}`;
+  return requestId;
 }

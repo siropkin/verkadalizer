@@ -10,6 +10,10 @@ const ACTIONS = {
   CANCEL_REQUEST: 'cancelRequest',
 };
 
+function isVerkadaMenuPage() {
+  return window.location.href.includes('sites.google.com/verkada.com/verkada-menu');
+}
+
 function isMenuImage(img) {
   return !!(img && img.src && img.src.includes('googleusercontent.com') && img.src.includes('=w1280'));
 }
@@ -246,8 +250,78 @@ function removeSpinnerOverlay(img) {
   img.style.opacity = '1';
 }
 
-function generateRequestId() {
-  return `img_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+async function generateRequestId(img) {
+  const imageUrl = img.dataset.vkOriginalSrc || img.src;
+  const response = await chrome.runtime.sendMessage({
+    action: 'generateRequestId',
+    imageUrl
+  });
+  
+  if (response.success) {
+    return response.requestId;
+  } else {
+    throw new Error(response.error);
+  }
+}
+
+async function saveGeneratedImage(requestId, generatedSrc) {
+  try {
+    const response = await chrome.runtime.sendMessage({
+      action: 'saveGeneratedImage',
+      requestId,
+      generatedSrc
+    });
+    if (!response.success) {
+      throw new Error(response.error);
+    }
+  } catch (error) {
+    console.warn('Failed to save generated image:', error);
+  }
+}
+
+async function cleanupOldSavedImages() {
+  try {
+    const response = await chrome.runtime.sendMessage({
+      action: 'cleanupOldImages'
+    });
+    if (!response.success) {
+      throw new Error(response.error);
+    }
+  } catch (error) {
+    console.warn('Failed to cleanup old saved images:', error);
+  }
+}
+
+async function loadSavedImage(requestId) {
+  try {
+    const response = await chrome.runtime.sendMessage({
+      action: 'loadSavedImage',
+      requestId
+    });
+    if (response.success) {
+      return response.data;
+    }
+    return null;
+  } catch (error) {
+    console.warn('Failed to load saved image:', error);
+    return null;
+  }
+}
+
+async function restoreSavedImage(img) {
+  const requestId = await generateRequestId(img);
+  const savedImage = await loadSavedImage(requestId);
+  
+  if (savedImage && savedImage.generatedSrc) {
+    img.dataset.vkGeneratedSrc = savedImage.generatedSrc;
+    img.dataset.vkOriginalSrc = img.dataset.vkOriginalSrc || img.src;
+    
+    // Show generated image by default when restored
+    img.src = savedImage.generatedSrc;
+    img.dataset.vkView = 'generated';
+    
+    renderController(img);
+  }
 }
 
 async function startImageProcessing(img) {
@@ -255,7 +329,7 @@ async function startImageProcessing(img) {
 
   // Set initial state
   img.dataset.vkIsProcessing = 'true';
-  img.dataset.vkRequestId = generateRequestId();
+  img.dataset.vkRequestId = await generateRequestId(img);
   img.dataset.vkOriginalSrc = img.dataset.vkOriginalSrc || img.src;
   createSpinnerOverlay(img);
   renderController(img);
@@ -272,6 +346,8 @@ async function startImageProcessing(img) {
       img.dataset.vkGeneratedSrc = generated;
       img.src = generated;
       img.dataset.vkView = 'generated';
+
+      await saveGeneratedImage(img.dataset.vkRequestId, generated);
     } else {
       if (!response?.canceled) {
         throw new Error(response?.error || 'Unknown error');
@@ -301,22 +377,34 @@ async function cancelImageProcessing(img) {
   renderController(img);
 }
 
-function init() {
-  if (!window.location.href.includes('sites.google.com/verkada.com/verkada-menu')) {
+async function init() {
+  if (!isVerkadaMenuPage()) {
     return;
   }
+  
+  // Clean up old saved images (older than 7 days)
+  await cleanupOldSavedImages();
+  
+  // Restore saved images first
+  const restoreSavedImages = async () => {
+    const menuImages = queryMenuImages();
+    await Promise.all(menuImages.map((img) => restoreSavedImage(img)));
+  };
   
   // Attach controller to existing images
   const attachControllers = () => {
     const menuImages = queryMenuImages();
     menuImages.forEach((img) => attachController(img));
   };
+  
+  await restoreSavedImages();
   attachControllers();
 
   const refreshButtons = () => {
     // Throttle refresh slightly for DOM bursts
     if (refreshButtons._raf) cancelAnimationFrame(refreshButtons._raf);
-    refreshButtons._raf = requestAnimationFrame(() => {
+    refreshButtons._raf = requestAnimationFrame(async () => {
+      await restoreSavedImages();
       attachControllers();
     });
   };
