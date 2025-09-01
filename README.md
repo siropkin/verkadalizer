@@ -14,7 +14,7 @@ A Chrome extension that processes food menu images from Verkada Menu pages using
 
 ## Installation
 
-1. Clone or download this repository
+1. Clone or download repository `https://github.com/siropkin/verkadalizer`
 2. Open Chrome and navigate to `chrome://extensions/`
 3. Enable "Developer mode"
 4. Click "Load unpacked" and select the extension directory
@@ -28,24 +28,6 @@ Click the extension icon to configure:
 - **Model**: Default is `gpt-image-1` (OpenAI's image editing model)
 - **Processing Prompt**: Customize how the AI processes menu images
 - **Output Size**: Choose output image size for OpenAI edits (default 1536×1024)
-
-## Default Prompt
-
-```
-You are a specialized AI designed to analyze food menus and visualize individual menu items. Your task is to process an input image containing a food menu and then create a new, composite image.
-
-**Input:** An image of a food menu (e.g., a photograph of a printed menu).
-
-**Task:**
-1. **Analyze the Input Image:** Read and parse the text from the provided food menu image to identify individual menu items.
-2. **Visualize Menu Items:** For each identified menu item, generate a realistic, high-quality visual representation of the dish.
-3. **Place Visualizations:** Integrate these generated dish visualizations into the original menu image.
-4. **Plate Specifics:**
-   * For dishes served in a deep bowl or on a deep plate (e.g., soup, stew, pasta), use a **deep blue** plate.
-   * For dishes served on a flat plate (e.g., steak, salad, sandwich), use a **white** plate.
-
-**Output:** A single, high-resolution composite image where each menu item from the original menu is replaced or accompanied by a generated visual representation of the food, displayed on the specified plate color.
-```
 
 ## How It Works
 
