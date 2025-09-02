@@ -1,5 +1,7 @@
 # Verkadalizer Chrome Extension
 
+<img src="images/verkadalizer.jpg" alt="Verkadalizer Chrome Extension"/>
+
 A Chrome extension that processes food menu images from Verkada Menu pages using OpenAI's Image Edit API to create beautiful, appetizing visualizations of menu items.
 
 ## Features
