@@ -60,14 +60,15 @@ function createButton({ className, text, variant = 'primary' }) {
   btn.textContent = text;
   const base = `
     border: none;
-    padding: 8px;
+    padding: 0 8px;
     cursor: pointer;
     font-family: Arial, sans-serif;
     font-size: 16px;
     border-radius: 4px;
     white-space: nowrap;
+    height: 36px;
   `;
-  const primary = `background: rgb(130, 81, 170); color: white;`;
+  const primary = `background: rgb(130, 81, 170); color: white; border: 1px solid rgb(130, 81, 170);`;
   const secondary = `background: white; color: rgb(130, 81, 170); border: 1px solid rgb(130, 81, 170);`;
   btn.style.cssText = base + (variant === 'primary' ? primary : secondary);
   return btn;
