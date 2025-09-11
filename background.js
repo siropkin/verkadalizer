@@ -176,7 +176,7 @@ async function fetchImageAsBlob(imageUrl, signal) {
 // For each block, if the average color is near-white
 // (>= whiteThreshold per channel), the block becomes fully transparent;
 // otherwise it becomes fully opaque black. The mask keeps original dimensions.
-async function generateMaskFromImageBlob(imageBlob, whiteThreshold = 250, blockSize = 72) {
+async function generateMaskFromImageBlob(imageBlob, whiteThreshold = 250, blockSize = 128) {
   try {
     const bitmap = await createImageBitmap(imageBlob);
     const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
