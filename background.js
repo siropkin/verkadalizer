@@ -176,7 +176,7 @@ async function fetchImageAsBlob(imageUrl, signal) {
 // For each block, if the average color is near-white
 // (>= whiteThreshold per channel), the block becomes fully transparent;
 // otherwise it becomes fully opaque black. The mask keeps original dimensions.
-async function generateMaskFromImageBlob(imageBlob, whiteThreshold = 250, blockSize = 128) {
+async function generateMaskFromImageBlob(imageBlob, whiteThreshold = 250, blockSize = 32) {
   try {
     const bitmap = await createImageBitmap(imageBlob);
     const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
@@ -197,11 +197,15 @@ async function generateMaskFromImageBlob(imageBlob, whiteThreshold = 250, blockS
         let sumB = 0;
         let count = 0;
 
-        // First pass: compute average color for the block
+        // First pass: compute average color for the block (skip out-of-bounds)
         for (let y = 0; y < blockH; y++) {
-          const rowStart = (by + y) * width;
+          const globalY = by + y;
+          if (globalY >= height) break;
+          const rowStart = globalY * width;
           for (let x = 0; x < blockW; x++) {
-            const idx = ((rowStart + (bx + x)) << 2);
+            const globalX = bx + x;
+            if (globalX >= width) break;
+            const idx = ((rowStart + globalX) << 2);
             sumR += data[idx];
             sumG += data[idx + 1];
             sumB += data[idx + 2];
@@ -218,18 +222,26 @@ async function generateMaskFromImageBlob(imageBlob, whiteThreshold = 250, blockS
         if (isWhiteBlock) {
           // Transparent indicates editable area
           for (let y = 0; y < blockH; y++) {
-            const rowStart = (by + y) * width;
+            const globalY = by + y;
+            if (globalY >= height) break;
+            const rowStart = globalY * width;
             for (let x = 0; x < blockW; x++) {
-              const idx = ((rowStart + (bx + x)) << 2);
+              const globalX = bx + x;
+              if (globalX >= width) break;
+              const idx = ((rowStart + globalX) << 2);
               data[idx + 3] = 0; // alpha
             }
           }
         } else {
           // Opaque black indicates preserved area
           for (let y = 0; y < blockH; y++) {
-            const rowStart = (by + y) * width;
+            const globalY = by + y;
+            if (globalY >= height) break;
+            const rowStart = globalY * width;
             for (let x = 0; x < blockW; x++) {
-              const idx = ((rowStart + (bx + x)) << 2);
+              const globalX = bx + x;
+              if (globalX >= width) break;
+              const idx = ((rowStart + globalX) << 2);
               data[idx] = 0;
               data[idx + 1] = 0;
               data[idx + 2] = 0;
