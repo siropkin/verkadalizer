@@ -11,9 +11,9 @@ A single, high-resolution image of a food menu.
 
 ## 3. Plate Selection and Presentation Rules
 Plate Types Available:
-- Large White Flat Plate (12-inch diameter). Use for: Flat presentations, grilled items, salads, sandwiches, steaks, fish fillets.
-- Large Deep Blue Plate (12-inch diameter, 2-inch depth). Use for: Pasta dishes, stews, curries, rice bowls.
-- Medium Deep Blue Plate (9-inch diameter, 4-inch depth). Use for: Individual portions, small soups, side dishes, appetizer portions.
+- Large Flat Fully White Plate (12-inch diameter). Use for: Flat presentations, grilled items, salads, sandwiches, steaks, fish fillets.
+- Large Deep Fully Blue Plate (12-inch diameter, 2-inch depth). Use for: Pasta dishes, stews, curries, rice bowls.
+- Medium Deep Fully Blue Plate (9-inch diameter, 4-inch depth). Use for: Individual portions, soups, side dishes, appetizer portions.
 
 Selection Criteria:
 - Dish Type: Consider whether the dish is liquid-based, sauce-heavy, or dry and select the most appropriate plate from the list above.
