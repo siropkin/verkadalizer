@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Verkadalizer",
-  "version": "1.0",
+  "version": "1.1",
   "description": "Automatically processes food menu images from Verkada Menu pages using OpenAI's API to create beautiful, appetizing visualizations.",
   "permissions": [
     "activeTab",

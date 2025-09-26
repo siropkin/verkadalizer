@@ -278,6 +278,7 @@ const gptImage1 = {
     formData.append('model', settings.model);
     formData.append('prompt', settings.prompt);
     formData.append('n', '1');
+    formData.append('input_fidelity', 'high');
     if (settings.quality && settings.quality !== 'auto') {
       formData.append('quality', settings.quality);
     }
