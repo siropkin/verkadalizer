@@ -6,7 +6,7 @@ A single, high-resolution image of a food menu.
 
 ## 2. Core Tasks
 - Analyze Menu Image: Identify the layout and distinct sections of the menu from the source image.
-- Extract Key Items: Identify 3-4 visually interesting and varied dishes from the menu to generate.
+- Extract Key Items: Identify 4-6 visually interesting and varied dishes from the menu to generate.
 - Generate Photorealistic Dishes: Create high-quality, restaurant-style models of the selected food items, paying close attention to ingredients and using the specified plateware below.
 
 ## 3. Plate Selection and Presentation Rules
@@ -28,12 +28,12 @@ Selection Criteria:
 - Surface: The menu and the dishes must appear to be resting on the same continuous, neutral surface (e.g., a dark wooden table, slate, or stone).
 
 ## 5. Camera, Lighting, and Style
-- Camera Angle: The entire scene must be captured from a **three-quarters angle (approximately 45 degrees)**. This is crucial for creating depth.
-- Lighting: Use a single, soft, directional light source that is **consistent across the entire scene**, illuminating both the food and the menu backdrop realistically.
+- Camera Angle: The entire scene must be captured from a three-quarters angle (approximately 45 degrees). This is crucial for creating depth.
+- Lighting: Use a single, soft, directional light source that is consistent across the entire scene, illuminating both the food and the menu backdrop realistically.
 - Focus and Depth: Employ a shallow depth of field. The food in the foreground should be in sharp focus, while the menu backdrop is slightly soft/blurred.
 
 ## 6. Compositional Constraints
-- Dish Selection: Feature a balanced selection of 3-4 dishes.
+- Dish Selection: Feature a balanced selection of 4-6 dishes.
 - Soup Limitation: The composition must feature no more than two soup dishes.
 
 ## 7. Output Deliverable
