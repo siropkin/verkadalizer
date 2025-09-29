@@ -694,7 +694,7 @@ async function mergeImagesWithTextOverlay(originalImageUrl, aiImageData) {
 
     // Apply smart white background removal to top section with smooth borders and shadows
     const topImageData = topCtx.getImageData(0, 0, topCanvas.width, topCanvas.height);
-    const processedTopImageData = removeWhiteBackgroundSmart(removeVerticalLines(topImageData), 4, 255, 2, 4);
+    const processedTopImageData = removeWhiteBackgroundSmart(removeVerticalLines(topImageData), 4, 255, 0, 4);
     topCtx.putImageData(processedTopImageData, 0, 0);
 
     // Overlay the top section text onto the generated background - full width, starting at top
@@ -719,7 +719,7 @@ async function mergeImagesWithTextOverlay(originalImageUrl, aiImageData) {
 
       // Apply smart white background removal to bottom section with smooth borders and shadows
       const bottomImageData = bottomCtx.getImageData(0, 0, bottomCanvas.width, bottomCanvas.height);
-      const processedBottomImageData = removeWhiteBackgroundSmart(removeVerticalLines(bottomImageData), 4, 255, 2, 4);
+      const processedBottomImageData = removeWhiteBackgroundSmart(removeVerticalLines(bottomImageData), 4, 255, 0, 4);
       bottomCtx.putImageData(processedBottomImageData, 0, 0);
 
       // Overlay the bottom section as a foreground element - full width, ending at bottom
