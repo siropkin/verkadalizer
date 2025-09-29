@@ -8,6 +8,7 @@ function getRandomFoodEmoji() {
 const ACTIONS = {
   PROCESS_IMAGE: 'processImage',
   CANCEL_REQUEST: 'cancelRequest',
+  MERGE_IMAGES: 'mergeImages',
 };
 
 function isVerkadaMenuPage() {
@@ -325,6 +326,7 @@ async function restoreSavedImage(img) {
   }
 }
 
+
 async function startImageProcessing(img) {
   if (!img) return;
 
@@ -336,22 +338,40 @@ async function startImageProcessing(img) {
   renderController(img);
 
   try {
-    const response = await chrome.runtime.sendMessage({
+    const aiResponse = await chrome.runtime.sendMessage({
       action: ACTIONS.PROCESS_IMAGE,
       imageUrl: img.dataset.vkOriginalSrc,
       requestId: img.dataset.vkRequestId,
     });
 
-    if (response && response.success) {
-      const generated = `data:image/png;base64,${response.b64}`;
-      img.dataset.vkGeneratedSrc = generated;
-      img.src = generated;
-      img.dataset.vkView = 'generated';
+    if (aiResponse && aiResponse.success) {
+      let imageData = `data:image/png;base64,${aiResponse.b64}`;
 
-      await saveGeneratedImage(img.dataset.vkRequestId, generated);
+      try {
+        // Merge images in the background service
+        const mergeResponse = await chrome.runtime.sendMessage({
+          action: ACTIONS.MERGE_IMAGES,
+          originalImageUrl: img.dataset.vkOriginalSrc,
+          aiImageData: imageData,
+        });
+
+        if (mergeResponse && mergeResponse.success) {
+          imageData = `data:image/png;base64,${mergeResponse.b64}`;
+        } else {
+          throw new Error(mergeResponse?.error || 'Image merge failed');
+        }
+      } catch (mergeError) {
+        console.error('Error during merge, falling back to generated image:', mergeError);
+        // Fallback: just use the generated background without text overlay
+      } finally {
+        img.dataset.vkGeneratedSrc = imageData;
+        img.src = imageData;
+        img.dataset.vkView = 'generated';
+        await saveGeneratedImage(img.dataset.vkRequestId, imageData);
+      }
     } else {
-      if (!response?.canceled) {
-        throw new Error(response?.error || 'Unknown error');
+      if (!aiResponse?.canceled) {
+        throw new Error(aiResponse?.error || 'Unknown error');
       }
     }
   } catch (error) {
