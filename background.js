@@ -632,16 +632,54 @@ async function mergeImagesWithTextOverlay(originalImageUrl, aiImageData) {
     const generatedBlob = await fetch(aiImageData).then(r => r.blob());
     const generatedBitmap = await createImageBitmap(generatedBlob);
 
-    // Create final canvas with anti-aliasing enabled
-    const canvas = new OffscreenCanvas(generatedBitmap.width, generatedBitmap.height);
+    // Calculate original aspect ratio
+    const originalAspectRatio = originalBitmap.width / originalBitmap.height;
+    const generatedAspectRatio = generatedBitmap.width / generatedBitmap.height;
+
+    // Create temporary canvas to crop and resize AI image to match original dimensions
+    let processedAiBitmap = generatedBitmap;
+
+    if (Math.abs(originalAspectRatio - generatedAspectRatio) > 0.01) {
+      // Need to crop AI image to match original aspect ratio
+      const tempCanvas = new OffscreenCanvas(generatedBitmap.width, generatedBitmap.height);
+      const tempCtx = tempCanvas.getContext('2d');
+
+      // Calculate crop dimensions
+      let cropWidth = generatedBitmap.width;
+      let cropHeight = generatedBitmap.height;
+      let cropX = 0;
+      let cropY = 0;
+
+      if (generatedAspectRatio > originalAspectRatio) {
+        // AI image is wider - crop width
+        cropWidth = Math.floor(generatedBitmap.height * originalAspectRatio);
+        cropX = Math.floor((generatedBitmap.width - cropWidth) / 2);
+      } else {
+        // AI image is taller - crop height (mostly from top, a bit from bottom)
+        cropHeight = Math.floor(generatedBitmap.width / originalAspectRatio);
+        const totalCrop = generatedBitmap.height - cropHeight;
+        cropY = Math.floor(totalCrop * 0.75); // 75% from top, 25% from bottom
+      }
+
+      // Resize temp canvas to cropped dimensions
+      tempCanvas.width = cropWidth;
+      tempCanvas.height = cropHeight;
+      tempCtx.drawImage(generatedBitmap, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+
+      const croppedBlob = await tempCanvas.convertToBlob();
+      processedAiBitmap = await createImageBitmap(croppedBlob);
+    }
+
+    // Create final canvas with original image dimensions
+    const canvas = new OffscreenCanvas(originalBitmap.width, originalBitmap.height);
     const ctx = canvas.getContext('2d');
 
     // Enable anti-aliasing for smoother rendering
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
 
-    // Draw the generated background image first
-    ctx.drawImage(generatedBitmap, 0, 0);
+    // Draw the processed AI background image first, scaled to match original dimensions
+    ctx.drawImage(processedAiBitmap, 0, 0, canvas.width, canvas.height);
 
     // Extract text sections from original image
     // Top section: Main menu items (upper 70% of the image)
