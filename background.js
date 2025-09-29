@@ -68,7 +68,7 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
   }
 
   if (request && request.action === ACTIONS.MERGE_IMAGES) {
-    mergeImagesWithTextOverlay(request.originalImageUrl, request.aiImageData)
+    mergeImages(request.originalImageUrl, request.aiImageData)
       .then(result => sendResponse({ success: true, b64: result }))
       .catch(error => sendResponse({ success: false, error: error.message }));
     return true;
@@ -505,7 +505,7 @@ function removeVerticalLines(imageData, minHeight = 50, maxWidth = 8, whiteThres
 }
 
 // Smart white background removal with smooth text borders and shadow effects
-function removeWhiteBackgroundSmart(imageData, textPreservationRadius = 2, whiteThreshold = 245, shadowOffset = 2, shadowBlur = 4) {
+function removeWhiteBackgroundSmart(imageData, textPreservationRadius = 2, whiteThreshold = 255, shadowOffset = 0, shadowBlur = 4) {
   const { data, width, height } = imageData;
   const newData = new Uint8ClampedArray(data);
 
@@ -621,8 +621,76 @@ function removeWhiteBackgroundSmart(imageData, textPreservationRadius = 2, white
   return new ImageData(newData, width, height);
 }
 
-// Image merging functionality
-async function mergeImagesWithTextOverlay(originalImageUrl, aiImageData) {
+// Remove dividers from original image
+async function removeDividersFromImage(bitmap) {
+  const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+  const ctx = canvas.getContext('2d');
+
+  ctx.drawImage(bitmap, 0, 0);
+
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const processedImageData = removeVerticalLines(imageData);
+  ctx.putImageData(processedImageData, 0, 0);
+
+  const blob = await canvas.convertToBlob();
+  return await createImageBitmap(blob);
+}
+
+// Make white background transparent while preserving text
+async function makeBackgroundTransparent(bitmap) {
+  const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+  const ctx = canvas.getContext('2d');
+
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(bitmap, 0, 0);
+
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const processedImageData = removeWhiteBackgroundSmart(imageData, 6, 255, 0, 2);
+  ctx.putImageData(processedImageData, 0, 0);
+
+  const blob = await canvas.convertToBlob();
+  return await createImageBitmap(blob);
+}
+
+// Resize AI generated image to match original dimensions
+async function resizeAiImage(generatedBitmap, targetWidth, targetHeight) {
+  const originalAspectRatio = targetWidth / targetHeight;
+  const generatedAspectRatio = generatedBitmap.width / generatedBitmap.height;
+
+  let processedBitmap = generatedBitmap;
+
+  if (Math.abs(originalAspectRatio - generatedAspectRatio) > 0.01) {
+    const tempCanvas = new OffscreenCanvas(generatedBitmap.width, generatedBitmap.height);
+    const tempCtx = tempCanvas.getContext('2d');
+
+    let cropWidth = generatedBitmap.width;
+    let cropHeight = generatedBitmap.height;
+    let cropX = 0;
+    let cropY = 0;
+
+    if (generatedAspectRatio > originalAspectRatio) {
+      cropWidth = Math.floor(generatedBitmap.height * originalAspectRatio);
+      cropX = Math.floor((generatedBitmap.width - cropWidth) / 2);
+    } else {
+      cropHeight = Math.floor(generatedBitmap.width / originalAspectRatio);
+      const totalCrop = generatedBitmap.height - cropHeight;
+      cropY = Math.floor(totalCrop * 0.75);
+    }
+
+    tempCanvas.width = cropWidth;
+    tempCanvas.height = cropHeight;
+    tempCtx.drawImage(generatedBitmap, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+
+    const croppedBlob = await tempCanvas.convertToBlob();
+    processedBitmap = await createImageBitmap(croppedBlob);
+  }
+
+  return processedBitmap;
+}
+
+// Merge original and AI images
+async function mergeImages(originalImageUrl, aiImageData) {
   try {
     // Load original image
     const originalBlob = await fetchImageAsBlob(originalImageUrl);
@@ -632,104 +700,27 @@ async function mergeImagesWithTextOverlay(originalImageUrl, aiImageData) {
     const generatedBlob = await fetch(aiImageData).then(r => r.blob());
     const generatedBitmap = await createImageBitmap(generatedBlob);
 
-    // Calculate original aspect ratio
-    const originalAspectRatio = originalBitmap.width / originalBitmap.height;
-    const generatedAspectRatio = generatedBitmap.width / generatedBitmap.height;
+    // Step 1: Remove dividers from original image
+    const originalWithoutDividers = await removeDividersFromImage(originalBitmap);
 
-    // Create temporary canvas to crop and resize AI image to match original dimensions
-    let processedAiBitmap = generatedBitmap;
+    // Step 2: Make white background transparent
+    const originalWithTransparentBg = await makeBackgroundTransparent(originalWithoutDividers);
 
-    if (Math.abs(originalAspectRatio - generatedAspectRatio) > 0.01) {
-      // Need to crop AI image to match original aspect ratio
-      const tempCanvas = new OffscreenCanvas(generatedBitmap.width, generatedBitmap.height);
-      const tempCtx = tempCanvas.getContext('2d');
+    // Step 3: Resize AI generated image to match original dimensions
+    const resizedAiImage = await resizeAiImage(generatedBitmap, originalBitmap.width, originalBitmap.height);
 
-      // Calculate crop dimensions
-      let cropWidth = generatedBitmap.width;
-      let cropHeight = generatedBitmap.height;
-      let cropX = 0;
-      let cropY = 0;
-
-      if (generatedAspectRatio > originalAspectRatio) {
-        // AI image is wider - crop width
-        cropWidth = Math.floor(generatedBitmap.height * originalAspectRatio);
-        cropX = Math.floor((generatedBitmap.width - cropWidth) / 2);
-      } else {
-        // AI image is taller - crop height (mostly from top, a bit from bottom)
-        cropHeight = Math.floor(generatedBitmap.width / originalAspectRatio);
-        const totalCrop = generatedBitmap.height - cropHeight;
-        cropY = Math.floor(totalCrop * 0.75); // 75% from top, 25% from bottom
-      }
-
-      // Resize temp canvas to cropped dimensions
-      tempCanvas.width = cropWidth;
-      tempCanvas.height = cropHeight;
-      tempCtx.drawImage(generatedBitmap, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
-
-      const croppedBlob = await tempCanvas.convertToBlob();
-      processedAiBitmap = await createImageBitmap(croppedBlob);
-    }
-
-    // Create final canvas with original image dimensions
+    // Step 4: Merge the images
     const canvas = new OffscreenCanvas(originalBitmap.width, originalBitmap.height);
     const ctx = canvas.getContext('2d');
 
-    // Enable anti-aliasing for smoother rendering
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
 
-    // Draw the processed AI background image first, scaled to match original dimensions
-    ctx.drawImage(processedAiBitmap, 0, 0, canvas.width, canvas.height);
+    // Draw AI background image first
+    ctx.drawImage(resizedAiImage, 0, 0, canvas.width, canvas.height);
 
-    // Extract text sections from original image
-    // Top section: Main menu items (upper 70% of the image)
-    const topSectionHeight = Math.floor(originalBitmap.height * 0.7);
-
-    // Create temporary canvas for top section with anti-aliasing
-    const topCanvas = new OffscreenCanvas(originalBitmap.width, topSectionHeight);
-    const topCtx = topCanvas.getContext('2d');
-    topCtx.imageSmoothingEnabled = true;
-    topCtx.imageSmoothingQuality = 'high';
-    topCtx.drawImage(originalBitmap, 0, 0, originalBitmap.width, topSectionHeight, 0, 0, originalBitmap.width, topSectionHeight);
-
-    // Apply smart white background removal to top section with smooth borders and shadows
-    const topImageData = topCtx.getImageData(0, 0, topCanvas.width, topCanvas.height);
-    const processedTopImageData = removeWhiteBackgroundSmart(removeVerticalLines(topImageData), 4, 255, 0, 4);
-    topCtx.putImageData(processedTopImageData, 0, 0);
-
-    // Overlay the top section text onto the generated background - full width, starting at top
-    const targetWidth = canvas.width;
-    const targetHeight = Math.floor((topSectionHeight / originalBitmap.width) * targetWidth);
-    const offsetX = 0;
-    const offsetY = 0;
-
-    ctx.drawImage(topCanvas, offsetX, offsetY, targetWidth, targetHeight);
-
-    // Bottom section: Soups, QR code, legend (lower 30% of the image)
-    const bottomSectionY = topSectionHeight;
-    const bottomSectionHeight = originalBitmap.height - topSectionHeight;
-
-    if (bottomSectionHeight > 0) {
-      // Create temporary canvas for bottom section with anti-aliasing
-      const bottomCanvas = new OffscreenCanvas(originalBitmap.width, bottomSectionHeight);
-      const bottomCtx = bottomCanvas.getContext('2d');
-      bottomCtx.imageSmoothingEnabled = true;
-      bottomCtx.imageSmoothingQuality = 'high';
-      bottomCtx.drawImage(originalBitmap, 0, bottomSectionY, originalBitmap.width, bottomSectionHeight, 0, 0, originalBitmap.width, bottomSectionHeight);
-
-      // Apply smart white background removal to bottom section with smooth borders and shadows
-      const bottomImageData = bottomCtx.getImageData(0, 0, bottomCanvas.width, bottomCanvas.height);
-      const processedBottomImageData = removeWhiteBackgroundSmart(removeVerticalLines(bottomImageData), 4, 255, 0, 4);
-      bottomCtx.putImageData(processedBottomImageData, 0, 0);
-
-      // Overlay the bottom section as a foreground element - full width, ending at bottom
-      const bottomTargetWidth = canvas.width;
-      const bottomTargetHeight = Math.floor((bottomSectionHeight / originalBitmap.width) * bottomTargetWidth);
-      const bottomOffsetX = 0;
-      const bottomOffsetY = canvas.height - bottomTargetHeight;
-
-      ctx.drawImage(bottomCanvas, bottomOffsetX, bottomOffsetY, bottomTargetWidth, bottomTargetHeight);
-    }
+    // Overlay the original image with transparent background
+    ctx.drawImage(originalWithTransparentBg, 0, 0);
 
     // Convert to data URL
     const blob = await canvas.convertToBlob({ type: 'image/png' });
