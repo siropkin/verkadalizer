@@ -567,11 +567,13 @@ function removeWhiteBackgroundSmart(imageData, textPreservationRadius = 2, white
       const b = data[idx + 2];
       const distance = distanceToText[pixelIdx];
 
-      // Handle text pixels (keep original)
+      // Handle text pixels (darken and enhance)
       if (isText[pixelIdx]) {
-        newData[idx] = r;
-        newData[idx + 1] = g;
-        newData[idx + 2] = b;
+        // Darken text by reducing RGB values (0.7 = 30% darker)
+        const darkenFactor = 0.95;
+        newData[idx] = Math.round(r * darkenFactor);
+        newData[idx + 1] = Math.round(g * darkenFactor);
+        newData[idx + 2] = Math.round(b * darkenFactor);
         newData[idx + 3] = 255;
         continue;
       }
@@ -631,6 +633,32 @@ async function removeDividersFromImage(bitmap) {
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const processedImageData = removeVerticalLines(imageData);
   ctx.putImageData(processedImageData, 0, 0);
+
+  const blob = await canvas.convertToBlob();
+  return await createImageBitmap(blob);
+}
+
+// Upscale image for better quality processing
+async function upscaleImage(bitmap, scaleFactor = 2) {
+  const canvas = new OffscreenCanvas(bitmap.width * scaleFactor, bitmap.height * scaleFactor);
+  const ctx = canvas.getContext('2d');
+
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+
+  const blob = await canvas.convertToBlob();
+  return await createImageBitmap(blob);
+}
+
+// Downscale image back to target dimensions
+async function downscaleImage(bitmap, targetWidth, targetHeight) {
+  const canvas = new OffscreenCanvas(targetWidth, targetHeight);
+  const ctx = canvas.getContext('2d');
+
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(bitmap, 0, 0, targetWidth, targetHeight);
 
   const blob = await canvas.convertToBlob();
   return await createImageBitmap(blob);
@@ -700,30 +728,45 @@ async function mergeImages(originalImageUrl, aiImageData) {
     const generatedBlob = await fetch(aiImageData).then(r => r.blob());
     const generatedBitmap = await createImageBitmap(generatedBlob);
 
-    // Step 1: Remove dividers from original image
-    const originalWithoutDividers = await removeDividersFromImage(originalBitmap);
+    // Store original dimensions for final output
+    const originalWidth = originalBitmap.width;
+    const originalHeight = originalBitmap.height;
 
-    // Step 2: Make white background transparent
+    // Step 1: Upscale original image 2x for better quality processing
+    const upscaledOriginal = await upscaleImage(originalBitmap, 2);
+
+    // Step 2: Remove dividers from upscaled image
+    const originalWithoutDividers = await removeDividersFromImage(upscaledOriginal);
+
+    // Step 3: Make white background transparent (with darkened text)
     const originalWithTransparentBg = await makeBackgroundTransparent(originalWithoutDividers);
 
-    // Step 3: Resize AI generated image to match original dimensions
-    const resizedAiImage = await resizeAiImage(generatedBitmap, originalBitmap.width, originalBitmap.height);
+    // Step 4: Resize AI generated image to match upscaled dimensions
+    const resizedAiImage = await resizeAiImage(generatedBitmap, upscaledOriginal.width, upscaledOriginal.height);
 
-    // Step 4: Merge the images
-    const canvas = new OffscreenCanvas(originalBitmap.width, originalBitmap.height);
-    const ctx = canvas.getContext('2d');
+    // Step 5: Merge the images at upscaled resolution
+    const mergeCanvas = new OffscreenCanvas(upscaledOriginal.width, upscaledOriginal.height);
+    const mergeCtx = mergeCanvas.getContext('2d');
 
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = 'high';
+    mergeCtx.imageSmoothingEnabled = true;
+    mergeCtx.imageSmoothingQuality = 'high';
 
     // Draw AI background image first
-    ctx.drawImage(resizedAiImage, 0, 0, canvas.width, canvas.height);
+    mergeCtx.drawImage(resizedAiImage, 0, 0, mergeCanvas.width, mergeCanvas.height);
 
     // Overlay the original image with transparent background
-    ctx.drawImage(originalWithTransparentBg, 0, 0);
+    mergeCtx.drawImage(originalWithTransparentBg, 0, 0);
 
-    // Convert to data URL
-    const blob = await canvas.convertToBlob({ type: 'image/png' });
+    // Step 6: Convert merged result to bitmap and downscale to original dimensions
+    const mergedBlob = await mergeCanvas.convertToBlob({ type: 'image/png' });
+    const mergedBitmap = await createImageBitmap(mergedBlob);
+    const finalBitmap = await downscaleImage(mergedBitmap, originalWidth, originalHeight);
+
+    // Step 7: Convert final result to data URL
+    const finalCanvas = new OffscreenCanvas(originalWidth, originalHeight);
+    const finalCtx = finalCanvas.getContext('2d');
+    finalCtx.drawImage(finalBitmap, 0, 0);
+    const blob = await finalCanvas.convertToBlob({ type: 'image/png' });
     return await blobToBase64(blob);
   } catch (error) {
     console.error('Error merging images in background:', error);
