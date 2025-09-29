@@ -736,7 +736,8 @@ async function mergeImages(originalImageUrl, aiImageData) {
     const upscaledOriginal = await upscaleImage(originalBitmap, 2);
 
     // Step 2: Remove dividers from upscaled image
-    const originalWithoutDividers = await removeDividersFromImage(upscaledOriginal);
+    // const originalWithoutDividers = await removeDividersFromImage(upscaledOriginal);
+    const originalWithoutDividers = upscaledOriginal;
 
     // Step 3: Make white background transparent (with darkened text)
     const originalWithTransparentBg = await makeBackgroundTransparent(originalWithoutDividers);
