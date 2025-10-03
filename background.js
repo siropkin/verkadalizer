@@ -106,12 +106,10 @@ async function processImageRequest({ imageUrl, requestId, signal }) {
       throw new Error('Fetched image is empty');
     }
 
-    // Build a PNG mask where white pixels become transparent and others opaque
     throwIfAborted(signal);
-    const maskBlob = await generateMaskFromImageBlob(imageBlob);
 
     const aiProvider = selectAiProviderByModel(settings.model);
-    const request = aiProvider.buildRequest({ settings, imageBlob, maskBlob, signal });
+    const request = aiProvider.buildRequest({ settings, imageBlob, signal });
 
     const response = await fetch(request.url, request.options);
     if (!response.ok) {
@@ -180,94 +178,6 @@ async function fetchImageAsBlob(imageUrl, signal) {
   }
 }
 
-// Creates a PNG mask from an input image using block-based averaging.
-// For each block, if the average color is near-white
-// (>= whiteThreshold per channel), the block becomes fully transparent;
-// otherwise it becomes fully opaque black. The mask keeps original dimensions.
-async function generateMaskFromImageBlob(imageBlob, whiteThreshold = 250, blockSize = 128) {
-  try {
-    const bitmap = await createImageBitmap(imageBlob);
-    const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
-    const ctx = canvas.getContext('2d', { willReadFrequently: true });
-    ctx.drawImage(bitmap, 0, 0);
-
-    const { width, height } = canvas;
-    const imageData = ctx.getImageData(0, 0, width, height);
-    const data = imageData.data;
-
-    for (let by = 0; by < height; by += blockSize) {
-      const blockH = Math.min(blockSize, height - by);
-      for (let bx = 0; bx < width; bx += blockSize) {
-        const blockW = Math.min(blockSize, width - bx);
-
-        let sumR = 0;
-        let sumG = 0;
-        let sumB = 0;
-        let count = 0;
-
-        // First pass: compute average color for the block (skip out-of-bounds)
-        for (let y = 0; y < blockH; y++) {
-          const globalY = by + y;
-          if (globalY >= height) break;
-          const rowStart = globalY * width;
-          for (let x = 0; x < blockW; x++) {
-            const globalX = bx + x;
-            if (globalX >= width) break;
-            const idx = ((rowStart + globalX) << 2);
-            sumR += data[idx];
-            sumG += data[idx + 1];
-            sumB += data[idx + 2];
-            count++;
-          }
-        }
-
-        const avgR = sumR / count;
-        const avgG = sumG / count;
-        const avgB = sumB / count;
-        const isWhiteBlock = avgR >= whiteThreshold && avgG >= whiteThreshold && avgB >= whiteThreshold;
-
-        // Second pass: write mask values for the block
-        if (isWhiteBlock) {
-          // Transparent indicates editable area
-          for (let y = 0; y < blockH; y++) {
-            const globalY = by + y;
-            if (globalY >= height) break;
-            const rowStart = globalY * width;
-            for (let x = 0; x < blockW; x++) {
-              const globalX = bx + x;
-              if (globalX >= width) break;
-              const idx = ((rowStart + globalX) << 2);
-              data[idx + 3] = 0; // alpha
-            }
-          }
-        } else {
-          // Opaque black indicates preserved area
-          for (let y = 0; y < blockH; y++) {
-            const globalY = by + y;
-            if (globalY >= height) break;
-            const rowStart = globalY * width;
-            for (let x = 0; x < blockW; x++) {
-              const globalX = bx + x;
-              if (globalX >= width) break;
-              const idx = ((rowStart + globalX) << 2);
-              data[idx] = 0;
-              data[idx + 1] = 0;
-              data[idx + 2] = 0;
-              data[idx + 3] = 255;
-            }
-          }
-        }
-      }
-    }
-
-    const ctxPut = ctx; // maintain naming clarity
-    ctxPut.putImageData(imageData, 0, 0);
-    return await canvas.convertToBlob({ type: 'image/png' });
-  } catch (err) {
-    throw new Error(`Failed to generate mask: ${err.message}`);
-  }
-}
-
 // Provider selection
 function selectAiProviderByModel(model) {
   switch (model.toLowerCase()) {
@@ -281,7 +191,7 @@ function selectAiProviderByModel(model) {
 // Providers
 const gptImage1 = {
   name: 'GPT-Image-1',
-  buildRequest({ settings, imageBlob, maskBlob, signal }) {
+  buildRequest({ settings, imageBlob, signal }) {
     const formData = new FormData();
     formData.append('model', settings.model);
     formData.append('prompt', settings.prompt);
@@ -293,9 +203,6 @@ const gptImage1 = {
     if (settings.size && settings.size !== 'auto') {
       formData.append('size', settings.size);
     }
-    // if (maskBlob) {
-    //   formData.append('mask', maskBlob, 'mask.png');
-    // }
     formData.append('image', imageBlob, 'image.png');
 
     return {
