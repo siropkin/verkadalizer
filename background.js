@@ -1,16 +1,60 @@
+// Food preference configurations with prompt modifiers
+const FOOD_PREFERENCES = {
+  'regular': {
+    id: 'regular',
+    name: 'Regular',
+    modifier: '', // No additional constraints
+  },
+  'vegetarian': {
+    id: 'vegetarian',
+    name: 'Vegetarian',
+    modifier: '\n\n## DIETARY PREFERENCE: VEGETARIAN\n- Select ONLY vegetarian dishes from the menu (no meat, poultry, or fish)\n- Include plant-based proteins, vegetables, grains, pasta, legumes, eggs, and dairy\n- If the menu has limited vegetarian options, prioritize salads, pasta dishes, grain bowls, and vegetable-based items',
+  },
+  'vegan': {
+    id: 'vegan',
+    name: 'Vegan',
+    modifier: '\n\n## DIETARY PREFERENCE: VEGAN\n- Select ONLY vegan dishes from the menu (no animal products: no meat, poultry, fish, dairy, eggs, or honey)\n- Include plant-based proteins, vegetables, grains, legumes, nuts, and seeds\n- If the menu has limited vegan options, prioritize salads (without cheese/dressing), vegetable dishes, grain bowls, and fruit-based items',
+  },
+  'gluten-free': {
+    id: 'gluten-free',
+    name: 'Gluten Free',
+    modifier: '\n\n## DIETARY PREFERENCE: GLUTEN FREE\n- Select ONLY gluten-free dishes from the menu (no wheat, barley, rye, or derivatives)\n- Include naturally gluten-free items: grilled proteins, rice dishes, salads, vegetables, fruits\n- Avoid pasta, bread, breaded items, and dishes with flour-based sauces unless explicitly marked gluten-free',
+  },
+  'dairy-free': {
+    id: 'dairy-free',
+    name: 'Dairy Free',
+    modifier: '\n\n## DIETARY PREFERENCE: DAIRY FREE\n- Select ONLY dairy-free dishes from the menu (no milk, cheese, butter, cream, or yogurt)\n- Include dishes with meat, poultry, fish, vegetables, grains, and non-dairy alternatives\n- Avoid creamy sauces, cheese-topped dishes, and items with visible dairy products',
+  },
+  'healthy': {
+    id: 'healthy',
+    name: 'Healthy',
+    modifier: '\n\n## DIETARY PREFERENCE: HEALTHY\n- Prioritize nutrient-dense, balanced dishes with lean proteins, whole grains, and vegetables\n- Select grilled, baked, or steamed items over fried options\n- Include colorful vegetable-forward dishes, salads with lean proteins, grain bowls, and fish\n- Avoid heavily fried, cream-based, or processed items',
+  },
+  'high-protein': {
+    id: 'high-protein',
+    name: 'High Protein',
+    modifier: '\n\n## DIETARY PREFERENCE: HIGH PROTEIN\n- Prioritize dishes with substantial protein content (meat, poultry, fish, seafood, eggs, legumes)\n- Select items like steaks, grilled chicken, fish fillets, seafood platters, egg dishes, and protein bowls\n- Ensure each dish features protein as the primary component\n- Include sides that complement protein (vegetables, legumes) rather than just carbohydrates',
+  },
+  'keto': {
+    id: 'keto',
+    name: 'Keto',
+    modifier: '\n\n## DIETARY PREFERENCE: KETO\n- Select ONLY low-carb, high-fat dishes from the menu (no bread, pasta, rice, potatoes, or sugary items)\n- Prioritize fatty cuts of meat, fish with healthy fats, eggs, cheese, non-starchy vegetables, and nuts\n- Include dishes like steak, salmon, chicken with skin, salads with high-fat dressings, and cheese-based items\n- Avoid all grains, legumes, starchy vegetables, and fruit-based dishes',
+  },
+};
+
 // Default model-agnostic prompt
 const DEFAULT_PROMPT = `You are a specialized AI system that creates photorealistic food scenes with a plain cool gray background. Your objective is to generate appetizing food dishes served on the correct plateware in a cohesive 3D scene with a solid cool gray background that occupies the upper 2/3 of the image height.
 
-## 1. Input
+## INPUT
 A single, high-resolution image of a food menu.
 
-## 2. Core Tasks
+## CORE TASKS
 - Analyze Menu Layout: Study the menu structure and sections to understand the food items.
 - Extract Key Items: Identify 4-6 visually interesting and varied dishes from the menu to generate.
 - Generate Photorealistic Dishes: Create high-quality, restaurant-style models of the selected food items using specified plateware.
 - Create Plain Cool Gray Background: Generate a solid, uniform cool gray background that takes up exactly 2/3 of the image height from the top.
 
-## 3. Plate Selection and Presentation Rules
+## PLATE SELECTION AND PRESENTATION RULES
 Plate Types Available:
 - Large Flat Fully White Plate (12-inch diameter). Use for: Flat presentations, grilled items, salads, sandwiches, steaks, fish fillets.
 - Large Deep Fully Blue Plate (12-inch diameter, 2-inch depth). Use for: Pasta dishes, stews, curries, rice bowls.
@@ -21,29 +65,29 @@ Selection Criteria:
 - Portion Size: Match plate size to the expected serving size.
 - Visual Balance: Ensure the food-to-plate ratio creates appealing presentation.
 
-## 4. Scene Composition and Integration
+## SCENE COMPOSITION AND INTEGRATION
 - Background Requirements: The upper 2/3 of the image MUST be a cool gray color with no patterns, textures, gradients, or visual elements of any kind.
 - Foreground Elements: Place photorealistic food dishes on appropriate plates in the lower 1/3 of the image.
 - Surface: Food should rest on a neutral surface (dark wooden table, slate, or stone) visible only in the lower portion of the image.
 - No Background Elements: The background area must be completely empty - no lines, shapes, decorations, or any visual elements whatsoever.
 
-## 5. Camera, Lighting, and Style
+## CAMERA, LIGHTING, AND STYLE
 - Camera Angle: Three-quarters angle (approximately 45 degrees) for depth.
 - Lighting: Single, soft, directional light source consistent across the entire scene.
 - Focus and Depth: Food in sharp focus, with the background remaining uniformly cool gray throughout.
 
-## 6. Compositional Constraints
+## COMPOSITIONAL CONSTRAINTS
 - Dish Selection: Feature 4-6 balanced dishes positioned in the lower 1/3 of the image.
 - Soup Limitation: Maximum two soup dishes.
 - Background Division: Upper 2/3 = cool gray, lower 1/3 = food on surface.
 
-## 7. CRITICAL BACKGROUND REQUIREMENTS
+## CRITICAL BACKGROUND REQUIREMENTS
 - SOLID COOL GRAY BACKGROUND: The upper 2/3 of the image must be pure cool gray color with no variation.
 - NO VISUAL ELEMENTS: No text, shapes, lines, patterns, textures, or any other visual elements in the background area.
 - EXACT PROPORTIONS: Cool gray background must occupy exactly 2/3 of the total image height from the top.
 - UNIFORM COLOR: The cool gray must be consistent throughout - no gradients, shadows, or color variations in the background area.
 
-## 8. Output Deliverable
+## OUTPUT DELIVERABLE
 A single, high-resolution image with photorealistic food positioned in the lower 1/3, and a solid cool gray background occupying the upper 2/3 with no additional elements.
 
 Quality Assurance Checklist:
@@ -102,6 +146,7 @@ const AI_PROVIDERS = {
 // Background service worker: process image edits via provider-agnostic adapter
 const ACTIONS = {
   GET_AVAILABLE_MODELS: 'getAvailableModels',
+  GET_FOOD_PREFERENCES: 'getFoodPreferences',
   GENERATE_REQUEST_ID: 'generateRequestId',
   PROCESS_IMAGE: 'processImage',
   CANCEL_REQUEST: 'cancelRequest',
@@ -122,6 +167,15 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
       name: AI_PROVIDERS[key].name,
     }));
     sendResponse({ success: true, models });
+    return true;
+  }
+
+  if (request && request.action === ACTIONS.GET_FOOD_PREFERENCES) {
+    const preferences = Object.keys(FOOD_PREFERENCES).map(key => ({
+      id: FOOD_PREFERENCES[key].id,
+      name: FOOD_PREFERENCES[key].name,
+    }));
+    sendResponse({ success: true, preferences });
     return true;
   }
 
@@ -194,13 +248,19 @@ function selectAiProviderByModel(model) {
 
 // Settings and validation helpers
 async function loadSettings() {
-  const stored = await chrome.storage.local.get(['model', 'apiKey']);
+  const stored = await chrome.storage.local.get(['model', 'apiKey', 'foodPreference']);
   const modelId = stored.model || Object.keys(AI_PROVIDERS)[0];
   const provider = AI_PROVIDERS[modelId];
+  const preferenceId = stored.foodPreference || 'regular';
+  const preference = FOOD_PREFERENCES[preferenceId] || FOOD_PREFERENCES['regular'];
+
+  // Build prompt with dietary preference modifier
+  const prompt = DEFAULT_PROMPT + preference.modifier;
+
   return {
     model: modelId,
     apiKey: stored.apiKey,
-    prompt: DEFAULT_PROMPT,
+    prompt,
     quality: provider?.defaultQuality,
     size: provider?.defaultSize,
     timeoutMs: provider?.defaultTimeout,
