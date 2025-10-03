@@ -1,5 +1,107 @@
+// Default model-agnostic prompt
+const DEFAULT_PROMPT = `You are a specialized AI system that creates photorealistic food scenes with a plain cool gray background. Your objective is to generate appetizing food dishes served on the correct plateware in a cohesive 3D scene with a solid cool gray background that occupies the upper 2/3 of the image height.
+
+## 1. Input
+A single, high-resolution image of a food menu.
+
+## 2. Core Tasks
+- Analyze Menu Layout: Study the menu structure and sections to understand the food items.
+- Extract Key Items: Identify 4-6 visually interesting and varied dishes from the menu to generate.
+- Generate Photorealistic Dishes: Create high-quality, restaurant-style models of the selected food items using specified plateware.
+- Create Plain Cool Gray Background: Generate a solid, uniform cool gray background that takes up exactly 2/3 of the image height from the top.
+
+## 3. Plate Selection and Presentation Rules
+Plate Types Available:
+- Large Flat Fully White Plate (12-inch diameter). Use for: Flat presentations, grilled items, salads, sandwiches, steaks, fish fillets.
+- Large Deep Fully Blue Plate (12-inch diameter, 2-inch depth). Use for: Pasta dishes, stews, curries, rice bowls.
+- Medium Deep Fully Blue Plate (9-inch diameter, 4-inch depth). Use for: Individual portions, soups, side dishes, appetizer portions.
+
+Selection Criteria:
+- Dish Type: Consider whether the dish is liquid-based, sauce-heavy, or dry and select the most appropriate plate.
+- Portion Size: Match plate size to the expected serving size.
+- Visual Balance: Ensure the food-to-plate ratio creates appealing presentation.
+
+## 4. Scene Composition and Integration
+- Background Requirements: The upper 2/3 of the image MUST be a cool gray color with no patterns, textures, gradients, or visual elements of any kind.
+- Foreground Elements: Place photorealistic food dishes on appropriate plates in the lower 1/3 of the image.
+- Surface: Food should rest on a neutral surface (dark wooden table, slate, or stone) visible only in the lower portion of the image.
+- No Background Elements: The background area must be completely empty - no lines, shapes, decorations, or any visual elements whatsoever.
+
+## 5. Camera, Lighting, and Style
+- Camera Angle: Three-quarters angle (approximately 45 degrees) for depth.
+- Lighting: Single, soft, directional light source consistent across the entire scene.
+- Focus and Depth: Food in sharp focus, with the background remaining uniformly cool gray throughout.
+
+## 6. Compositional Constraints
+- Dish Selection: Feature 4-6 balanced dishes positioned in the lower 1/3 of the image.
+- Soup Limitation: Maximum two soup dishes.
+- Background Division: Upper 2/3 = cool gray, lower 1/3 = food on surface.
+
+## 7. CRITICAL BACKGROUND REQUIREMENTS
+- SOLID COOL GRAY BACKGROUND: The upper 2/3 of the image must be pure cool gray color with no variation.
+- NO VISUAL ELEMENTS: No text, shapes, lines, patterns, textures, or any other visual elements in the background area.
+- EXACT PROPORTIONS: Cool gray background must occupy exactly 2/3 of the total image height from the top.
+- UNIFORM COLOR: The cool gray must be consistent throughout - no gradients, shadows, or color variations in the background area.
+
+## 8. Output Deliverable
+A single, high-resolution image with photorealistic food positioned in the lower 1/3, and a solid cool gray background occupying the upper 2/3 with no additional elements.
+
+Quality Assurance Checklist:
+- Is the upper 2/3 of the image pure cool gray color with no visual elements?
+- Are food dishes positioned only in the lower 1/3?
+- Are correct plate types used for each dish?
+- Is the cool gray background completely uniform and pure?
+- Is the camera angle three-quarters view?
+- Is lighting consistent throughout?
+- Maximum two soups included?
+- No empty plates included?
+- Final image photorealistic and well-composed with proper proportions?`;
+
+// AI Providers registry
+const AI_PROVIDERS = {
+  'gpt-image-1': {
+    id: 'gpt-image-1',
+    name: 'GPT-Image-1',
+    defaultQuality: 'high',
+    defaultSize: '1536x1024',
+    defaultTimeout: 120000,
+    buildRequest({ settings, imageBlob, signal }) {
+      const formData = new FormData();
+      formData.append('model', settings.model);
+      formData.append('prompt', settings.prompt);
+      formData.append('n', '1');
+      formData.append('input_fidelity', 'high');
+      if (settings.quality && settings.quality !== 'auto') {
+        formData.append('quality', settings.quality);
+      }
+      if (settings.size && settings.size !== 'auto') {
+        formData.append('size', settings.size);
+      }
+      formData.append('image', imageBlob, 'image.png');
+
+      return {
+        url: 'https://api.openai.com/v1/images/edits',
+        options: {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${settings.apiKey}`,
+          },
+          body: formData,
+          signal,
+        }
+      };
+    },
+    async extractResult(response) {
+      const data = await response.json();
+      const first = data?.data?.[0];
+      return first?.b64_json || null;
+    }
+  }
+};
+
 // Background service worker: process image edits via provider-agnostic adapter
 const ACTIONS = {
+  GET_AVAILABLE_MODELS: 'getAvailableModels',
   GENERATE_REQUEST_ID: 'generateRequestId',
   PROCESS_IMAGE: 'processImage',
   CANCEL_REQUEST: 'cancelRequest',
@@ -14,6 +116,15 @@ const inFlightRequests = new Map(); // requestId -> { controller, timeoutId }
 
 // Entry point: listen for messages from the extension UI/content
 chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
+  if (request && request.action === ACTIONS.GET_AVAILABLE_MODELS) {
+    const models = Object.keys(AI_PROVIDERS).map(key => ({
+      id: AI_PROVIDERS[key].id,
+      name: AI_PROVIDERS[key].name,
+    }));
+    sendResponse({ success: true, models });
+    return true;
+  }
+
   if (request && request.action === ACTIONS.PROCESS_IMAGE) {
     const requestId = request.requestId;
     const controller = new AbortController();
@@ -75,6 +186,32 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
   }
 });
 
+// Provider selection
+function selectAiProviderByModel(model) {
+  return AI_PROVIDERS[model] || AI_PROVIDERS[Object.keys(AI_PROVIDERS)[0]];
+}
+
+
+// Settings and validation helpers
+async function loadSettings() {
+  const stored = await chrome.storage.local.get(['model', 'apiKey']);
+  const modelId = stored.model || Object.keys(AI_PROVIDERS)[0];
+  const provider = AI_PROVIDERS[modelId];
+  return {
+    model: modelId,
+    apiKey: stored.apiKey,
+    prompt: DEFAULT_PROMPT,
+    quality: provider?.defaultQuality,
+    size: provider?.defaultSize,
+    timeoutMs: provider?.defaultTimeout,
+  };
+}
+
+// Validate settings value
+function assertSetting(value, message) {
+  if (value === undefined || value === null || value === '') throw new Error(message);
+}
+
 // Clear in-flight requests
 function clearInFlight(requestId) {
   const entry = inFlightRequests.get(requestId);
@@ -135,27 +272,6 @@ async function processImageRequest({ imageUrl, requestId, signal }) {
   }
 }
 
-// Settings and validation helpers
-async function loadSettings() {
-  // Support new per-model settings shape with backward-compatible fallback to flat keys
-  const stored = await chrome.storage.local.get(['default_model', 'model', 'apiKey', 'perModel', 'prompt', 'quality', 'size', 'timeoutMs']);
-  const model = stored.default_model || stored.model;
-  const common = { model, apiKey: stored.apiKey, timeoutMs: stored.timeoutMs };
-  const flat = {
-    prompt: stored.prompt,
-    quality: stored.quality,
-    size: stored.size,
-  };
-  const perModel = stored.perModel && model ? (stored.perModel[model] || {}) : {};
-  // Prefer per-model values over flat ones if both are present
-  return { ...common, ...flat, ...perModel };
-}
-
-// Validate settings value
-function assertSetting(value, message) {
-  if (value === undefined || value === null || value === '') throw new Error(message);
-}
-
 // Throw if the request is aborted
 function throwIfAborted(signal) {
   if (signal && signal.aborted) throw new DOMException('Aborted', 'AbortError');
@@ -177,52 +293,6 @@ async function fetchImageAsBlob(imageUrl, signal) {
     throw new Error(`Failed to fetch image: ${error.message}`);
   }
 }
-
-// Provider selection
-function selectAiProviderByModel(model) {
-  switch (model.toLowerCase()) {
-    case 'gpt-image-1':
-      return gptImage1;
-    default:
-      return gptImage1;
-  }
-}
-
-// Providers
-const gptImage1 = {
-  name: 'GPT-Image-1',
-  buildRequest({ settings, imageBlob, signal }) {
-    const formData = new FormData();
-    formData.append('model', settings.model);
-    formData.append('prompt', settings.prompt);
-    formData.append('n', '1');
-    formData.append('input_fidelity', 'high');
-    if (settings.quality && settings.quality !== 'auto') {
-      formData.append('quality', settings.quality);
-    }
-    if (settings.size && settings.size !== 'auto') {
-      formData.append('size', settings.size);
-    }
-    formData.append('image', imageBlob, 'image.png');
-
-    return {
-      url: 'https://api.openai.com/v1/images/edits',
-      options: {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${settings.apiKey}`,
-        },
-        body: formData,
-        signal,
-      }
-    };
-  },
-  async extractResult(response) {
-    const data = await response.json();
-    const first = data?.data?.[0];
-    return first?.b64_json || null;
-  }
-};
 
 // Misc utilities
 async function fetchUrlToBase64(url, signal) {
