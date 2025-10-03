@@ -464,17 +464,22 @@ async function generateRequestIdFromImage(imageUrl) {
   const bitmap = await createImageBitmap(imageBlob);
   const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
   const ctx = canvas.getContext('2d', { willReadFrequently: true });
-  
+
   ctx.drawImage(bitmap, 0, 0);
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  
+
+  // Load food preference setting
+  const stored = await chrome.storage.local.get(['foodPreference']);
+  const preferenceId = stored.foodPreference || 'regular';
+
   // Simple hash calculation from image data
   let hash = 0;
   for (let i = 0; i < imageData.data.length; i += 4) {
     hash = ((hash << 5) - hash + imageData.data[i] + imageData.data[i+1] + imageData.data[i+2]) & 0xffffffff;
   }
-  
-  const requestId = `img_${Math.abs(hash).toString(36)}`;
+
+  // Include food preference in the request ID
+  const requestId = `img_${Math.abs(hash).toString(36)}_${preferenceId}`;
   return requestId;
 }
 
