@@ -6,7 +6,6 @@
   "author": "Ivan Seredkin",
   "homepage_url": "https://github.com/siropkin/verkadalizer",
   "permissions": [
-    "activeTab",
     "storage"
   ],
   "host_permissions": [
