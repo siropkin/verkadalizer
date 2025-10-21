@@ -140,6 +140,43 @@ const AI_PROVIDERS = {
       const first = data?.data?.[0];
       return first?.b64_json || null;
     }
+  },
+  'gpt-image-1-mini': {
+    id: 'gpt-image-1-mini',
+    name: 'GPT-Image-1 Mini',
+    defaultQuality: 'high',
+    defaultSize: '1536x1024',
+    defaultTimeout: 120000,
+    buildRequest({ settings, imageBlob, signal }) {
+      const formData = new FormData();
+      formData.append('model', settings.model);
+      formData.append('prompt', settings.prompt);
+      formData.append('n', '1');
+      if (settings.quality && settings.quality !== 'auto') {
+        formData.append('quality', settings.quality);
+      }
+      if (settings.size && settings.size !== 'auto') {
+        formData.append('size', settings.size);
+      }
+      formData.append('image', imageBlob, 'image.png');
+
+      return {
+        url: 'https://api.openai.com/v1/images/edits',
+        options: {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${settings.apiKey}`,
+          },
+          body: formData,
+          signal,
+        }
+      };
+    },
+    async extractResult(response) {
+      const data = await response.json();
+      const first = data?.data?.[0];
+      return first?.b64_json || null;
+    }
   }
 };
 
