@@ -77,6 +77,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const apiKeyInput = document.getElementById('apiKey');
   const foodPreferenceInput = document.getElementById('foodPreference');
   const saveSettingsBtn = document.getElementById('saveSettings');
+  const menuLinkBtn = document.getElementById('menuLink');
   const statusDiv = document.getElementById('status');
 
   saveSettingsBtn.addEventListener('click', async () => {
@@ -93,6 +94,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     } catch (error) {
       showStatus(statusDiv, 'Failed to save settings', 'error');
     }
+  });
+
+  menuLinkBtn.addEventListener('click', () => {
+    chrome.tabs.create({ url: 'https://sites.google.com/verkada.com/verkada-menu' });
   });
 
   await loadSettingsIntoUi(apiKeyInput, modelInput, foodPreferenceInput);
