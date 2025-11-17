@@ -415,8 +415,6 @@ async function startImageProcessing(img) {
       });
 
       if (progressResponse && progressResponse.success) {
-        console.log('[PROGRESS]', progressResponse.progress + '%', progressResponse.statusText, '|', progressResponse.detailText);
-
         // Store detail text if it changed
         if (progressResponse.detailText !== lastDetailText) {
           lastDetailText = progressResponse.detailText;
