@@ -301,7 +301,7 @@ async function parseMenuWithAI({ imageUrl, foodPreference, requestId }) {
     console.log('📝 [MENU PARSER] Prompt built, length:', parsingPrompt.length, 'chars');
 
     // Call GPT-4o (vision model) to parse the menu
-    updateProgress(requestId, 20, 'Reading menu with AI...', 'GPT-4o is analyzing your menu (this may take 20-30 seconds)');
+    updateProgress(requestId, 20, 'Reading menu with AI...', 'This takes 20-30 seconds. ' + getRandomFoodFact());
     console.log('🤖 [MENU PARSER] Calling OpenAI GPT-4o for menu analysis...');
     const requestBody = {
       model: 'gpt-4o',
@@ -729,7 +729,7 @@ async function processImageRequest({ imageUrl, requestId, signal }) {
 
     throwIfAborted(signal);
 
-    updateProgress(requestId, 60, 'Generating food visualization...', 'AI is creating photorealistic imagery (this may take 60-90 seconds)');
+    updateProgress(requestId, 60, 'Generating food visualization...', 'This takes 60-90 seconds. ' + getRandomFoodFact());
     console.log('🤖 [IMAGE GENERATION] Calling image generation API...');
     const aiProvider = selectAiProviderByModel(settings.model);
 

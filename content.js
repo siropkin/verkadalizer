@@ -397,6 +397,10 @@ async function startImageProcessing(img) {
   createSpinnerOverlay(img);
   renderController(img);
 
+  // Track last update time for rotating messages
+  let lastDetailText = '';
+  let lastDetailUpdateTime = Date.now();
+
   // Start progress polling
   const progressInterval = setInterval(async () => {
     if (img.dataset.vkIsProcessing !== 'true') {
@@ -412,6 +416,13 @@ async function startImageProcessing(img) {
 
       if (progressResponse && progressResponse.success) {
         console.log('[PROGRESS]', progressResponse.progress + '%', progressResponse.statusText, '|', progressResponse.detailText);
+
+        // Store detail text if it changed
+        if (progressResponse.detailText !== lastDetailText) {
+          lastDetailText = progressResponse.detailText;
+          lastDetailUpdateTime = Date.now();
+        }
+
         updateSpinnerProgress(
           img,
           progressResponse.progress,
