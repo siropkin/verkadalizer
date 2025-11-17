@@ -378,8 +378,12 @@ async function parseMenuWithAI({ imageUrl, foodPreference, requestId }) {
 
     // Show selected dishes to the user
     if (parsedData.selectedItems && parsedData.selectedItems.length > 0) {
-      const dishNames = parsedData.selectedItems.map(item => item.name).join(', ');
-      updateProgress(requestId, 50, 'Menu analyzed!', `Selected: ${dishNames}`);
+      const dishNames = parsedData.selectedItems.map(item => item.name);
+      // Show first 3 items, then "and X more" if there are more
+      const displayNames = dishNames.length > 3
+        ? `${dishNames.slice(0, 3).join(', ')}, and ${dishNames.length - 3} more`
+        : dishNames.join(', ');
+      updateProgress(requestId, 50, 'Menu analyzed!', `Selected: ${displayNames}`);
     }
 
     return parsedData;

@@ -238,11 +238,13 @@ function createSpinnerOverlay(img) {
     ">Initializing...</div>
     <div class="vk-detail-text" style="
       font-family: Arial, sans-serif;
-      font-size: 12px;
-      color: rgba(255, 255, 255, 0.7);
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.85);
       text-align: center;
-      min-height: 16px;
-      max-width: 400px;
+      min-height: 18px;
+      max-width: 450px;
+      line-height: 1.4;
+      padding: 4px 8px;
     "></div>
   `;
 
@@ -409,6 +411,7 @@ async function startImageProcessing(img) {
       });
 
       if (progressResponse && progressResponse.success) {
+        console.log('[PROGRESS]', progressResponse.progress + '%', progressResponse.statusText, '|', progressResponse.detailText);
         updateSpinnerProgress(
           img,
           progressResponse.progress,
