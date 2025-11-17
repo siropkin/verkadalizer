@@ -72,34 +72,46 @@ async function loadSettingsIntoUi(apiKeyInput, dietaryPreferenceInput, visualSty
   }
 }
 
+async function saveSettings(apiKeyInput, dietaryPreferenceInput, visualStyleInput, statusDiv) {
+  const apiKey = apiKeyInput.value.trim();
+  const dietaryPreference = dietaryPreferenceInput.value.trim();
+  const visualStyle = visualStyleInput.value.trim();
+
+  if (!apiKey) {
+    showStatus(statusDiv, 'Please enter an API key', 'error');
+    return;
+  }
+
+  try {
+    await chrome.storage.local.set({
+      apiKey,
+      dietaryPreference,
+      visualStyle,
+    });
+    showStatus(statusDiv, 'Settings saved successfully!', 'success');
+  } catch (error) {
+    showStatus(statusDiv, 'Failed to save settings', 'error');
+  }
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   const apiKeyInput = document.getElementById('apiKey');
   const dietaryPreferenceInput = document.getElementById('dietaryPreference');
   const visualStyleInput = document.getElementById('visualStyle');
-  const saveSettingsBtn = document.getElementById('saveSettings');
   const menuLinkBtn = document.getElementById('menuLink');
   const statusDiv = document.getElementById('status');
 
-  saveSettingsBtn.addEventListener('click', async () => {
-    const apiKey = apiKeyInput.value.trim();
-    const dietaryPreference = dietaryPreferenceInput.value.trim();
-    const visualStyle = visualStyleInput.value.trim();
+  // Auto-save on input change
+  apiKeyInput.addEventListener('input', async () => {
+    await saveSettings(apiKeyInput, dietaryPreferenceInput, visualStyleInput, statusDiv);
+  });
 
-    if (!apiKey) {
-      showStatus(statusDiv, 'Please enter an API key', 'error');
-      return;
-    }
+  dietaryPreferenceInput.addEventListener('change', async () => {
+    await saveSettings(apiKeyInput, dietaryPreferenceInput, visualStyleInput, statusDiv);
+  });
 
-    try {
-      await chrome.storage.local.set({
-        apiKey,
-        dietaryPreference,
-        visualStyle,
-      });
-      showStatus(statusDiv, 'Settings saved successfully!', 'success');
-    } catch (error) {
-      showStatus(statusDiv, 'Failed to save settings', 'error');
-    }
+  visualStyleInput.addEventListener('change', async () => {
+    await saveSettings(apiKeyInput, dietaryPreferenceInput, visualStyleInput, statusDiv);
   });
 
   menuLinkBtn.addEventListener('click', () => {
