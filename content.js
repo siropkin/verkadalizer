@@ -9,6 +9,7 @@ const ACTIONS = {
   PROCESS_IMAGE: 'processImage',
   CANCEL_REQUEST: 'cancelRequest',
   MERGE_IMAGES: 'mergeImages',
+  GET_PROGRESS: 'getProgress',
 };
 
 function isVerkadaMenuPage() {
@@ -193,18 +194,56 @@ function createSpinnerOverlay(img) {
   spinner.style.width = img.offsetWidth + 'px';
   spinner.style.height = img.offsetHeight + 'px';
   spinner.style.display = 'flex';
+  spinner.style.flexDirection = 'column';
   spinner.style.alignItems = 'center';
   spinner.style.justifyContent = 'center';
-  spinner.style.background = 'rgba(30, 30, 30, 0.75)';
+  spinner.style.background = 'rgba(30, 30, 30, 0.85)';
   spinner.style.zIndex = '2';
   spinner.style.pointerEvents = 'none';
+  spinner.style.padding = '20px';
+  spinner.style.boxSizing = 'border-box';
 
   spinner.innerHTML = `
     <div style="
       font-family: Arial, sans-serif;
-      font-size: 16px;
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 12px;
       animation: verkada-color-change 2s ease-in-out infinite;
     ">Verkadalizing...</div>
+    <div class="vk-progress-container" style="
+      width: 100%;
+      max-width: 400px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 10px;
+      height: 8px;
+      margin-bottom: 12px;
+      overflow: hidden;
+    ">
+      <div class="vk-progress-bar" style="
+        height: 100%;
+        background: linear-gradient(90deg, rgb(130, 81, 170), rgb(255, 107, 107), rgb(255, 193, 7));
+        width: 0%;
+        transition: width 0.3s ease;
+        border-radius: 10px;
+      "></div>
+    </div>
+    <div class="vk-status-text" style="
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+      color: white;
+      text-align: center;
+      margin-bottom: 8px;
+      min-height: 20px;
+    ">Initializing...</div>
+    <div class="vk-detail-text" style="
+      font-family: Arial, sans-serif;
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.7);
+      text-align: center;
+      min-height: 16px;
+      max-width: 400px;
+    "></div>
   `;
 
   img.parentElement.style.position = 'relative';
@@ -242,12 +281,31 @@ function createSpinnerOverlay(img) {
   return spinner;
 }
 
+function updateSpinnerProgress(img, progress, statusText, detailText = '') {
+  const spinner = img.parentElement.querySelector('.menu-image-spinner-overlay');
+  if (!spinner) return;
+
+  const progressBar = spinner.querySelector('.vk-progress-bar');
+  const statusElement = spinner.querySelector('.vk-status-text');
+  const detailElement = spinner.querySelector('.vk-detail-text');
+
+  if (progressBar) {
+    progressBar.style.width = `${Math.min(100, Math.max(0, progress))}%`;
+  }
+  if (statusElement) {
+    statusElement.textContent = statusText;
+  }
+  if (detailElement) {
+    detailElement.textContent = detailText;
+  }
+}
+
 function removeSpinnerOverlay(img) {
   const spinner = img.parentElement.querySelector('.menu-image-spinner-overlay');
   if (spinner) {
     spinner.remove();
   }
-  
+
   img.style.transform = '';
   img.style.opacity = '1';
 }
@@ -337,6 +395,32 @@ async function startImageProcessing(img) {
   createSpinnerOverlay(img);
   renderController(img);
 
+  // Start progress polling
+  const progressInterval = setInterval(async () => {
+    if (img.dataset.vkIsProcessing !== 'true') {
+      clearInterval(progressInterval);
+      return;
+    }
+
+    try {
+      const progressResponse = await chrome.runtime.sendMessage({
+        action: ACTIONS.GET_PROGRESS,
+        requestId: img.dataset.vkRequestId,
+      });
+
+      if (progressResponse && progressResponse.success) {
+        updateSpinnerProgress(
+          img,
+          progressResponse.progress,
+          progressResponse.statusText,
+          progressResponse.detailText
+        );
+      }
+    } catch (error) {
+      console.warn('Failed to get progress:', error);
+    }
+  }, 500); // Poll every 500ms for smooth updates
+
   try {
     const aiResponse = await chrome.runtime.sendMessage({
       action: ACTIONS.PROCESS_IMAGE,
@@ -345,6 +429,7 @@ async function startImageProcessing(img) {
     });
 
     if (aiResponse && aiResponse.success) {
+      updateSpinnerProgress(img, 90, 'Merging images...', 'Creating final visualization');
       let imageData = `data:image/png;base64,${aiResponse.b64}`;
 
       try {
@@ -364,6 +449,7 @@ async function startImageProcessing(img) {
         console.error('Error during merge, falling back to generated image:', mergeError);
         // Fallback: just use the generated background without text overlay
       } finally {
+        updateSpinnerProgress(img, 100, 'Complete!', 'Your menu is ready');
         img.dataset.vkGeneratedSrc = imageData;
         img.src = imageData;
         img.dataset.vkView = 'generated';
@@ -376,10 +462,12 @@ async function startImageProcessing(img) {
     }
   } catch (error) {
     console.error('Error processing image:', error);
+    updateSpinnerProgress(img, 0, 'Error occurred', error.message || 'Unknown error');
   } finally {
+    clearInterval(progressInterval);
     img.dataset.vkIsProcessing = 'false';
     delete img.dataset.vkRequestId;
-    removeSpinnerOverlay(img);
+    setTimeout(() => removeSpinnerOverlay(img), 800); // Show completion for a moment
     renderController(img);
   }
 }

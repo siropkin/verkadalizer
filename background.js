@@ -131,10 +131,49 @@ const ACTIONS = {
   LOAD_SAVED_IMAGE: 'loadSavedImage',
   CLEANUP_OLD_IMAGES: 'cleanupOldImages',
   MERGE_IMAGES: 'mergeImages',
+  GET_PROGRESS: 'getProgress',
 };
 
 // Tracks in-flight requests by requestId
-const inFlightRequests = new Map(); // requestId -> { controller, timeoutId }
+const inFlightRequests = new Map(); // requestId -> { controller, timeoutId, progress }
+
+// Fun facts about food to display during processing
+const FOOD_FACTS = [
+  'Did you know? The average person eats about 35 tons of food in their lifetime! 🍴',
+  'Food fact: Honey never spoils. Archaeologists found 3,000 year old honey in Egyptian tombs! 🍯',
+  'Chef\'s tip: Let meat rest after cooking for juicier results 🥩',
+  'Fun fact: Apples float because they\'re 25% air! 🍎',
+  'Did you know? Carrots were originally purple before the 17th century! 🥕',
+  'Food science: Tomatoes have more genes than humans! 🍅',
+  'Pro tip: Store herbs like flowers in water to keep them fresh 🌿',
+  'Amazing fact: Chocolate was once used as currency by the Aztecs! 🍫',
+  'Did you know? Pineapples take about 2 years to grow! 🍍',
+  'Kitchen hack: Freeze leftover herbs in ice cube trays with olive oil 🧊',
+  'Food fact: Avocados are actually berries! 🥑',
+  'Did you know? Bananas are berries, but strawberries aren\'t! 🍓',
+  'Chef wisdom: Season your food in layers while cooking, not just at the end 🧂',
+  'Fun fact: A strawberry isn\'t technically a berry, it\'s an aggregate fruit! 🍓',
+  'Food history: Ketchup was sold as medicine in the 1830s! 🍅',
+];
+
+// Helper to update progress for a request
+function updateProgress(requestId, progress, statusText, detailText = '', extraData = {}) {
+  const entry = inFlightRequests.get(requestId);
+  if (entry) {
+    entry.progress = {
+      progress,
+      statusText,
+      detailText,
+      timestamp: Date.now(),
+      ...extraData
+    };
+  }
+}
+
+// Get random food fact
+function getRandomFoodFact() {
+  return FOOD_FACTS[Math.floor(Math.random() * FOOD_FACTS.length)];
+}
 
 // Entry point: listen for messages from the extension UI/content
 chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
@@ -147,10 +186,30 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     return true;
   }
 
+  if (request && request.action === ACTIONS.GET_PROGRESS) {
+    const requestId = request.requestId;
+    const entry = inFlightRequests.get(requestId);
+    if (entry && entry.progress) {
+      sendResponse({ success: true, ...entry.progress });
+    } else {
+      sendResponse({ success: false, error: 'No progress found' });
+    }
+    return true;
+  }
+
   if (request && request.action === ACTIONS.PROCESS_IMAGE) {
     const requestId = request.requestId;
     const controller = new AbortController();
-    inFlightRequests.set(requestId, { controller, timeoutId: null });
+    inFlightRequests.set(requestId, {
+      controller,
+      timeoutId: null,
+      progress: {
+        progress: 0,
+        statusText: 'Starting...',
+        detailText: 'Preparing to analyze menu',
+        timestamp: Date.now()
+      }
+    });
 
     processImageRequest({ imageUrl: request.imageUrl, requestId, signal: controller.signal })
       .then(result => sendResponse({ ...result, requestId }))
@@ -214,16 +273,19 @@ function selectAiProviderByModel(model) {
 }
 
 // Menu Parser: Stage 1 - Analyze menu and extract items with AI
-async function parseMenuWithAI({ imageUrl, foodPreference }) {
+async function parseMenuWithAI({ imageUrl, foodPreference, requestId }) {
   console.log('🍽️ [MENU PARSER] Starting menu analysis...');
   console.log('📸 [MENU PARSER] Image URL:', imageUrl);
   console.log('🥗 [MENU PARSER] Food Preference:', foodPreference);
 
   try {
+    updateProgress(requestId, 5, 'Analyzing menu...', getRandomFoodFact());
+
     const settings = await loadSettings();
     assertSetting(settings.apiKey, 'API key not configured');
 
     // Fetch the menu image and convert to base64
+    updateProgress(requestId, 10, 'Loading menu image...', 'Fetching high-resolution image');
     console.log('⬇️ [MENU PARSER] Fetching menu image...');
     const imageBlob = await fetchImageAsBlob(imageUrl);
     const imageBase64 = await blobToBase64(imageBlob);
@@ -234,10 +296,12 @@ async function parseMenuWithAI({ imageUrl, foodPreference }) {
     console.log('📋 [MENU PARSER] Dietary preference:', preference.name);
 
     // Build the menu parsing prompt
+    updateProgress(requestId, 15, 'Preparing AI analysis...', `Analyzing for ${preference.name} preferences`);
     const parsingPrompt = buildMenuParsingPrompt(preference);
     console.log('📝 [MENU PARSER] Prompt built, length:', parsingPrompt.length, 'chars');
 
     // Call GPT-4o (vision model) to parse the menu
+    updateProgress(requestId, 20, 'Reading menu with AI...', 'GPT-4o is analyzing your menu (this may take 20-30 seconds)');
     console.log('🤖 [MENU PARSER] Calling OpenAI GPT-4o for menu analysis...');
     const requestBody = {
       model: 'gpt-4o',
@@ -281,6 +345,8 @@ async function parseMenuWithAI({ imageUrl, foodPreference }) {
       throw new Error(`OpenAI API error: ${errorMessage}`);
     }
 
+    updateProgress(requestId, 40, 'Processing AI response...', getRandomFoodFact());
+
     const data = await response.json();
     console.log('📦 [MENU PARSER] Raw API response:', JSON.stringify(data, null, 2));
 
@@ -292,6 +358,7 @@ async function parseMenuWithAI({ imageUrl, foodPreference }) {
     console.log('💬 [MENU PARSER] AI Response:\n', aiResponse);
 
     // Parse the JSON response from AI
+    updateProgress(requestId, 45, 'Extracting dishes...', 'Identifying the best menu items');
     let parsedData;
     try {
       // Extract JSON from markdown code blocks if present
@@ -308,6 +375,12 @@ async function parseMenuWithAI({ imageUrl, foodPreference }) {
     console.log('🍽️ [MENU PARSER] Selected Items:', parsedData.selectedItems?.length || 0);
     console.log('🎨 [MENU PARSER] Menu Theme:', parsedData.menuTheme);
     console.log('✨ [MENU PARSER] Menu analysis complete!');
+
+    // Show selected dishes to the user
+    if (parsedData.selectedItems && parsedData.selectedItems.length > 0) {
+      const dishNames = parsedData.selectedItems.map(item => item.name).join(', ');
+      updateProgress(requestId, 50, 'Menu analyzed!', `Selected: ${dishNames}`);
+    }
 
     return parsedData;
   } catch (error) {
@@ -599,6 +672,7 @@ async function processImageRequest({ imageUrl, requestId, signal }) {
     console.log('📸 [IMAGE GENERATION] Image URL:', imageUrl);
 
     // STAGE 1: Parse the menu with AI to get intelligent dish selection
+    updateProgress(requestId, 5, 'Starting menu analysis...', getRandomFoodFact());
     console.log('⚡ [IMAGE GENERATION] Stage 1: Parsing menu with AI...');
     const stored = await chrome.storage.local.get(['foodPreference']);
     const foodPreference = stored.foodPreference || 'regular';
@@ -607,7 +681,7 @@ async function processImageRequest({ imageUrl, requestId, signal }) {
     let dynamicPrompt;
 
     try {
-      parsedMenuData = await parseMenuWithAI({ imageUrl, foodPreference });
+      parsedMenuData = await parseMenuWithAI({ imageUrl, foodPreference, requestId });
       console.log('✅ [IMAGE GENERATION] Stage 1 complete - Menu parsed successfully');
       console.log('🎯 [IMAGE GENERATION] Selected items:', parsedMenuData.selectedItems?.length || 0);
       console.log('🎨 [IMAGE GENERATION] Menu theme:', parsedMenuData.menuTheme);
@@ -619,6 +693,7 @@ async function processImageRequest({ imageUrl, requestId, signal }) {
       }
 
       // STAGE 2: Build dynamic prompt from parsed data
+      updateProgress(requestId, 52, 'Building visualization prompt...', 'Creating detailed food photography instructions');
       console.log('⚡ [IMAGE GENERATION] Stage 2: Building dynamic prompt...');
       dynamicPrompt = buildImageGenerationPrompt(parsedMenuData);
       console.log('✅ [IMAGE GENERATION] Stage 2 complete - Prompt generated');
@@ -640,6 +715,7 @@ async function processImageRequest({ imageUrl, requestId, signal }) {
       }, settings.timeoutMs);
     }
 
+    updateProgress(requestId, 55, 'Preparing for image generation...', getRandomFoodFact());
     console.log('⬇️ [IMAGE GENERATION] Fetching image for processing...');
     const imageBlob = await fetchImageAsBlob(imageUrl, signal);
     if (!imageBlob || imageBlob.size === 0) {
@@ -649,6 +725,7 @@ async function processImageRequest({ imageUrl, requestId, signal }) {
 
     throwIfAborted(signal);
 
+    updateProgress(requestId, 60, 'Generating food visualization...', 'AI is creating photorealistic imagery (this may take 60-90 seconds)');
     console.log('🤖 [IMAGE GENERATION] Calling image generation API...');
     const aiProvider = selectAiProviderByModel(settings.model);
 
@@ -666,11 +743,14 @@ async function processImageRequest({ imageUrl, requestId, signal }) {
       throw new Error(`${aiProvider.name} API error: ${errorMessage}`);
     }
 
+    updateProgress(requestId, 85, 'Finalizing image...', 'Processing AI-generated visualization');
+
     const b64 = await aiProvider.extractResult(response);
     if (!b64) {
       throw new Error(`${aiProvider.name} returned no image data`);
     }
 
+    updateProgress(requestId, 88, 'Image generated!', 'Preparing to merge with menu text');
     console.log('✅ [IMAGE GENERATION] Image generated successfully!');
     console.log('🎉 [IMAGE GENERATION] Two-stage pipeline complete!');
 
