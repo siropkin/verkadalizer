@@ -42,65 +42,6 @@ const FOOD_PREFERENCES = {
   },
 };
 
-// Default model-agnostic prompt
-const DEFAULT_PROMPT = `You are a specialized AI system that creates photorealistic food scenes with a plain cool gray background. Your objective is to generate appetizing food dishes served on the correct plateware in a cohesive 3D scene with a solid cool gray background that occupies the upper 2/3 of the image height.
-
-## INPUT
-A single, high-resolution image of a food menu.
-
-## CORE TASKS
-- Analyze Menu Layout: Study the menu structure and sections to understand the food items.
-- Extract Key Items: Identify 4-6 visually interesting and varied dishes from the menu to generate.
-- Generate Photorealistic Dishes: Create high-quality, restaurant-style models of the selected food items using specified plateware.
-- Create Plain Cool Gray Background: Generate a solid, uniform cool gray background that takes up exactly 2/3 of the image height from the top.
-
-## PLATE SELECTION AND PRESENTATION RULES
-Plate Types Available:
-- Large Flat Fully White Plate (12-inch diameter). Use for: Flat presentations, grilled items, salads, sandwiches, steaks, fish fillets.
-- Large Deep Fully Blue Plate (12-inch diameter, 2-inch depth). Use for: Pasta dishes, stews, curries, rice bowls.
-- Medium Deep Fully Blue Plate (9-inch diameter, 4-inch depth). Use for: Individual portions, soups, side dishes, appetizer portions.
-
-Selection Criteria:
-- Dish Type: Consider whether the dish is liquid-based, sauce-heavy, or dry and select the most appropriate plate.
-- Portion Size: Match plate size to the expected serving size.
-- Visual Balance: Ensure the food-to-plate ratio creates appealing presentation.
-
-## SCENE COMPOSITION AND INTEGRATION
-- Background Requirements: The upper 2/3 of the image MUST be a cool gray color with no patterns, textures, gradients, or visual elements of any kind.
-- Foreground Elements: Place photorealistic food dishes on appropriate plates in the lower 1/3 of the image.
-- Surface: Food should rest on a neutral surface (dark wooden table, slate, or stone) visible only in the lower portion of the image.
-- No Background Elements: The background area must be completely empty - no lines, shapes, decorations, or any visual elements whatsoever.
-
-## CAMERA, LIGHTING, AND STYLE
-- Camera Angle: Three-quarters angle (approximately 45 degrees) for depth.
-- Lighting: Single, soft, directional light source consistent across the entire scene.
-- Focus and Depth: Food in sharp focus, with the background remaining uniformly cool gray throughout.
-
-## COMPOSITIONAL CONSTRAINTS
-- Dish Selection: Feature 4-6 balanced dishes positioned in the lower 1/3 of the image.
-- Soup Limitation: Maximum two soup dishes.
-- Background Division: Upper 2/3 = cool gray, lower 1/3 = food on surface.
-
-## CRITICAL BACKGROUND REQUIREMENTS
-- SOLID COOL GRAY BACKGROUND: The upper 2/3 of the image must be pure cool gray color with no variation.
-- NO VISUAL ELEMENTS: No text, shapes, lines, patterns, textures, or any other visual elements in the background area.
-- EXACT PROPORTIONS: Cool gray background must occupy exactly 2/3 of the total image height from the top.
-- UNIFORM COLOR: The cool gray must be consistent throughout - no gradients, shadows, or color variations in the background area.
-
-## OUTPUT DELIVERABLE
-A single, high-resolution image with photorealistic food positioned in the lower 1/3, and a solid cool gray background occupying the upper 2/3 with no additional elements.
-
-Quality Assurance Checklist:
-- Is the upper 2/3 of the image pure cool gray color with no visual elements?
-- Are food dishes positioned only in the lower 1/3?
-- Are correct plate types used for each dish?
-- Is the cool gray background completely uniform and pure?
-- Is the camera angle three-quarters view?
-- Is lighting consistent throughout?
-- Maximum two soups included?
-- No empty plates included?
-- Final image photorealistic and well-composed with proper proportions?`;
-
 // AI Providers registry
 const AI_PROVIDERS = {
   'gpt-image-1': {
@@ -182,7 +123,6 @@ const AI_PROVIDERS = {
 
 // Background service worker: process image edits via provider-agnostic adapter
 const ACTIONS = {
-  GET_AVAILABLE_MODELS: 'getAvailableModels',
   GET_FOOD_PREFERENCES: 'getFoodPreferences',
   GENERATE_REQUEST_ID: 'generateRequestId',
   PROCESS_IMAGE: 'processImage',
@@ -198,15 +138,6 @@ const inFlightRequests = new Map(); // requestId -> { controller, timeoutId }
 
 // Entry point: listen for messages from the extension UI/content
 chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
-  if (request && request.action === ACTIONS.GET_AVAILABLE_MODELS) {
-    const models = Object.keys(AI_PROVIDERS).map(key => ({
-      id: AI_PROVIDERS[key].id,
-      name: AI_PROVIDERS[key].name,
-    }));
-    sendResponse({ success: true, models });
-    return true;
-  }
-
   if (request && request.action === ACTIONS.GET_FOOD_PREFERENCES) {
     const preferences = Object.keys(FOOD_PREFERENCES).map(key => ({
       id: FOOD_PREFERENCES[key].id,
@@ -282,22 +213,360 @@ function selectAiProviderByModel(model) {
   return AI_PROVIDERS[model] || AI_PROVIDERS[Object.keys(AI_PROVIDERS)[0]];
 }
 
+// Menu Parser: Stage 1 - Analyze menu and extract items with AI
+async function parseMenuWithAI({ imageUrl, foodPreference }) {
+  console.log('🍽️ [MENU PARSER] Starting menu analysis...');
+  console.log('📸 [MENU PARSER] Image URL:', imageUrl);
+  console.log('🥗 [MENU PARSER] Food Preference:', foodPreference);
+
+  try {
+    const settings = await loadSettings();
+    assertSetting(settings.apiKey, 'API key not configured');
+
+    // Fetch the menu image and convert to base64
+    console.log('⬇️ [MENU PARSER] Fetching menu image...');
+    const imageBlob = await fetchImageAsBlob(imageUrl);
+    const imageBase64 = await blobToBase64(imageBlob);
+    console.log('✅ [MENU PARSER] Image fetched, size:', Math.round(imageBase64.length / 1024), 'KB');
+
+    // Get dietary preference context
+    const preference = FOOD_PREFERENCES[foodPreference] || FOOD_PREFERENCES['regular'];
+    console.log('📋 [MENU PARSER] Dietary preference:', preference.name);
+
+    // Build the menu parsing prompt
+    const parsingPrompt = buildMenuParsingPrompt(preference);
+    console.log('📝 [MENU PARSER] Prompt built, length:', parsingPrompt.length, 'chars');
+
+    // Call GPT-4o (vision model) to parse the menu
+    console.log('🤖 [MENU PARSER] Calling OpenAI GPT-4o for menu analysis...');
+    const requestBody = {
+      model: 'gpt-4o',
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: parsingPrompt
+            },
+            {
+              type: 'image_url',
+              image_url: {
+                url: `data:image/png;base64,${imageBase64}`,
+                detail: 'high'
+              }
+            }
+          ]
+        }
+      ],
+      max_tokens: 2000,
+      temperature: 0.7
+    };
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${settings.apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(requestBody)
+    });
+
+    if (!response.ok) {
+      let errorMessage = response.statusText;
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.error?.message || errorMessage;
+      } catch (_) {}
+      throw new Error(`OpenAI API error: ${errorMessage}`);
+    }
+
+    const data = await response.json();
+    console.log('📦 [MENU PARSER] Raw API response:', JSON.stringify(data, null, 2));
+
+    const aiResponse = data.choices[0]?.message?.content;
+    if (!aiResponse) {
+      throw new Error('No response content from AI');
+    }
+
+    console.log('💬 [MENU PARSER] AI Response:\n', aiResponse);
+
+    // Parse the JSON response from AI
+    let parsedData;
+    try {
+      // Extract JSON from markdown code blocks if present
+      const jsonMatch = aiResponse.match(/```json\s*([\s\S]*?)\s*```/) || aiResponse.match(/```\s*([\s\S]*?)\s*```/);
+      const jsonString = jsonMatch ? jsonMatch[1] : aiResponse;
+      parsedData = JSON.parse(jsonString.trim());
+      console.log('✅ [MENU PARSER] Successfully parsed JSON response');
+    } catch (parseError) {
+      console.error('❌ [MENU PARSER] Failed to parse JSON:', parseError);
+      throw new Error(`Failed to parse AI response as JSON: ${parseError.message}`);
+    }
+
+    console.log('🎯 [MENU PARSER] Parsed Data:', JSON.stringify(parsedData, null, 2));
+    console.log('🍽️ [MENU PARSER] Selected Items:', parsedData.selectedItems?.length || 0);
+    console.log('🎨 [MENU PARSER] Menu Theme:', parsedData.menuTheme);
+    console.log('✨ [MENU PARSER] Menu analysis complete!');
+
+    return parsedData;
+  } catch (error) {
+    console.error('❌ [MENU PARSER] Error:', error);
+    throw error;
+  }
+}
+
+// Build the dynamic image generation prompt from parsed menu data (Stage 2)
+function buildImageGenerationPrompt(parsedMenuData) {
+  const { menuTheme, selectedItems } = parsedMenuData;
+  const currentYear = new Date().getFullYear();
+
+  console.log('🎨 [PROMPT BUILDER] Building dynamic image generation prompt...');
+  console.log('📋 [PROMPT BUILDER] Menu Theme:', menuTheme);
+  console.log('🍽️ [PROMPT BUILDER] Selected Items:', selectedItems.length);
+  console.log('📅 [PROMPT BUILDER] Current Year:', currentYear);
+
+  // Build the dish descriptions with plate assignments
+  const dishDescriptions = selectedItems.map((item, index) => {
+    const plateType = assignPlateType(item.category);
+    return `${index + 1}. **${item.name}** (${item.category})
+   - Plate: ${plateType}
+   - Visual Notes: ${item.visualAppeal}`;
+  }).join('\n\n');
+
+  console.log('🍽️ [PROMPT BUILDER] Dish descriptions created');
+
+  const prompt = `You are a specialized AI system that creates photorealistic food scenes with ${currentYear} modern aesthetic styling.
+
+## MENU THEME
+${menuTheme}
+
+## DISHES TO VISUALIZE
+${dishDescriptions}
+
+## VISUAL STYLE: ${currentYear} MODERN FOOD PHOTOGRAPHY
+
+**CRITICAL COMPOSITION LAYOUT**:
+- **TOP 1/3 of image**: Soft, clean background space (for menu text overlay)
+  * This area MUST be kept completely clear and simple
+  * Soft gradient background in warm tones: beige-to-cream, OR soft sage green, OR warm off-white
+  * Minimal, clean, Instagram-worthy aesthetic
+  * ABSOLUTELY NO food elements in this upper third - leave space for text
+  * Background fades naturally into the surface below
+
+- **BOTTOM 2/3 of image**: Food presentation area
+  * This is where ALL ${selectedItems.length} dishes should be arranged
+  * Food occupies the lower two-thirds of the frame only
+  * GENEROUS spacing between dishes - avoid crowding
+  * Natural surface visible: light marble with subtle veining, OR white concrete, OR natural light wood with visible grain
+
+**Spatial Distribution & Perspective**:
+- Imagine looking at a table from above at an angle
+- TOP 1/3 = empty background wall/space (for menu text)
+- BOTTOM 2/3 = table surface with food dishes spread out
+- Strong perspective: dishes further back appear smaller (natural depth)
+- Dishes arranged with breathing room - not touching or overlapping too much
+- Create sense of depth through perspective: back dishes smaller, front dishes larger
+
+**Lighting**: Soft, diffused natural light
+- Single soft light source positioned at 10-2 o'clock angle
+- Creates gentle shadows for depth but keeps everything bright and appetizing
+- Window-light quality, not harsh or artificial
+
+**Food Arrangement in Bottom 2/3**:
+- Arrange ${selectedItems.length} dishes elegantly within the lower two-thirds of the frame
+- Use the specified plate for each dish (white or blue plates as noted above)
+- IMPORTANT: Space dishes apart generously - each dish should have breathing room
+- Slight overlapping is OK, but maintain clear separation between dishes
+- Keep the composition balanced and visually pleasing with clear negative space
+- View angle from above at an angle (looking down at 50-60 degrees)
+
+**Perspective & Depth**:
+- Apply natural perspective: dishes in the back row appear smaller/higher in frame
+- Dishes in the front row appear larger/lower in frame
+- This creates realistic table-top photography depth
+- Avoid flat, 2D arrangement - use full 3D depth of the scene
+- Camera positioned as if photographer is standing and looking down at the table
+
+**Camera & Quality**:
+- Elevated camera angle (50-60 degrees from horizontal) looking down at table
+- Strong perspective showing depth from back to front
+- Sharp focus on the food with beautiful bokeh in background
+- Restaurant-quality, magazine-worthy presentation
+- Make the food look absolutely delicious and irresistible
+
+## PLATE SPECIFICATIONS
+**Available Plate Types**:
+- **Large Flat White Plate** (12-inch diameter): For flat presentations, grilled items, salads, sandwiches, steaks, fish
+- **Large Deep Blue Plate** (12-inch diameter, 2-inch depth): For pasta, stews, curries, rice bowls, saucy dishes
+- **Medium Deep Blue Plate** (9-inch diameter, 4-inch depth): For soups, individual portions, appetizers, sides
+
+## FOOD STYLING REQUIREMENTS
+- Each dish should look restaurant-quality and professionally plated
+- Colors should be vibrant and natural, making food look fresh and appetizing
+- Appropriate garnishes and plating techniques for each dish type
+- Proper portion sizes that look generous but not overwhelming
+- Steam or freshness indicators where appropriate (e.g., soup should look hot)
+
+## PHOTOREALISM REQUIREMENTS - CRITICAL
+**Make food look REAL, not CGI or artificial. Apply these techniques:**
+
+1. **Surface Textures** (VERY IMPORTANT):
+   - Show realistic food textures: crispy skin on chicken, flaky fish, visible grain in bread
+   - Include natural imperfections: slight charring, uneven browning, organic shapes
+   - Avoid overly smooth or perfect surfaces that look computer-generated
+
+2. **Natural Lighting Effects**:
+   - Add subtle highlights and reflections on moist/oily surfaces (sauces, glazes)
+   - Show gentle shadows within dishes (between layers, under garnishes)
+   - Avoid flat, even lighting that looks artificial
+
+3. **Organic Presentation**:
+   - Food should look like it was ACTUALLY PLATED by a real chef
+   - Garnishes placed naturally, not perfectly symmetrical
+   - Sauce drizzles and dollops should have organic, imperfect patterns
+   - Herbs and toppings scattered naturally, not arranged in perfect patterns
+
+4. **Real-World Details**:
+   - Show subtle steam rising from hot dishes (soup, waffles)
+   - Include small imperfections: herb fragments, sauce splatter on rim, crumbs
+   - Visible moisture/sheen on fresh ingredients (avocado, vegetables)
+   - Natural color variations within ingredients (not uniform colors)
+
+5. **Photography Style**:
+   - Capture food as it would look in real life, not idealized CGI
+   - Slight depth of field blur in background (natural lens behavior)
+   - Realistic color grading - avoid oversaturation
+   - Natural shadows and highlights from actual lighting conditions
+
+## CRITICAL REQUIREMENTS
+- EXACTLY ${selectedItems.length} dishes MUST be visible - NO MORE, NO LESS
+- Each dish listed above should appear EXACTLY ONCE in the image (no duplicates)
+- DO NOT create multiple versions of the same dish
+- Use the exact plate types specified for each dish
+- Maintain the warm, modern aesthetic throughout
+- Keep the scene clean and uncluttered
+- Make the food the star - background supports but doesn't compete
+- Final image should make viewers hungry and excited to eat
+
+## ANTI-DUPLICATION CHECK
+Before generating, verify:
+1. Are there exactly ${selectedItems.length} distinct dishes in the scene?
+2. Does each dish match one from the list above?
+3. Are there any duplicate dishes? (If yes, remove duplicates)
+
+## COMPOSITION VERIFICATION
+Before finalizing the image, verify this critical layout:
+1. **Top 1/3 check**: Is the upper third of the image clear background space (no food)?
+2. **Bottom 2/3 check**: Are ALL dishes positioned in the lower two-thirds only?
+3. **Text space**: Is there sufficient empty space at the top for menu text overlay?
+4. **Spacing**: Is there clear space between dishes (not overcrowded)?
+5. **Perspective**: Do back dishes appear smaller/higher and front dishes larger/lower?
+6. **Depth**: Does the scene show natural 3D table-top perspective?
+
+## OUTPUT DELIVERABLE
+A single, high-resolution PHOTOREALISTIC image (not CGI or 3D render) with the following layout:
+- **Top 1/3**: Clean, soft gradient background (space for menu text)
+- **Bottom 2/3**: All ${selectedItems.length} dishes in modern, appetizing presentation with generous spacing and natural perspective depth
+
+The image should look like a professional food photograph taken with a real camera, showing real food that actually exists.`;
+
+  console.log('✅ [PROMPT BUILDER] Dynamic prompt built, length:', prompt.length, 'chars');
+  console.log('📝 [PROMPT BUILDER] Full prompt:\n', prompt);
+
+  return prompt;
+}
+
+// Assign the appropriate plate type based on dish category
+function assignPlateType(category) {
+  const plateRules = {
+    'soup': 'Medium Deep Blue Plate (9-inch, 4-inch depth)',
+    'salad': 'Large Flat White Plate (12-inch)',
+    'main': 'Large Flat White Plate (12-inch)',
+    'pasta': 'Large Deep Blue Plate (12-inch, 2-inch depth)',
+    'sandwich': 'Large Flat White Plate (12-inch)',
+    'pizza': 'Large Flat White Plate (12-inch)',
+    'dessert': 'Large Flat White Plate (12-inch)',
+    'side': 'Medium Deep Blue Plate (9-inch, 4-inch depth)',
+  };
+
+  return plateRules[category] || 'Large Flat White Plate (12-inch)';
+}
+
+// Build the prompt for menu parsing (Stage 1)
+function buildMenuParsingPrompt(preference) {
+  return `You are an expert food menu analyzer. Your task is to analyze this menu image and extract the most interesting dishes for visualization.
+
+## TASK
+Analyze the menu and return a JSON object with the following structure:
+
+\`\`\`json
+{
+  "menuTheme": "Description of overall menu style/cuisine (e.g., 'Mediterranean Day', 'Asian Fusion', 'Classic American')",
+  "allItems": [
+    {
+      "name": "Dish name (cleaned, without abbreviations)",
+      "category": "soup | salad | main | pasta | sandwich | pizza | dessert | side",
+      "description": "Brief description if available"
+    }
+  ],
+  "selectedItems": [
+    {
+      "name": "Selected dish name",
+      "category": "category",
+      "description": "Why this dish was selected",
+      "visualAppeal": "What makes this dish visually interesting"
+    }
+  ]
+}
+\`\`\`
+
+## RULES FOR EXTRACTION
+1. **Remove Abbreviations**: Clean up dietary markers like (V), (D), (GF), (VG), etc. from dish names
+2. **Categorize Items**: Assign each dish to a category (soup, salad, main, pasta, sandwich, pizza, dessert, side)
+3. **Extract All Items**: List ALL dishes you can identify from the menu in "allItems"
+
+## RULES FOR SELECTION (EXACTLY 5 dishes - NO MORE, NO LESS)
+1. **MANDATORY COUNT**: You MUST select EXACTLY 5 dishes. Not 3, not 4, not 6. Always 5 dishes.
+
+2. **STRICT DIVERSITY RULE**: You MUST select dishes from DIFFERENT categories ONLY
+   - Each selected dish MUST have a UNIQUE category
+   - MAXIMUM ONE dish per category
+   - ✅ GOOD EXAMPLES:
+     * 1 soup + 1 salad + 1 main + 1 pasta + 1 dessert (5 different categories) ✓
+     * 1 pizza + 1 main + 1 side + 1 soup + 1 sandwich (5 different categories) ✓
+   - ❌ BAD EXAMPLES (DO NOT DO THIS):
+     * Only 3 dishes selected (WRONG - need 5)
+     * 2 soups (duplicate category)
+     * 2 salads (duplicate category)
+     * 2 mains (duplicate category)
+     * 2 pizzas (duplicate category)
+   - **CRITICAL**: Before finalizing your selection, count:
+     1. Total dishes = exactly 5? If not, add more dishes from different categories
+     2. Each category appears only once? If not, remove duplicates and pick from different categories
+
+3. **Visual Appeal**: Prioritize colorful, photogenic dishes
+
+4. **Dietary Preference**: ${preference.modifier ? 'Apply this dietary filter: ' + preference.modifier : 'No dietary restrictions'}
+
+5. **Balance**: Mix textures and colors (creamy + crunchy, green + red/orange, etc.)
+
+6. **Interesting Items**: Choose dishes that sound unique or restaurant-quality
+
+## OUTPUT
+Return ONLY valid JSON, no additional text. Make sure the JSON is properly formatted and can be parsed.`;
+}
+
 
 // Settings and validation helpers
 async function loadSettings() {
-  const stored = await chrome.storage.local.get(['model', 'apiKey', 'foodPreference']);
+  const stored = await chrome.storage.local.get(['model', 'apiKey']);
   const modelId = stored.model || Object.keys(AI_PROVIDERS)[0];
   const provider = AI_PROVIDERS[modelId];
-  const preferenceId = stored.foodPreference || 'regular';
-  const preference = FOOD_PREFERENCES[preferenceId] || FOOD_PREFERENCES['regular'];
-
-  // Build prompt with dietary preference modifier
-  const prompt = DEFAULT_PROMPT + preference.modifier;
 
   return {
     model: modelId,
     apiKey: stored.apiKey,
-    prompt,
     quality: provider?.defaultQuality,
     size: provider?.defaultSize,
     timeoutMs: provider?.defaultTimeout,
@@ -325,7 +594,43 @@ async function processImageRequest({ imageUrl, requestId, signal }) {
 
     assertSetting(settings.model, 'Model not configured');
     assertSetting(settings.apiKey, 'API key not configured');
-    assertSetting(settings.prompt, 'Prompt not configured');
+
+    console.log('🚀 [IMAGE GENERATION] Starting two-stage pipeline...');
+    console.log('📸 [IMAGE GENERATION] Image URL:', imageUrl);
+
+    // STAGE 1: Parse the menu with AI to get intelligent dish selection
+    console.log('⚡ [IMAGE GENERATION] Stage 1: Parsing menu with AI...');
+    const stored = await chrome.storage.local.get(['foodPreference']);
+    const foodPreference = stored.foodPreference || 'regular';
+
+    let parsedMenuData;
+    let dynamicPrompt;
+
+    try {
+      parsedMenuData = await parseMenuWithAI({ imageUrl, foodPreference });
+      console.log('✅ [IMAGE GENERATION] Stage 1 complete - Menu parsed successfully');
+      console.log('🎯 [IMAGE GENERATION] Selected items:', parsedMenuData.selectedItems?.length || 0);
+      console.log('🎨 [IMAGE GENERATION] Menu theme:', parsedMenuData.menuTheme);
+
+      // Validate that we have exactly 5 items
+      if (parsedMenuData.selectedItems?.length !== 5) {
+        console.warn('⚠️ [IMAGE GENERATION] AI returned', parsedMenuData.selectedItems?.length, 'items instead of 5, falling back to static prompt');
+        throw new Error('AI did not return exactly 5 items');
+      }
+
+      // STAGE 2: Build dynamic prompt from parsed data
+      console.log('⚡ [IMAGE GENERATION] Stage 2: Building dynamic prompt...');
+      dynamicPrompt = buildImageGenerationPrompt(parsedMenuData);
+      console.log('✅ [IMAGE GENERATION] Stage 2 complete - Prompt generated');
+    } catch (parseError) {
+      console.error('❌ [IMAGE GENERATION] Menu parsing failed:', parseError.message);
+      throw new Error(`Failed to parse menu: ${parseError.message}`);
+    }
+
+    // Use the dynamically generated prompt instead of static one
+    const finalPrompt = dynamicPrompt;
+
+    console.log('📝 [IMAGE GENERATION] Using prompt (first 200 chars):', finalPrompt.substring(0, 200) + '...');
 
     // Enforce timeout via AbortController (only if a positive timeout is set)
     const entry = inFlightRequests.get(requestId);
@@ -335,15 +640,21 @@ async function processImageRequest({ imageUrl, requestId, signal }) {
       }, settings.timeoutMs);
     }
 
+    console.log('⬇️ [IMAGE GENERATION] Fetching image for processing...');
     const imageBlob = await fetchImageAsBlob(imageUrl, signal);
     if (!imageBlob || imageBlob.size === 0) {
       throw new Error('Fetched image is empty');
     }
+    console.log('✅ [IMAGE GENERATION] Image fetched, size:', Math.round(imageBlob.size / 1024), 'KB');
 
     throwIfAborted(signal);
 
+    console.log('🤖 [IMAGE GENERATION] Calling image generation API...');
     const aiProvider = selectAiProviderByModel(settings.model);
-    const request = aiProvider.buildRequest({ settings, imageBlob, signal });
+
+    // Override the prompt in settings with our dynamic one
+    const settingsWithDynamicPrompt = { ...settings, prompt: finalPrompt };
+    const request = aiProvider.buildRequest({ settings: settingsWithDynamicPrompt, imageBlob, signal });
 
     const response = await fetch(request.url, request.options);
     if (!response.ok) {
@@ -359,12 +670,17 @@ async function processImageRequest({ imageUrl, requestId, signal }) {
     if (!b64) {
       throw new Error(`${aiProvider.name} returned no image data`);
     }
+
+    console.log('✅ [IMAGE GENERATION] Image generated successfully!');
+    console.log('🎉 [IMAGE GENERATION] Two-stage pipeline complete!');
+
     return { success: true, b64 };
   } catch (error) {
     if (error && (error.name === 'AbortError' || /aborted|abort/i.test(error.message))) {
+      console.log('🛑 [IMAGE GENERATION] Request canceled');
       return { success: false, canceled: true, error: 'Request canceled' };
     }
-    console.error('Error processing image:', error);
+    console.error('❌ [IMAGE GENERATION] Error processing image:', error);
     return { success: false, error: error?.message || 'Unknown error' };
   }
 }
@@ -392,13 +708,6 @@ async function fetchImageAsBlob(imageUrl, signal) {
 }
 
 // Misc utilities
-async function fetchUrlToBase64(url, signal) {
-  const res = await fetch(url, { signal });
-  if (!res.ok) throw new Error(`Failed to fetch image URL: ${res.statusText}`);
-  const blob = await res.blob();
-  return await blobToBase64(blob);
-}
-
 function blobToBase64(blob) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
