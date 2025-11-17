@@ -19,14 +19,23 @@ A Chrome extension that transforms food menu images from Verkada Menu pages into
 
 ### Dietary Preferences
 Choose from 8 dietary preference options that guide AI dish selection:
-- **Regular** - All menu items
-- **Vegetarian** - Plant-based proteins, vegetables, eggs, dairy (no meat/fish)
-- **Vegan** - Fully plant-based (no animal products)
-- **Gluten Free** - Naturally gluten-free items only
-- **Dairy Free** - No milk, cheese, butter, cream, or yogurt
-- **Healthy** - Nutrient-dense, grilled/steamed, vegetable-forward dishes
-- **High Protein** - Substantial protein content (meat, fish, eggs, legumes)
-- **Keto** - Low-carb, high-fat (no grains, starches, or sugars)
+- 🍽️ **Regular (Default)** - All menu items available with no restrictions
+- 🥗 **Vegetarian** - Plant-based with eggs & dairy (no meat, poultry, or fish)
+- 🌱 **Vegan** - Strictly plant-based (no animal products including dairy and eggs)
+- 🌾 **Gluten Free** - No wheat, barley, rye, or gluten-containing ingredients
+- 🥛 **Dairy Free** - No milk, cheese, butter, cream, or dairy products
+- 💪 **Healthy** - Nutrient-dense, balanced meals with lean proteins and vegetables
+- 🥩 **High Protein** - Protein-forward dishes with substantial meat, fish, eggs, or legumes
+- 🥑 **Keto** - High-fat, low-carb with no bread, pasta, rice, or sugar
+
+### Visual Styles
+Choose from 6 artistic styles that transform the AI-generated food imagery:
+- 📸 **Modern Photography (Default)** - Clean, contemporary food photography with natural lighting
+- 🕯️ **Moody Dark Academia** - Dramatic chiaroscuro lighting with deep shadows and rich atmosphere
+- 🌸 **Pastel Dream Pop** - Soft, ethereal aesthetic with dreamy pastel colors
+- ⚡ **Cyberpunk Neon Kitchen** - Futuristic sci-fi aesthetic with dramatic neon lighting
+- 📷 **Vintage Film Photography** - Nostalgic film aesthetic with warm, faded tones
+- 🌺 **Hyper-Maximalist Grandmillennial** - Bold, ornate "more is more" aesthetic with rich jewel tones
 
 ### User Experience
 - **Real-Time Progress Tracking**: Animated progress bar with percentage and status updates
@@ -49,7 +58,8 @@ Click the extension icon to access settings:
 
 - **OpenAI API Key**: Your personal API key (stored securely in local browser storage)
   - Used for GPT-4o (menu parsing) and GPT-Image-1 (image generation)
-- **Food Preference**: Select your dietary preference from 8 options (affects dish selection in Stage 1)
+- **Dietary Preference**: Select your dietary preference from 8 options (affects dish selection in Stage 1)
+- **Visual Style**: Choose from 6 artistic styles that influence the image generation aesthetic
 
 ## How It Works
 
@@ -69,14 +79,15 @@ When you click the generate button:
 - Returns structured JSON with selected dishes and visual descriptions
 
 ### 3. Stage 2: Photorealistic Image Generation (GPT-Image-1)
-Using the parsed menu data:
+Using the parsed menu data and selected visual style:
 - Builds a detailed image generation prompt with:
-  - Modern 2025 food photography aesthetic
+  - Selected visual style aesthetic (Modern, Dark Academia, Pastel Dream, Cyberpunk, Vintage Film, or Maximalist)
+  - Style-specific lighting, background, surface, color palette, atmosphere, and camera settings
   - Specific plate types (white/blue plates) matched to dish categories
   - Composition layout (top 1/3 clear for text, bottom 2/3 for food)
   - Photorealism requirements (textures, lighting, organic presentation)
 - Sends to GPT-Image-1 for image creation
-- Receives professional-quality food photography visualization
+- Receives professional-quality food photography visualization in your chosen style
 
 ### 4. Display & Interaction
 - Replaces original image with generated visualization

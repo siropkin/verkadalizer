@@ -1,45 +1,198 @@
-// Food preference configurations with prompt modifiers
-const FOOD_PREFERENCES = {
+// Dietary preference configurations with prompt modifiers
+const DIETARY_PREFERENCES = {
   'regular': {
     id: 'regular',
     name: 'Regular',
+    displayName: 'Regular (Default)',
+    emoji: '🍽️',
+    description: 'All menu items available - no dietary restrictions',
     modifier: '', // No additional constraints
   },
   'vegetarian': {
     id: 'vegetarian',
     name: 'Vegetarian',
+    emoji: '🥗',
+    description: 'Plant-based dishes with eggs and dairy - no meat, poultry, or fish',
     modifier: '\n\n## DIETARY PREFERENCE: VEGETARIAN\n- Select ONLY vegetarian dishes from the menu (no meat, poultry, or fish)\n- Include plant-based proteins, vegetables, grains, pasta, legumes, eggs, and dairy\n- If the menu has limited vegetarian options, prioritize salads, pasta dishes, grain bowls, and vegetable-based items',
   },
   'vegan': {
     id: 'vegan',
     name: 'Vegan',
+    emoji: '🌱',
+    description: 'Strictly plant-based - no animal products including dairy and eggs',
     modifier: '\n\n## DIETARY PREFERENCE: VEGAN\n- Select ONLY vegan dishes from the menu (no animal products: no meat, poultry, fish, dairy, eggs, or honey)\n- Include plant-based proteins, vegetables, grains, legumes, nuts, and seeds\n- If the menu has limited vegan options, prioritize salads (without cheese/dressing), vegetable dishes, grain bowls, and fruit-based items',
   },
   'gluten-free': {
     id: 'gluten-free',
     name: 'Gluten Free',
+    emoji: '🌾',
+    description: 'No wheat, barley, rye, or gluten-containing ingredients',
     modifier: '\n\n## DIETARY PREFERENCE: GLUTEN FREE\n- Select ONLY gluten-free dishes from the menu (no wheat, barley, rye, or derivatives)\n- Include naturally gluten-free items: grilled proteins, rice dishes, salads, vegetables, fruits\n- Avoid pasta, bread, breaded items, and dishes with flour-based sauces unless explicitly marked gluten-free',
   },
   'dairy-free': {
     id: 'dairy-free',
     name: 'Dairy Free',
+    emoji: '🥛',
+    description: 'No milk, cheese, butter, cream, or dairy products',
     modifier: '\n\n## DIETARY PREFERENCE: DAIRY FREE\n- Select ONLY dairy-free dishes from the menu (no milk, cheese, butter, cream, or yogurt)\n- Include dishes with meat, poultry, fish, vegetables, grains, and non-dairy alternatives\n- Avoid creamy sauces, cheese-topped dishes, and items with visible dairy products',
   },
   'healthy': {
     id: 'healthy',
     name: 'Healthy',
+    emoji: '💪',
+    description: 'Nutrient-dense, balanced meals with lean proteins and vegetables',
     modifier: '\n\n## DIETARY PREFERENCE: HEALTHY\n- Prioritize nutrient-dense, balanced dishes with lean proteins, whole grains, and vegetables\n- Select grilled, baked, or steamed items over fried options\n- Include colorful vegetable-forward dishes, salads with lean proteins, grain bowls, and fish\n- Avoid heavily fried, cream-based, or processed items',
   },
   'high-protein': {
     id: 'high-protein',
     name: 'High Protein',
+    emoji: '🥩',
+    description: 'Protein-forward dishes with substantial meat, fish, eggs, or legumes',
     modifier: '\n\n## DIETARY PREFERENCE: HIGH PROTEIN\n- Prioritize dishes with substantial protein content (meat, poultry, fish, seafood, eggs, legumes)\n- Select items like steaks, grilled chicken, fish fillets, seafood platters, egg dishes, and protein bowls\n- Ensure each dish features protein as the primary component\n- Include sides that complement protein (vegetables, legumes) rather than just carbohydrates',
   },
   'keto': {
     id: 'keto',
     name: 'Keto',
+    emoji: '🥑',
+    description: 'High-fat, low-carb with no bread, pasta, rice, or sugar',
     modifier: '\n\n## DIETARY PREFERENCE: KETO\n- Select ONLY low-carb, high-fat dishes from the menu (no bread, pasta, rice, potatoes, or sugary items)\n- Prioritize fatty cuts of meat, fish with healthy fats, eggs, cheese, non-starchy vegetables, and nuts\n- Include dishes like steak, salmon, chicken with skin, salads with high-fat dressings, and cheese-based items\n- Avoid all grains, legumes, starchy vegetables, and fruit-based dishes',
   },
+};
+
+// Visual style configurations with prompt modifiers
+const IMAGE_STYLES = {
+  'modern': {
+    id: 'modern',
+    name: 'Modern Photography',
+    displayName: 'Modern Photography (Default)',
+    emoji: '📸',
+    description: 'Clean, contemporary food photography with natural lighting',
+    lighting: `**Lighting**: Soft, diffused natural light
+- Single soft light source positioned at 10-2 o'clock angle
+- Creates gentle shadows for depth but keeps everything bright and appetizing
+- Window-light quality, not harsh or artificial`,
+    background: `- Soft gradient background in warm tones: beige-to-cream, OR soft sage green, OR warm off-white
+  * Minimal, clean, Instagram-worthy aesthetic
+  * Background fades naturally into the surface below`,
+    surface: `- Natural surface visible: light marble with subtle veining, OR white concrete, OR natural light wood with visible grain`,
+    colorPalette: `- Colors should be vibrant and natural, making food look fresh and appetizing`,
+    atmosphere: `Modern, clean, contemporary food photography aesthetic.`,
+    camera: `- Sharp focus on the food with beautiful bokeh in background
+- Restaurant-quality, magazine-worthy presentation`
+  },
+  'dark-academia': {
+    id: 'dark-academia',
+    name: 'Moody Dark Academia',
+    emoji: '🕯️',
+    description: 'Dramatic chiaroscuro lighting with deep shadows and rich atmosphere',
+    lighting: `**Lighting**: Dramatic chiaroscuro lighting
+- Single warm light source from the side (Rembrandt lighting style)
+- Deep, rich shadows contrasting with golden highlights
+- Creates bold dramatic atmosphere like a Renaissance painting
+- Candlelit dinner ambiance with mysterious depth`,
+    background: `- Dark, moody gradient: deep charcoal to rich brown, or black to deep burgundy
+  * Editorial fine-dining aesthetic with rustic textures
+  * Dramatic and luxurious atmosphere`,
+    surface: `- Aged dark wood with visible weathering and character, OR black slate with natural texture, OR deep mahogany surface`,
+    colorPalette: `- Rich, saturated colors with crushed blacks and deep shadows
+- Warm golden highlights on food surfaces
+- Luxurious, dramatic color palette`,
+    atmosphere: `Dark academia aesthetic - moody, dramatic, editorial fine-dining with theatrical lighting. Evoke mystery and sophistication.`,
+    camera: `- High contrast with deep blacks and rich highlights
+- Slightly warmer color grading
+- Dramatic depth with bold shadows`
+  },
+  'pastel-dream': {
+    id: 'pastel-dream',
+    name: 'Pastel Dream Pop',
+    emoji: '🌸',
+    description: 'Soft, ethereal aesthetic with dreamy pastel colors',
+    lighting: `**Lighting**: Ultra-soft, diffused overhead light
+- Almost flat but dreamy, ethereal quality
+- Gentle glow creating soft, romantic atmosphere
+- No harsh shadows, everything bathed in soft light
+- Slight overexposure for dreamy effect`,
+    background: `- Soft pastel gradient: blush pink to lavender, OR mint to peach, OR cream to soft lilac
+  * Whimsical, kawaii café vibes
+  * Add delicate decorative elements like small flowers or cotton candy wisps`,
+    surface: `- White marble with rose gold accents, OR glossy ceramic tiles in soft colors, OR pearl-white surface with iridescent sheen`,
+    colorPalette: `- Desaturated pastels throughout: blush pink, lavender, mint, peach, soft yellow
+- Creamy whites and gentle colors
+- Soft, dreamy, Instagram-worthy aesthetic`,
+    atmosphere: `Pastel dream pop aesthetic - soft, whimsical, ethereal. Like a magical café in a fairy tale with gentle romantic vibes.`,
+    camera: `- Slightly overexposed by 0.5 stops for dreamy glow
+- Soft focus edges with bloom effect
+- Gentle, romantic rendering`
+  },
+  'cyberpunk': {
+    id: 'cyberpunk',
+    name: 'Cyberpunk Neon Kitchen',
+    emoji: '⚡',
+    description: 'Futuristic sci-fi aesthetic with dramatic neon lighting',
+    lighting: `**Lighting**: Futuristic multi-colored LED lighting
+- Dramatic neon lights in electric cyan, hot magenta, and deep purple
+- Colored backlighting creating bold rim lights on food
+- High contrast with glowing neon accents
+- Sci-fi atmosphere with dramatic colored shadows`,
+    background: `- Dark background (near black) with glowing neon strips or holographic elements
+  * Blade Runner meets molecular gastronomy aesthetic
+  * Add subtle digital/holographic UI elements or neon signs`,
+    surface: `- Glossy black acrylic surface with neon reflections, OR metallic chrome surface reflecting colored lights, OR dark glass with cyberpunk neon glow`,
+    colorPalette: `- Electric, vivid colors: neon cyan, hot magenta, acid green, electric purple
+- Deep blacks contrasting with vibrant neons
+- Futuristic, high-tech color palette`,
+    atmosphere: `Cyberpunk neon aesthetic - futuristic restaurant from 2077. High-tech molecular gastronomy meets dramatic neon lighting and sci-fi vibes.`,
+    camera: `- High contrast with chromatic aberration on edges
+- Lens flares from neon lights
+- Sharp, modern, futuristic rendering`
+  },
+  'vintage-film': {
+    id: 'vintage-film',
+    name: 'Vintage Film Photography',
+    emoji: '📷',
+    description: 'Nostalgic film aesthetic with warm, faded tones',
+    lighting: `**Lighting**: Natural golden hour sunlight
+- Soft, warm light with honey-golden tones
+- Gentle shadows creating cozy atmosphere
+- Window light quality from afternoon sun
+- Nostalgic, warm illumination`,
+    background: `- Warm cream with subtle vignetting at edges
+  * 1970s cookbook aesthetic with nostalgic charm
+  * Cozy grandma's kitchen atmosphere`,
+    surface: `- Light wood with honey tones and visible grain, OR vintage tablecloth with subtle texture, OR worn butcher block with character`,
+    colorPalette: `- Kodak Gold film color palette: warm oranges, muted greens, creamy yellows
+- Slightly faded colors like old photographs from the 1970s
+- Warm, nostalgic tones throughout`,
+    atmosphere: `Vintage 35mm film photography aesthetic - shot on Kodak Gold 200. Nostalgic, warm, homey atmosphere like old cookbooks from the 1970s.`,
+    camera: `- Natural film grain texture throughout
+- Soft vignetting at edges
+- Warm tone curve with characteristic film lens rendering
+- Gentle bokeh with analog lens quality`
+  },
+  'maximalist': {
+    id: 'maximalist',
+    name: 'Hyper-Maximalist Grandmillennial',
+    emoji: '🌺',
+    description: 'Bold, ornate "more is more" aesthetic with rich jewel tones',
+    lighting: `**Lighting**: Bright, even lighting with decorative flair
+- Well-lit scene showing all details and patterns
+- Warm ambient light bringing out rich jewel tones
+- No dramatic shadows - everything visible and ornate
+- Grand, luxurious illumination`,
+    background: `- Bold floral wallpaper OR rich jewel-tone damask patterns
+  * English tea room meets maximalist Instagram aesthetic
+  * Layer decorative elements: add fresh flowers, vintage decorations`,
+    surface: `- Mix of ornate vintage plates with gold trim, patterned tablecloth underneath
+- Layer decorative elements: lace doilies, vintage silverware, scattered fresh flowers
+- More is more - bold patterns and textures`,
+    colorPalette: `- Rich jewel tones: emerald green, sapphire blue, ruby red, gold accents everywhere
+- Saturated, vibrant colors with ornate patterns
+- Eclectic grandmillennial aesthetic with bold choices`,
+    atmosphere: `Hyper-maximalist grandmillennial aesthetic - more is more! Ornate, bold, eclectic with layers of patterns and decorative vintage elements. English tea room meets maximalist Instagram.`,
+    camera: `- Saturated, vibrant colors
+- Everything in sharp focus to show all details
+- Rich, bold rendering showing patterns and textures`
+  }
 };
 
 // AI Providers registry
@@ -123,7 +276,8 @@ const AI_PROVIDERS = {
 
 // Background service worker: process image edits via provider-agnostic adapter
 const ACTIONS = {
-  GET_FOOD_PREFERENCES: 'getFoodPreferences',
+  GET_DIETARY_PREFERENCES: 'getDietaryPreferences',
+  GET_VISUAL_STYLES: 'getVisualStyles',
   GENERATE_REQUEST_ID: 'generateRequestId',
   PROCESS_IMAGE: 'processImage',
   CANCEL_REQUEST: 'cancelRequest',
@@ -207,12 +361,25 @@ function getRandomFoodFact() {
 
 // Entry point: listen for messages from the extension UI/content
 chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
-  if (request && request.action === ACTIONS.GET_FOOD_PREFERENCES) {
-    const preferences = Object.keys(FOOD_PREFERENCES).map(key => ({
-      id: FOOD_PREFERENCES[key].id,
-      name: FOOD_PREFERENCES[key].name,
+  if (request && request.action === ACTIONS.GET_DIETARY_PREFERENCES) {
+    const preferences = Object.keys(DIETARY_PREFERENCES).map(key => ({
+      id: DIETARY_PREFERENCES[key].id,
+      name: DIETARY_PREFERENCES[key].displayName || DIETARY_PREFERENCES[key].name,
+      emoji: DIETARY_PREFERENCES[key].emoji,
+      description: DIETARY_PREFERENCES[key].description,
     }));
     sendResponse({ success: true, preferences });
+    return true;
+  }
+
+  if (request && request.action === ACTIONS.GET_VISUAL_STYLES) {
+    const styles = Object.keys(IMAGE_STYLES).map(key => ({
+      id: IMAGE_STYLES[key].id,
+      name: IMAGE_STYLES[key].displayName || IMAGE_STYLES[key].name,
+      emoji: IMAGE_STYLES[key].emoji,
+      description: IMAGE_STYLES[key].description,
+    }));
+    sendResponse({ success: true, styles });
     return true;
   }
 
@@ -303,10 +470,10 @@ function selectAiProviderByModel(model) {
 }
 
 // Menu Parser: Stage 1 - Analyze menu and extract items with AI
-async function parseMenuWithAI({ imageUrl, foodPreference, requestId }) {
+async function parseMenuWithAI({ imageUrl, dietaryPreference, requestId }) {
   console.log('🍽️ [MENU PARSER] Starting menu analysis...');
   console.log('📸 [MENU PARSER] Image URL:', imageUrl);
-  console.log('🥗 [MENU PARSER] Food Preference:', foodPreference);
+  console.log('🥗 [MENU PARSER] Food Preference:', dietaryPreference);
 
   try {
     updateProgress(requestId, 5, 'Analyzing menu...', getRandomFoodFact());
@@ -322,7 +489,7 @@ async function parseMenuWithAI({ imageUrl, foodPreference, requestId }) {
     console.log('✅ [MENU PARSER] Image fetched, size:', Math.round(imageBase64.length / 1024), 'KB');
 
     // Get dietary preference context
-    const preference = FOOD_PREFERENCES[foodPreference] || FOOD_PREFERENCES['regular'];
+    const preference = DIETARY_PREFERENCES[dietaryPreference] || DIETARY_PREFERENCES['regular'];
     console.log('📋 [MENU PARSER] Dietary preference:', preference.name);
 
     // Build the menu parsing prompt
@@ -423,8 +590,13 @@ async function parseMenuWithAI({ imageUrl, foodPreference, requestId }) {
   }
 }
 
+// Get visual style modifiers based on user's selected style
+function getVisualStyleModifiers(styleName) {
+  return IMAGE_STYLES[styleName] || IMAGE_STYLES['modern'];
+}
+
 // Build the dynamic image generation prompt from parsed menu data (Stage 2)
-function buildImageGenerationPrompt(parsedMenuData) {
+function buildImageGenerationPrompt(parsedMenuData, visualStyle = 'modern', dietaryPreference = 'regular') {
   const { menuTheme, selectedItems } = parsedMenuData;
   const currentYear = new Date().getFullYear();
 
@@ -432,6 +604,8 @@ function buildImageGenerationPrompt(parsedMenuData) {
   console.log('📋 [PROMPT BUILDER] Menu Theme:', menuTheme);
   console.log('🍽️ [PROMPT BUILDER] Selected Items:', selectedItems.length);
   console.log('📅 [PROMPT BUILDER] Current Year:', currentYear);
+  console.log('🎭 [PROMPT BUILDER] Visual Style:', visualStyle);
+  console.log('🥗 [PROMPT BUILDER] Dietary Preference:', dietaryPreference);
 
   // Build the dish descriptions with plate assignments
   const dishDescriptions = selectedItems.map((item, index) => {
@@ -443,7 +617,11 @@ function buildImageGenerationPrompt(parsedMenuData) {
 
   console.log('🍽️ [PROMPT BUILDER] Dish descriptions created');
 
-  const prompt = `You are a specialized AI system that creates photorealistic food scenes with ${currentYear} modern aesthetic styling.
+  // Get style modifiers based on selected visual style
+  const styleModifiers = getVisualStyleModifiers(visualStyle);
+  console.log('🎨 [PROMPT BUILDER] Applied visual style modifiers for:', visualStyle);
+
+  const prompt = `You are a specialized AI system that creates photorealistic food scenes with ${currentYear} aesthetic styling.
 
 ## MENU THEME
 ${menuTheme}
@@ -708,14 +886,15 @@ async function processImageRequest({ imageUrl, requestId, signal }) {
     // STAGE 1: Parse the menu with AI to get intelligent dish selection
     updateProgress(requestId, 5, 'Starting menu analysis...', getRandomFoodFact());
     console.log('⚡ [IMAGE GENERATION] Stage 1: Parsing menu with AI...');
-    const stored = await chrome.storage.local.get(['foodPreference']);
-    const foodPreference = stored.foodPreference || 'regular';
+    const stored = await chrome.storage.local.get(['dietaryPreference', 'visualStyle']);
+    const dietaryPreference = stored.dietaryPreference || 'regular';
+    const visualStyle = stored.visualStyle || 'modern';
 
     let parsedMenuData;
     let dynamicPrompt;
 
     try {
-      parsedMenuData = await parseMenuWithAI({ imageUrl, foodPreference, requestId });
+      parsedMenuData = await parseMenuWithAI({ imageUrl, dietaryPreference, requestId });
       console.log('✅ [IMAGE GENERATION] Stage 1 complete - Menu parsed successfully');
       console.log('🎯 [IMAGE GENERATION] Selected items:', parsedMenuData.selectedItems?.length || 0);
       console.log('🎨 [IMAGE GENERATION] Menu theme:', parsedMenuData.menuTheme);
@@ -729,7 +908,7 @@ async function processImageRequest({ imageUrl, requestId, signal }) {
       // STAGE 2: Build dynamic prompt from parsed data
       updateProgress(requestId, 52, 'Building visualization prompt...', 'Creating detailed food photography instructions');
       console.log('⚡ [IMAGE GENERATION] Stage 2: Building dynamic prompt...');
-      dynamicPrompt = buildImageGenerationPrompt(parsedMenuData);
+      dynamicPrompt = buildImageGenerationPrompt(parsedMenuData, visualStyle, dietaryPreference);
       console.log('✅ [IMAGE GENERATION] Stage 2 complete - Prompt generated');
     } catch (parseError) {
       console.error('❌ [IMAGE GENERATION] Menu parsing failed:', parseError.message);
@@ -929,8 +1108,8 @@ async function generateRequestIdFromImage(imageUrl) {
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
   // Load food preference setting
-  const stored = await chrome.storage.local.get(['foodPreference']);
-  const preferenceId = stored.foodPreference || 'regular';
+  const stored = await chrome.storage.local.get(['dietaryPreference']);
+  const preferenceId = stored.dietaryPreference || 'regular';
 
   // Simple hash calculation from image data
   let hash = 0;
