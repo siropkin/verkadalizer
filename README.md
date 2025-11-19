@@ -2,12 +2,12 @@
 
 <img src="images/verkadalizer.png" alt="Verkadalizer Chrome Extension"/>
 
-A Chrome extension that transforms food menu images from Verkada Menu pages into beautiful, appetizing visualizations using a sophisticated two-stage AI pipeline powered by OpenAI's GPT-4o and GPT-Image-1 models.
+A Chrome extension that transforms food menu images on Verkada Menu pages into beautiful, appetizing visualizations using a sophisticated two-stage AI pipeline powered by OpenAI's GPT-4o and GPT-Image-1 models.
 
 ## Features
 
 ### Core Functionality
-- **Automatic Image Detection**: Detects menu images on Verkada Menu pages (`https://sites.google.com/verkada.com/verkada-menu`) by identifying Google User Content images
+- **Smart Image Detection**: Automatically detects menu images on Verkada Menu pages (`https://sites.google.com/verkada.com/verkada-menu`) and adds interactive control buttons
 - **Two-Stage AI Processing Pipeline**:
   - **Stage 1**: GPT-4o analyzes the menu text and intelligently selects dishes based on your dietary preferences
   - **Stage 2**: GPT-Image-1 generates a photorealistic visualization of the selected dishes

@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Verkadalizer",
   "version": "3.0.0",
-  "description": "Automatically processes food menu images from Verkada Menu pages using OpenAI's API to create beautiful, appetizing visualizations.",
+  "description": "Transforms food menu images on Verkada Menu pages into beautiful, appetizing visualizations using OpenAI's API. Click the button next to any menu image to generate AI-powered food photography.",
   "author": "Ivan Seredkin",
   "homepage_url": "https://github.com/siropkin/verkadalizer",
   "permissions": [
