@@ -63,6 +63,113 @@ export const DIETARY_PREFERENCES = {
   },
 };
 
+// Plate style configurations
+export const PLATE_STYLES = {
+  'verkada': {
+    id: 'verkada',
+    name: 'Verkada Classic',
+    displayName: 'Verkada Classic (Default)',
+    emoji: '🍽️',
+    description: 'Blue and white ceramic plates - the Verkada standard',
+    plates: {
+      'soup': 'Medium Deep Blue Plate (9-inch, 4-inch depth)',
+      'salad': 'Large Flat White Plate (12-inch)',
+      'main': 'Large Flat White Plate (12-inch)',
+      'pasta': 'Large Deep Blue Plate (12-inch, 2-inch depth)',
+      'sandwich': 'Large Flat White Plate (12-inch)',
+      'pizza': 'Large Flat White Plate (12-inch)',
+      'dessert': 'Large Flat White Plate (12-inch)',
+      'side': 'Medium Deep Blue Plate (9-inch, 4-inch depth)',
+    },
+    materialDescription: 'Classic ceramic plates in clean blue and white finishes',
+  },
+  'rustic': {
+    id: 'rustic',
+    name: 'Rustic Artisan',
+    emoji: '🏺',
+    description: 'Handcrafted stoneware with earthy, organic textures',
+    plates: {
+      'soup': 'Medium Deep Stoneware Bowl (9-inch, 4-inch depth, matte charcoal glaze)',
+      'salad': 'Large Flat Stoneware Plate (12-inch, rough earthy texture, warm beige)',
+      'main': 'Large Flat Stoneware Plate (12-inch, rough earthy texture, warm beige)',
+      'pasta': 'Large Deep Stoneware Bowl (12-inch, 2-inch depth, rustic brown glaze)',
+      'sandwich': 'Rectangular Wooden Board (14x8-inch, natural wood grain)',
+      'pizza': 'Round Wooden Pizza Board (14-inch, natural wood with charred edges)',
+      'dessert': 'Small Artisan Stoneware Plate (9-inch, speckled glaze)',
+      'side': 'Small Rustic Bowl (7-inch, 3-inch depth, earthy tones)',
+    },
+    materialDescription: 'Handcrafted stoneware with visible artisan marks, rough textures, earthy glazes in charcoal, beige, and brown tones. Mix with natural wooden boards for sandwiches and pizza.',
+  },
+  'elegant': {
+    id: 'elegant',
+    name: 'Fine Dining Elegance',
+    emoji: '✨',
+    description: 'Pristine white bone china with gold trim - upscale restaurant style',
+    plates: {
+      'soup': 'Medium Deep White Bowl with Gold Rim (9-inch, 4-inch depth, bone china)',
+      'salad': 'Large Flat White Plate with Gold Edge (12-inch, fine bone china)',
+      'main': 'Large Flat White Plate with Gold Edge (12-inch, fine bone china)',
+      'pasta': 'Large Deep White Bowl with Gold Rim (12-inch, 2-inch depth, bone china)',
+      'sandwich': 'Large Flat White Plate with Gold Edge (12-inch, fine bone china)',
+      'pizza': 'Large Flat White Plate with Gold Edge (12-inch, fine bone china)',
+      'dessert': 'Small White Dessert Plate with Gold Detail (8-inch, fine bone china)',
+      'side': 'Medium White Bowl with Gold Rim (9-inch, 3-inch depth)',
+    },
+    materialDescription: 'Pristine white bone china with delicate gold trim. Immaculate, glossy finish with subtle translucency. Upscale restaurant quality with refined elegance.',
+  },
+  'modern': {
+    id: 'modern',
+    name: 'Modern Minimalist',
+    emoji: '⬛',
+    description: 'Sleek matte black and slate gray - contemporary design',
+    plates: {
+      'soup': 'Medium Deep Matte Black Bowl (9-inch, 4-inch depth)',
+      'salad': 'Large Flat Slate Gray Plate (12-inch, matte finish)',
+      'main': 'Large Flat Matte Black Plate (12-inch)',
+      'pasta': 'Large Deep Matte Black Bowl (12-inch, 2-inch depth)',
+      'sandwich': 'Rectangular Black Slate Plate (14x7-inch, natural stone texture)',
+      'pizza': 'Large Flat Matte Black Plate (13-inch)',
+      'dessert': 'Small Square Slate Gray Plate (8x8-inch, matte finish)',
+      'side': 'Small Deep Black Bowl (7-inch, 3-inch depth)',
+    },
+    materialDescription: 'Sleek contemporary plates in matte black and slate gray. Modern minimalist aesthetic with clean lines, smooth matte surfaces, and occasional angular/square shapes.',
+  },
+  'colorful': {
+    id: 'colorful',
+    name: 'Colorful Cafe',
+    emoji: '🌈',
+    description: 'Vibrant mixed colors - playful bistro style',
+    plates: {
+      'soup': 'Medium Deep Turquoise Bowl (9-inch, 4-inch depth, glossy ceramic)',
+      'salad': 'Large Flat Coral Pink Plate (12-inch, glossy ceramic)',
+      'main': 'Large Flat Sunny Yellow Plate (12-inch, glossy ceramic)',
+      'pasta': 'Large Deep Mint Green Bowl (12-inch, 2-inch depth, glossy ceramic)',
+      'sandwich': 'Large Flat Sky Blue Plate (12-inch, glossy ceramic)',
+      'pizza': 'Large Flat Lavender Plate (13-inch, glossy ceramic)',
+      'dessert': 'Small Flat Peach Plate (8-inch, glossy ceramic)',
+      'side': 'Small Deep Seafoam Bowl (7-inch, 3-inch depth)',
+    },
+    materialDescription: 'Vibrant, cheerful ceramic plates in mixed pastel and bright colors: turquoise, coral pink, sunny yellow, mint green, sky blue, lavender, peach, and seafoam. Each dish should be on a different colored plate for a playful, eclectic cafe vibe.',
+  },
+  'asian': {
+    id: 'asian',
+    name: 'Asian Fusion',
+    emoji: '🥢',
+    description: 'Traditional Asian ceramics with painted patterns',
+    plates: {
+      'soup': 'Medium Deep Blue-White Porcelain Bowl (9-inch, 4-inch depth, hand-painted floral patterns)',
+      'salad': 'Large Flat White Porcelain Plate with Blue Rim (12-inch, delicate painted border)',
+      'main': 'Large Flat Cream Porcelain Plate (12-inch, subtle bamboo pattern)',
+      'pasta': 'Large Deep Ramen Bowl (12-inch, 3-inch depth, white with blue waves pattern)',
+      'sandwich': 'Rectangular Sushi Plate (14x6-inch, white with geometric patterns)',
+      'pizza': 'Large Round Platter (13-inch, cream with painted cherry blossoms)',
+      'dessert': 'Small Square Plate (7x7-inch, white porcelain with red accents)',
+      'side': 'Small Rice Bowl (6-inch, 3-inch depth, white with blue geometric pattern)',
+    },
+    materialDescription: 'Traditional Asian-inspired porcelain with hand-painted details: blue and white patterns, floral motifs, bamboo, waves, cherry blossoms, and geometric designs. Mix of round, rectangular, and square shapes.',
+  },
+};
+
 // Visual style configurations with prompt modifiers
 export const IMAGE_STYLES = {
   'modern': {
@@ -200,23 +307,23 @@ export const IMAGE_STYLES = {
 };
 
 /**
- * Assign the appropriate plate type based on dish category
+ * Get plate style configuration based on style name
+ * @param {string} styleName - Plate style ID
+ * @returns {Object} Plate style configuration
+ */
+export function getPlateStyleConfig(styleName) {
+  return PLATE_STYLES[styleName] || PLATE_STYLES['verkada'];
+}
+
+/**
+ * Assign the appropriate plate type based on dish category and plate style
  * @param {string} category - Dish category
+ * @param {string} plateStyleName - Plate style ID (default: 'verkada')
  * @returns {string} Plate type specification
  */
-export function assignPlateType(category) {
-  const plateRules = {
-    'soup': 'Medium Deep Blue Plate (9-inch, 4-inch depth)',
-    'salad': 'Large Flat White Plate (12-inch)',
-    'main': 'Large Flat White Plate (12-inch)',
-    'pasta': 'Large Deep Blue Plate (12-inch, 2-inch depth)',
-    'sandwich': 'Large Flat White Plate (12-inch)',
-    'pizza': 'Large Flat White Plate (12-inch)',
-    'dessert': 'Large Flat White Plate (12-inch)',
-    'side': 'Medium Deep Blue Plate (9-inch, 4-inch depth)',
-  };
-
-  return plateRules[category] || 'Large Flat White Plate (12-inch)';
+export function assignPlateType(category, plateStyleName = 'verkada') {
+  const plateStyle = getPlateStyleConfig(plateStyleName);
+  return plateStyle.plates[category] || plateStyle.plates['main'];
 }
 
 /**
@@ -301,9 +408,10 @@ Return ONLY valid JSON, no additional text. Make sure the JSON is properly forma
  * @param {Object} parsedMenuData - Parsed menu data from Stage 1
  * @param {string} visualStyle - Visual style ID (default: 'modern')
  * @param {string} dietaryPreference - Dietary preference ID (default: 'regular')
+ * @param {string} plateStyle - Plate style ID (default: 'verkada')
  * @returns {string} Image generation prompt
  */
-export function buildImageGenerationPrompt(parsedMenuData, visualStyle = 'modern', dietaryPreference = 'regular') {
+export function buildImageGenerationPrompt(parsedMenuData, visualStyle = 'modern', dietaryPreference = 'regular', plateStyle = 'verkada') {
   const { menuTheme, selectedItems } = parsedMenuData;
 
   console.log('🎨 [PROMPT BUILDER] Building dynamic image generation prompt...');
@@ -311,10 +419,15 @@ export function buildImageGenerationPrompt(parsedMenuData, visualStyle = 'modern
   console.log('🍽️ [PROMPT BUILDER] Selected Items:', selectedItems.length);
   console.log('🎭 [PROMPT BUILDER] Visual Style:', visualStyle);
   console.log('🥗 [PROMPT BUILDER] Dietary Preference:', dietaryPreference);
+  console.log('🍽️ [PROMPT BUILDER] Plate Style:', plateStyle);
+
+  // Get plate style configuration
+  const plateStyleConfig = getPlateStyleConfig(plateStyle);
+  console.log('🍽️ [PROMPT BUILDER] Plate style config:', JSON.stringify(plateStyleConfig, null, 2));
 
   // Build the dish descriptions with plate assignments
   const dishDescriptions = selectedItems.map((item, index) => {
-    const plateType = assignPlateType(item.category);
+    const plateType = assignPlateType(item.category, plateStyle);
     return `${index + 1}. **${item.name}** (${item.category})
    - Plate: ${plateType}
    - Visual Notes: ${item.visualAppeal}`;
@@ -383,11 +496,11 @@ ${styleModifiers.camera}
 - Restaurant-quality, magazine-worthy presentation
 - Make the food look absolutely delicious and irresistible
 
-## PLATE SPECIFICATIONS
-**Available Plate Types**:
-- **Large Flat White Plate** (12-inch diameter): For flat presentations, grilled items, salads, sandwiches, steaks, fish
-- **Large Deep Blue Plate** (12-inch diameter, 2-inch depth): For pasta, stews, curries, rice bowls, saucy dishes
-- **Medium Deep Blue Plate** (9-inch diameter, 4-inch depth): For soups, individual portions, appetizers, sides
+## PLATE STYLE: ${plateStyleConfig.name}
+${plateStyleConfig.materialDescription}
+
+**Specific Plate Assignments**:
+${Object.entries(plateStyleConfig.plates).map(([category, plate]) => `- **${category}**: ${plate}`).join('\n')}
 
 ## FOOD STYLING REQUIREMENTS
 - Each dish should look restaurant-quality and professionally plated

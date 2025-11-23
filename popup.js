@@ -31,6 +31,18 @@ async function loadVisualStyles() {
   });
 }
 
+async function loadPlateStyles() {
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage({ action: 'getPlateStyles' }, response => {
+      if (response && response.success) {
+        resolve(response.styles);
+      } else {
+        reject(new Error(response?.error || 'Failed to load plate styles'));
+      }
+    });
+  });
+}
+
 function populateDietaryPreferences(preferenceInput, preferences) {
   preferenceInput.innerHTML = '';
   for (const pref of preferences) {
@@ -51,14 +63,27 @@ function populateVisualStyles(styleInput, styles) {
   }
 }
 
-async function loadSettingsIntoUi(apiKeyInput, dietaryPreferenceInput, visualStyleInput) {
+function populatePlateStyles(styleInput, styles) {
+  styleInput.innerHTML = '';
+  for (const style of styles) {
+    const opt = document.createElement('option');
+    opt.value = style.id;
+    opt.textContent = `${style.emoji || ''} ${style.name}`;
+    styleInput.appendChild(opt);
+  }
+}
+
+async function loadSettingsIntoUi(apiKeyInput, dietaryPreferenceInput, visualStyleInput, plateStyleInput) {
   const preferences = await loadDietaryPreferences();
   populateDietaryPreferences(dietaryPreferenceInput, preferences);
 
   const styles = await loadVisualStyles();
   populateVisualStyles(visualStyleInput, styles);
 
-  const stored = await chrome.storage.local.get(['apiKey', 'dietaryPreference', 'visualStyle']);
+  const plateStyles = await loadPlateStyles();
+  populatePlateStyles(plateStyleInput, plateStyles);
+
+  const stored = await chrome.storage.local.get(['apiKey', 'dietaryPreference', 'visualStyle', 'plateStyle']);
   if (stored.apiKey) {
     apiKeyInput.value = stored.apiKey;
   }
@@ -70,12 +95,17 @@ async function loadSettingsIntoUi(apiKeyInput, dietaryPreferenceInput, visualSty
   if (selectedStyle) {
     visualStyleInput.value = selectedStyle;
   }
+  const selectedPlateStyle = stored.plateStyle || 'verkada';
+  if (selectedPlateStyle) {
+    plateStyleInput.value = selectedPlateStyle;
+  }
 }
 
-async function saveSettings(apiKeyInput, dietaryPreferenceInput, visualStyleInput, statusDiv) {
+async function saveSettings(apiKeyInput, dietaryPreferenceInput, visualStyleInput, plateStyleInput, statusDiv) {
   const apiKey = apiKeyInput.value.trim();
   const dietaryPreference = dietaryPreferenceInput.value.trim();
   const visualStyle = visualStyleInput.value.trim();
+  const plateStyle = plateStyleInput.value.trim();
 
   if (!apiKey) {
     showStatus(statusDiv, 'Please enter an API key', 'error');
@@ -87,6 +117,7 @@ async function saveSettings(apiKeyInput, dietaryPreferenceInput, visualStyleInpu
       apiKey,
       dietaryPreference,
       visualStyle,
+      plateStyle,
     });
     showStatus(statusDiv, 'Settings saved successfully!', 'success');
   } catch (error) {
@@ -98,25 +129,30 @@ document.addEventListener('DOMContentLoaded', async () => {
   const apiKeyInput = document.getElementById('apiKey');
   const dietaryPreferenceInput = document.getElementById('dietaryPreference');
   const visualStyleInput = document.getElementById('visualStyle');
+  const plateStyleInput = document.getElementById('plateStyle');
   const menuLinkBtn = document.getElementById('menuLink');
   const statusDiv = document.getElementById('status');
 
   // Auto-save on input change
   apiKeyInput.addEventListener('input', async () => {
-    await saveSettings(apiKeyInput, dietaryPreferenceInput, visualStyleInput, statusDiv);
+    await saveSettings(apiKeyInput, dietaryPreferenceInput, visualStyleInput, plateStyleInput, statusDiv);
   });
 
   dietaryPreferenceInput.addEventListener('change', async () => {
-    await saveSettings(apiKeyInput, dietaryPreferenceInput, visualStyleInput, statusDiv);
+    await saveSettings(apiKeyInput, dietaryPreferenceInput, visualStyleInput, plateStyleInput, statusDiv);
   });
 
   visualStyleInput.addEventListener('change', async () => {
-    await saveSettings(apiKeyInput, dietaryPreferenceInput, visualStyleInput, statusDiv);
+    await saveSettings(apiKeyInput, dietaryPreferenceInput, visualStyleInput, plateStyleInput, statusDiv);
+  });
+
+  plateStyleInput.addEventListener('change', async () => {
+    await saveSettings(apiKeyInput, dietaryPreferenceInput, visualStyleInput, plateStyleInput, statusDiv);
   });
 
   menuLinkBtn.addEventListener('click', () => {
     chrome.tabs.create({ url: 'https://sites.google.com/verkada.com/verkada-menu' });
   });
 
-  await loadSettingsIntoUi(apiKeyInput, dietaryPreferenceInput, visualStyleInput);
+  await loadSettingsIntoUi(apiKeyInput, dietaryPreferenceInput, visualStyleInput, plateStyleInput);
 });

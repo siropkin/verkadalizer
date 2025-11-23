@@ -2,7 +2,7 @@
 // IMPORTS - External modules
 // ============================================================================
 
-import { DIETARY_PREFERENCES, IMAGE_STYLES, buildImageGenerationPrompt } from './ai/prompts.js';
+import { DIETARY_PREFERENCES, IMAGE_STYLES, PLATE_STYLES, buildImageGenerationPrompt } from './ai/prompts.js';
 import { AI_PROVIDERS, selectAiProviderByModel, parseMenuWithAI } from './ai/providers/ai-providers.js';
 import { fetchImageAsBlob, mergeImages } from './lib/image-processing.js';
 import { loadSettings, generateRequestIdFromImage, saveGeneratedImageToStorage, loadSavedImageFromStorage, cleanupOldSavedImages } from './lib/storage.js';
@@ -16,6 +16,7 @@ import { assertSetting, throwIfAborted, getRandomFoodFact } from './lib/utils.js
 const ACTIONS = {
   GET_DIETARY_PREFERENCES: 'getDietaryPreferences',
   GET_VISUAL_STYLES: 'getVisualStyles',
+  GET_PLATE_STYLES: 'getPlateStyles',
   GENERATE_REQUEST_ID: 'generateRequestId',
   PROCESS_IMAGE: 'processImage',
   CANCEL_REQUEST: 'cancelRequest',
@@ -98,9 +99,10 @@ async function processImageRequest({ imageUrl, requestId, signal }) {
     // STAGE 1: Parse the menu with AI to get intelligent dish selection
     updateProgress(requestId, 5, 'Starting menu analysis...', getRandomFoodFact());
     console.log('⚡ [IMAGE GENERATION] Stage 1: Parsing menu with AI...');
-    const stored = await chrome.storage.local.get(['dietaryPreference', 'visualStyle']);
+    const stored = await chrome.storage.local.get(['dietaryPreference', 'visualStyle', 'plateStyle']);
     const dietaryPreference = stored.dietaryPreference || 'regular';
     const visualStyle = stored.visualStyle || 'modern';
+    const plateStyle = stored.plateStyle || 'verkada';
 
     let parsedMenuData;
     let dynamicPrompt;
@@ -128,7 +130,7 @@ async function processImageRequest({ imageUrl, requestId, signal }) {
       // STAGE 2: Build dynamic prompt from parsed data
       updateProgress(requestId, 52, 'Building visualization prompt...', 'Creating detailed food photography instructions');
       console.log('⚡ [IMAGE GENERATION] Stage 2: Building dynamic prompt...');
-      dynamicPrompt = buildImageGenerationPrompt(parsedMenuData, visualStyle, dietaryPreference);
+      dynamicPrompt = buildImageGenerationPrompt(parsedMenuData, visualStyle, dietaryPreference, plateStyle);
       console.log('✅ [IMAGE GENERATION] Stage 2 complete - Prompt generated');
     } catch (parseError) {
       console.error('❌ [IMAGE GENERATION] Menu parsing failed:', parseError.message);
@@ -223,6 +225,17 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
       name: IMAGE_STYLES[key].displayName || IMAGE_STYLES[key].name,
       emoji: IMAGE_STYLES[key].emoji,
       description: IMAGE_STYLES[key].description,
+    }));
+    sendResponse({ success: true, styles });
+    return true;
+  }
+
+  if (request && request.action === ACTIONS.GET_PLATE_STYLES) {
+    const styles = Object.keys(PLATE_STYLES).map(key => ({
+      id: PLATE_STYLES[key].id,
+      name: PLATE_STYLES[key].displayName || PLATE_STYLES[key].name,
+      emoji: PLATE_STYLES[key].emoji,
+      description: PLATE_STYLES[key].description,
     }));
     sendResponse({ success: true, styles });
     return true;
