@@ -2,15 +2,19 @@
 
 <img src="images/verkadalizer.png" alt="Verkadalizer Chrome Extension"/>
 
-A Chrome extension that transforms food menu images on Verkada Menu pages into beautiful, appetizing visualizations using a sophisticated two-stage AI pipeline powered by OpenAI's GPT-4o and GPT-Image-1 models.
+A Chrome extension that transforms food menu images on Verkada Menu pages into beautiful, appetizing visualizations using a sophisticated two-stage AI pipeline powered by OpenAI (GPT-4o + GPT-Image-1) or Google Gemini (Gemini 2.5 Flash + Gemini 2.5 Flash Image).
 
 ## Features
 
 ### Core Functionality
 - **Smart Image Detection**: Automatically detects menu images on Verkada Menu pages (`https://sites.google.com/verkada.com/verkada-menu`) and adds interactive control buttons
-- **Two-Stage AI Processing Pipeline**:
-  - **Stage 1**: GPT-4o analyzes the menu text and intelligently selects dishes based on your dietary preferences
-  - **Stage 2**: GPT-Image-1 generates a photorealistic visualization of the selected dishes
+- **Two-Stage AI Processing Pipeline** (Choose between OpenAI or Google Gemini):
+  - **Stage 1**: AI analyzes the menu text and intelligently selects dishes based on your dietary preferences
+    - **OpenAI**: GPT-4o vision model
+    - **Google Gemini**: Gemini 2.5 Flash with vision capabilities
+  - **Stage 2**: AI generates a photorealistic visualization of the selected dishes
+    - **OpenAI**: GPT-Image-1 for high-quality image generation
+    - **Google Gemini**: Gemini 2.5 Flash Image for fast image creation
 - **Smart Image Controls**: Interactive buttons for each menu image:
   - ✨🍕 **Generate** - Process the menu image with AI
   - **Show Original** - Toggle back to the original menu
@@ -50,15 +54,20 @@ Choose from 6 artistic styles that transform the AI-generated food imagery:
 2. Open Chrome and navigate to `chrome://extensions/`
 3. Enable "Developer mode" (toggle in top-right corner)
 4. Click "Load unpacked" and select the extension directory
-5. Click the extension icon and configure your OpenAI API key
+5. Click the extension icon and configure your AI provider and API key
 
 ## Configuration
 
 Click the extension icon to access settings:
 
-- **OpenAI API Key**: Your personal API key (stored securely in local browser storage)
-  - Used for GPT-4o (menu parsing) and GPT-Image-1 (image generation)
+- **AI Provider**: Choose between OpenAI or Google Gemini
+  - **OpenAI**: Uses GPT-4o for menu analysis and GPT-Image-1 for image generation
+  - **Google Gemini**: Uses Gemini 2.5 Flash for menu analysis and Gemini 2.5 Flash Image for generation
+- **API Key**: Your personal API key for the selected provider (stored securely in local browser storage)
+  - **OpenAI API Key**: Required when using OpenAI provider
+  - **Gemini API Key**: Required when using Google Gemini provider
 - **Dietary Preference**: Select your dietary preference from 8 options (affects dish selection in Stage 1)
+- **Plate Style**: Choose from 6 plate types and styles for visual presentation
 - **Visual Style**: Choose from 6 artistic styles that influence the image generation aesthetic
 
 ## How It Works
@@ -68,17 +77,17 @@ Click the extension icon to access settings:
 - Injects interactive control buttons next to each detected menu image
 - Assigns a unique food emoji to each image for personality
 
-### 2. Stage 1: Intelligent Menu Analysis (GPT-4o)
+### 2. Stage 1: Intelligent Menu Analysis
 When you click the generate button:
 - Extracts text from the menu image using OCR
-- Sends to GPT-4o with your dietary preference
+- Sends to your selected AI provider (GPT-4o or Gemini 2.5 Flash) with your dietary preference
 - AI analyzes and selects 6-8 appropriate dishes based on:
   - Dietary constraints (e.g., vegan, gluten-free)
   - Visual appeal and variety
   - Menu theme and cuisine type
 - Returns structured JSON with selected dishes and visual descriptions
 
-### 3. Stage 2: Photorealistic Image Generation (GPT-Image-1)
+### 3. Stage 2: Photorealistic Image Generation
 Using the parsed menu data and selected visual style:
 - Builds a detailed image generation prompt with:
   - Selected visual style aesthetic (Modern, Dark Academia, Pastel Dream, Cyberpunk, Vintage Film, or Maximalist)
@@ -86,7 +95,9 @@ Using the parsed menu data and selected visual style:
   - Specific plate types (white/blue plates) matched to dish categories
   - Composition layout (top 1/3 clear for text, bottom 2/3 for food)
   - Photorealism requirements (textures, lighting, organic presentation)
-- Sends to GPT-Image-1 for image creation
+- Sends to your selected AI provider for image creation:
+  - **OpenAI**: GPT-Image-1 for high-quality photorealistic images
+  - **Google Gemini**: Gemini 2.5 Flash Image for fast, high-quality generation
 - Receives professional-quality food photography visualization in your chosen style
 
 ### 4. Display & Interaction
@@ -98,17 +109,27 @@ Using the parsed menu data and selected visual style:
 
 ### Architecture
 - **Manifest Version**: 3 (latest Chrome extension standard)
-- **Permissions**: `storage` (for API key and preferences)
-- **Host Permissions**: Verkada Menu pages, OpenAI API, Google User Content
+- **Permissions**: `storage` (for API keys and preferences)
+- **Host Permissions**: Verkada Menu pages, OpenAI API, Google Gemini API, Google User Content
 - **Components**:
   - `content.js` - UI injection, image detection, progress tracking
   - `background.js` - AI orchestration, two-stage processing pipeline, request management
-  - `popup.js/html` - Settings interface
+  - `popup.js/html` - Settings interface with AI provider selection
+  - `ai/providers/` - Modular AI provider implementations (OpenAI, Gemini)
 
 ### AI Integration
-- **GPT-4o**: Menu text analysis and intelligent dish selection
-- **GPT-Image-1**: High-quality photorealistic image generation
-- **GPT-Image-1 Mini**: Faster alternative provider (configurable)
+
+#### OpenAI Provider
+- **GPT-4o**: Vision-based menu text analysis and intelligent dish selection
+- **GPT-Image-1**: High-quality photorealistic image generation with advanced control
+
+#### Google Gemini Provider
+- **Gemini 2.5 Flash**: Fast vision-based menu analysis with JSON output
+- **Gemini 2.5 Flash Image**: Rapid high-quality image generation with multimodal capabilities
+
+#### Features
+- **Modular Architecture**: Easy to add new AI providers
+- **Provider Selection**: Choose provider dynamically in settings
 - **Prompt Engineering**: Sophisticated multi-stage prompting with dietary modifiers
 - **Output Size**: Default 1536×1024 (optimized for menu layouts)
 
