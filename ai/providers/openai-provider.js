@@ -5,87 +5,6 @@
 import { DIETARY_PREFERENCES, buildMenuParsingPrompt } from '../prompts.js';
 
 /**
- * OpenAI provider configurations for image generation
- */
-export const OPENAI_PROVIDERS = {
-  'gpt-image-1': {
-    id: 'gpt-image-1',
-    name: 'GPT-Image-1',
-    defaultQuality: 'high',
-    defaultSize: '1536x1024',
-    defaultTimeout: 120000,
-    buildRequest({ settings, imageBlob, signal }) {
-      const formData = new FormData();
-      formData.append('model', settings.model);
-      formData.append('prompt', settings.prompt);
-      formData.append('n', '1');
-      formData.append('input_fidelity', 'high');
-      if (settings.quality && settings.quality !== 'auto') {
-        formData.append('quality', settings.quality);
-      }
-      if (settings.size && settings.size !== 'auto') {
-        formData.append('size', settings.size);
-      }
-      formData.append('image', imageBlob, 'image.png');
-
-      return {
-        url: 'https://api.openai.com/v1/images/edits',
-        options: {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${settings.apiKey}`,
-          },
-          body: formData,
-          signal,
-        }
-      };
-    },
-    async extractResult(response) {
-      const data = await response.json();
-      const first = data?.data?.[0];
-      return first?.b64_json || null;
-    }
-  },
-  'gpt-image-1-mini': {
-    id: 'gpt-image-1-mini',
-    name: 'GPT-Image-1 Mini',
-    defaultQuality: 'high',
-    defaultSize: '1536x1024',
-    defaultTimeout: 120000,
-    buildRequest({ settings, imageBlob, signal }) {
-      const formData = new FormData();
-      formData.append('model', settings.model);
-      formData.append('prompt', settings.prompt);
-      formData.append('n', '1');
-      if (settings.quality && settings.quality !== 'auto') {
-        formData.append('quality', settings.quality);
-      }
-      if (settings.size && settings.size !== 'auto') {
-        formData.append('size', settings.size);
-      }
-      formData.append('image', imageBlob, 'image.png');
-
-      return {
-        url: 'https://api.openai.com/v1/images/edits',
-        options: {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${settings.apiKey}`,
-          },
-          body: formData,
-          signal,
-        }
-      };
-    },
-    async extractResult(response) {
-      const data = await response.json();
-      const first = data?.data?.[0];
-      return first?.b64_json || null;
-    }
-  }
-};
-
-/**
  * Convert a Blob to base64 string
  * @param {Blob} blob - The blob to convert
  * @returns {Promise<string>} Base64 string without data URL prefix
@@ -248,6 +167,68 @@ export async function parseMenuWithOpenAI({ imageUrl, dietaryPreference, apiKey,
     }
 
     return parsedData;
+  } catch (error) {
+    console.error('❌ [OPENAI] Error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Generate menu image with OpenAI GPT-Image-1
+ * @param {Object} params - Parameters
+ * @param {string} params.prompt - Image generation prompt
+ * @param {Blob} params.imageBlob - Image blob for reference
+ * @param {string} params.apiKey - OpenAI API key
+ * @param {AbortSignal} params.signal - Abort signal
+ * @returns {Promise<string>} Base64 encoded image
+ */
+export async function generateMenuImageWithOpenAI({ prompt, imageBlob, apiKey, signal }) {
+  console.log('🎨 [OPENAI] Starting image generation...');
+  console.log('📝 [OPENAI] Prompt length:', prompt.length, 'chars');
+
+  try {
+    if (!apiKey) {
+      throw new Error('OpenAI API key not configured');
+    }
+
+    // Build request for GPT-Image-1
+    console.log('🤖 [OPENAI] Calling GPT-Image-1 for image generation...');
+    const formData = new FormData();
+    formData.append('model', 'gpt-image-1');
+    formData.append('prompt', prompt);
+    formData.append('n', '1');
+    formData.append('input_fidelity', 'high');
+    formData.append('quality', 'high');
+    formData.append('size', '1536x1024');
+    formData.append('image', imageBlob, 'image.png');
+
+    const response = await fetch('https://api.openai.com/v1/images/edits', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: formData,
+      signal,
+    });
+
+    if (!response.ok) {
+      let errorMessage = response.statusText;
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.error?.message || errorMessage;
+      } catch (_) {}
+      throw new Error(`OpenAI API error: ${errorMessage}`);
+    }
+
+    console.log('📦 [OPENAI] Extracting image data...');
+    const data = await response.json();
+    const b64 = data?.data?.[0]?.b64_json;
+    if (!b64) {
+      throw new Error('No image data returned from OpenAI');
+    }
+
+    console.log('✅ [OPENAI] Image generated successfully!');
+    return b64;
   } catch (error) {
     console.error('❌ [OPENAI] Error:', error);
     throw error;

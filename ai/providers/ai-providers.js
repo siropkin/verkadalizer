@@ -2,17 +2,15 @@
 // AI PROVIDERS - Provider registry and factory
 // ============================================================================
 
-import { OPENAI_PROVIDERS, parseMenuWithOpenAI } from './openai-provider.js';
+import { parseMenuWithOpenAI, generateMenuImageWithOpenAI } from './openai-provider.js';
+import { parseMenuWithGemini, generateMenuImageWithGemini } from './gemini-provider.js';
 
 /**
- * AI Providers registry
- * Add new providers here (e.g., Gemini, Claude, etc.)
+ * Available AI providers metadata
  */
 export const AI_PROVIDERS = {
-  ...OPENAI_PROVIDERS,
-  // Future providers can be added here:
-  // ...GEMINI_PROVIDERS,
-  // ...CLAUDE_PROVIDERS,
+  'openai': { id: 'openai', name: 'OpenAI' },
+  'gemini': { id: 'gemini', name: 'Google Gemini' },
 };
 
 /**
@@ -20,17 +18,16 @@ export const AI_PROVIDERS = {
  */
 const MENU_PARSER_PROVIDERS = {
   'openai': parseMenuWithOpenAI,
-  // Future: 'gemini': parseMenuWithGemini,
+  'gemini': parseMenuWithGemini,
 };
 
 /**
- * Select an AI provider by model ID
- * @param {string} model - Model ID
- * @returns {Object} AI provider configuration
+ * Provider types for image generation
  */
-export function selectAiProviderByModel(model) {
-  return AI_PROVIDERS[model] || AI_PROVIDERS[Object.keys(AI_PROVIDERS)[0]];
-}
+const IMAGE_GENERATOR_PROVIDERS = {
+  'openai': generateMenuImageWithOpenAI,
+  'gemini': generateMenuImageWithGemini,
+};
 
 /**
  * Get the menu parser function for a given provider type
@@ -75,5 +72,41 @@ export async function parseMenuWithAI({
     apiKey,
     updateProgress: wrappedUpdateProgress,
     getRandomFoodFact,
+  });
+}
+
+/**
+ * Get the image generator function for a given provider type
+ * @param {string} providerType - Provider type (e.g., 'openai', 'gemini')
+ * @returns {Function} Image generator function
+ */
+export function getImageGenerator(providerType = 'openai') {
+  return IMAGE_GENERATOR_PROVIDERS[providerType] || IMAGE_GENERATOR_PROVIDERS['openai'];
+}
+
+/**
+ * Generate menu image with AI using the specified provider
+ * @param {Object} params - Parameters
+ * @param {string} params.prompt - Image generation prompt
+ * @param {Blob} params.imageBlob - Image blob for reference
+ * @param {string} params.apiKey - API key
+ * @param {AbortSignal} params.signal - Abort signal
+ * @param {string} params.providerType - Provider type (default: 'openai')
+ * @returns {Promise<string>} Base64 encoded image
+ */
+export async function generateImageWithAI({
+  prompt,
+  imageBlob,
+  apiKey,
+  signal,
+  providerType = 'openai'
+}) {
+  const generator = getImageGenerator(providerType);
+
+  return generator({
+    prompt,
+    imageBlob,
+    apiKey,
+    signal,
   });
 }

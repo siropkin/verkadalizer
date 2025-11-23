@@ -3,7 +3,7 @@
 // ============================================================================
 
 import { DIETARY_PREFERENCES, IMAGE_STYLES, PLATE_STYLES, buildImageGenerationPrompt } from './ai/prompts.js';
-import { AI_PROVIDERS, selectAiProviderByModel, parseMenuWithAI } from './ai/providers/ai-providers.js';
+import { parseMenuWithAI, generateImageWithAI, AI_PROVIDERS } from './ai/providers/ai-providers.js';
 import { fetchImageAsBlob, mergeImages } from './lib/image-processing.js';
 import { loadSettings, generateRequestIdFromImage, saveGeneratedImageToStorage, loadSavedImageFromStorage, cleanupOldSavedImages } from './lib/storage.js';
 import { assertSetting, throwIfAborted, getRandomFoodFact } from './lib/utils.js';
@@ -17,6 +17,7 @@ const ACTIONS = {
   GET_DIETARY_PREFERENCES: 'getDietaryPreferences',
   GET_VISUAL_STYLES: 'getVisualStyles',
   GET_PLATE_STYLES: 'getPlateStyles',
+  GET_AI_PROVIDERS: 'getAiProviders',
   GENERATE_REQUEST_ID: 'generateRequestId',
   PROCESS_IMAGE: 'processImage',
   CANCEL_REQUEST: 'cancelRequest',
@@ -90,7 +91,7 @@ async function processImageRequest({ imageUrl, requestId, signal }) {
   try {
     const settings = await loadSettings();
 
-    assertSetting(settings.model, 'Model not configured');
+    assertSetting(settings.aiProvider, 'AI Provider not configured');
     assertSetting(settings.apiKey, 'API key not configured');
 
     console.log('🚀 [IMAGE GENERATION] Starting two-stage pipeline...');
@@ -108,6 +109,7 @@ async function processImageRequest({ imageUrl, requestId, signal }) {
     let dynamicPrompt;
 
     try {
+      // Use the selected AI provider from settings
       parsedMenuData = await parseMenuWithAI({
         imageUrl,
         dietaryPreference,
@@ -115,7 +117,7 @@ async function processImageRequest({ imageUrl, requestId, signal }) {
         requestId,
         updateProgress,
         getRandomFoodFact,
-        providerType: 'openai' // Future: make this configurable for Gemini, etc.
+        providerType: settings.aiProvider || 'openai'
       });
       console.log('✅ [IMAGE GENERATION] Stage 1 complete - Menu parsed successfully');
       console.log('🎯 [IMAGE GENERATION] Selected items:', parsedMenuData.selectedItems?.length || 0);
@@ -142,13 +144,7 @@ async function processImageRequest({ imageUrl, requestId, signal }) {
 
     console.log('📝 [IMAGE GENERATION] Using prompt (first 200 chars):', finalPrompt.substring(0, 200) + '...');
 
-    // Enforce timeout via AbortController (only if a positive timeout is set)
-    const entry = inFlightRequests.get(requestId);
-    if (entry && !entry.timeoutId && typeof settings.timeoutMs === 'number' && settings.timeoutMs > 0) {
-      entry.timeoutId = setTimeout(() => {
-        try { entry.controller.abort(); } catch (_) {}
-      }, settings.timeoutMs);
-    }
+    // Timeout is now handled by the provider internally
 
     updateProgress(requestId, 55, 'Preparing for image generation...', getRandomFoodFact());
     console.log('⬇️ [IMAGE GENERATION] Fetching image for processing...');
@@ -162,28 +158,16 @@ async function processImageRequest({ imageUrl, requestId, signal }) {
 
     updateProgress(requestId, 60, 'Generating food visualization...', 'This takes 60-90 seconds. ' + getRandomFoodFact());
     console.log('🤖 [IMAGE GENERATION] Calling image generation API...');
-    const aiProvider = selectAiProviderByModel(settings.model);
 
-    // Override the prompt in settings with our dynamic one
-    const settingsWithDynamicPrompt = { ...settings, prompt: finalPrompt };
-    const request = aiProvider.buildRequest({ settings: settingsWithDynamicPrompt, imageBlob, signal });
-
-    const response = await fetch(request.url, request.options);
-    if (!response.ok) {
-      let errorMessage = response.statusText;
-      try {
-        const errorData = await response.json();
-        errorMessage = errorData.error?.message || errorMessage;
-      } catch (_) {}
-      throw new Error(`${aiProvider.name} API error: ${errorMessage}`);
-    }
+    const b64 = await generateImageWithAI({
+      prompt: finalPrompt,
+      imageBlob,
+      apiKey: settings.apiKey,
+      signal,
+      providerType: settings.aiProvider
+    });
 
     updateProgress(requestId, 85, 'Finalizing image...', 'Processing AI-generated visualization');
-
-    const b64 = await aiProvider.extractResult(response);
-    if (!b64) {
-      throw new Error(`${aiProvider.name} returned no image data`);
-    }
 
     updateProgress(requestId, 88, 'Image generated!', 'Preparing to merge with menu text');
     console.log('✅ [IMAGE GENERATION] Image generated successfully!');
@@ -208,6 +192,15 @@ async function processImageRequest({ imageUrl, requestId, signal }) {
  * Main message listener for handling extension requests
  */
 chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
+  if (request && request.action === ACTIONS.GET_AI_PROVIDERS) {
+    const providers = Object.keys(AI_PROVIDERS).map(key => ({
+      id: AI_PROVIDERS[key].id,
+      name: AI_PROVIDERS[key].name,
+    }));
+    sendResponse({ success: true, providers });
+    return true;
+  }
+
   if (request && request.action === ACTIONS.GET_DIETARY_PREFERENCES) {
     const preferences = Object.keys(DIETARY_PREFERENCES).map(key => ({
       id: DIETARY_PREFERENCES[key].id,

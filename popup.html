@@ -103,27 +103,36 @@
   <h1>Verkadalizer</h1>
 
   <div class="section">
-    <label for="apiKey">OpenAI API Key:</label>
-    <input type="password" id="apiKey" placeholder="Enter your OpenAI API key">
-    <div class="info">Used for GPT-4o (menu parsing) and GPT-Image-1 (image generation)</div>
+    <label for="aiProvider">AI Provider:</label>
+    <select id="aiProvider"></select>
+  </div>
+
+  <div class="section" id="openaiKeySection">
+    <label for="openaiApiKey">OpenAI API Key:</label>
+    <input type="password" id="openaiApiKey" placeholder="Enter your OpenAI API key">
+  </div>
+
+  <div class="section" id="geminiKeySection" style="display: none;">
+    <label for="geminiApiKey">Gemini API Key:</label>
+    <input type="password" id="geminiApiKey" placeholder="Enter your Gemini API key">
   </div>
 
   <div class="section">
     <label for="dietaryPreference">Dietary Preference:</label>
     <select id="dietaryPreference"></select>
-    <div class="info">Filters menu selection and influences visual presentation</div>
+    <div class="info">Filters menu and influences visuals</div>
   </div>
 
   <div class="section">
     <label for="plateStyle">Plate Style:</label>
     <select id="plateStyle"></select>
-    <div class="info">Changes the type and appearance of plates used in images</div>
+    <div class="info">Changes plate type and appearance</div>
   </div>
 
   <div class="section">
     <label for="visualStyle">Visual Style:</label>
     <select id="visualStyle"></select>
-    <div class="info">Changes the artistic style of generated food images</div>
+    <div class="info">Changes artistic style of images</div>
   </div>
 
   <div class="section">

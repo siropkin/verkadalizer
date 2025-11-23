@@ -43,6 +43,18 @@ async function loadPlateStyles() {
   });
 }
 
+async function loadAiProviders() {
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage({ action: 'getAiProviders' }, response => {
+      if (response && response.success) {
+        resolve(response.providers);
+      } else {
+        reject(new Error(response?.error || 'Failed to load AI providers'));
+      }
+    });
+  });
+}
+
 function populateDietaryPreferences(preferenceInput, preferences) {
   preferenceInput.innerHTML = '';
   for (const pref of preferences) {
@@ -73,7 +85,20 @@ function populatePlateStyles(styleInput, styles) {
   }
 }
 
-async function loadSettingsIntoUi(apiKeyInput, dietaryPreferenceInput, visualStyleInput, plateStyleInput) {
+function populateAiProviders(providerInput, providers) {
+  providerInput.innerHTML = '';
+  for (const provider of providers) {
+    const opt = document.createElement('option');
+    opt.value = provider.id;
+    opt.textContent = provider.name;
+    providerInput.appendChild(opt);
+  }
+}
+
+async function loadSettingsIntoUi(aiProviderInput, openaiApiKeyInput, geminiApiKeyInput, dietaryPreferenceInput, visualStyleInput, plateStyleInput) {
+  const aiProviders = await loadAiProviders();
+  populateAiProviders(aiProviderInput, aiProviders);
+
   const preferences = await loadDietaryPreferences();
   populateDietaryPreferences(dietaryPreferenceInput, preferences);
 
@@ -83,10 +108,20 @@ async function loadSettingsIntoUi(apiKeyInput, dietaryPreferenceInput, visualSty
   const plateStyles = await loadPlateStyles();
   populatePlateStyles(plateStyleInput, plateStyles);
 
-  const stored = await chrome.storage.local.get(['apiKey', 'dietaryPreference', 'visualStyle', 'plateStyle']);
-  if (stored.apiKey) {
-    apiKeyInput.value = stored.apiKey;
+  const stored = await chrome.storage.local.get(['aiProvider', 'openaiApiKey', 'geminiApiKey', 'dietaryPreference', 'visualStyle', 'plateStyle']);
+
+  // Set AI provider
+  const selectedProvider = stored.aiProvider || 'openai';
+  aiProviderInput.value = selectedProvider;
+
+  // Set API keys
+  if (stored.openaiApiKey) {
+    openaiApiKeyInput.value = stored.openaiApiKey;
   }
+  if (stored.geminiApiKey) {
+    geminiApiKeyInput.value = stored.geminiApiKey;
+  }
+
   const selectedPreference = stored.dietaryPreference || 'regular';
   if (selectedPreference) {
     dietaryPreferenceInput.value = selectedPreference;
@@ -99,22 +134,47 @@ async function loadSettingsIntoUi(apiKeyInput, dietaryPreferenceInput, visualSty
   if (selectedPlateStyle) {
     plateStyleInput.value = selectedPlateStyle;
   }
+
+  // Show/hide appropriate API key section
+  toggleApiKeySection(selectedProvider);
 }
 
-async function saveSettings(apiKeyInput, dietaryPreferenceInput, visualStyleInput, plateStyleInput, statusDiv) {
-  const apiKey = apiKeyInput.value.trim();
+function toggleApiKeySection(provider) {
+  const openaiSection = document.getElementById('openaiKeySection');
+  const geminiSection = document.getElementById('geminiKeySection');
+
+  if (provider === 'gemini') {
+    openaiSection.style.display = 'none';
+    geminiSection.style.display = 'block';
+  } else {
+    openaiSection.style.display = 'block';
+    geminiSection.style.display = 'none';
+  }
+}
+
+async function saveSettings(aiProviderInput, openaiApiKeyInput, geminiApiKeyInput, dietaryPreferenceInput, visualStyleInput, plateStyleInput, statusDiv) {
+  const aiProvider = aiProviderInput.value.trim();
+  const openaiApiKey = openaiApiKeyInput.value.trim();
+  const geminiApiKey = geminiApiKeyInput.value.trim();
   const dietaryPreference = dietaryPreferenceInput.value.trim();
   const visualStyle = visualStyleInput.value.trim();
   const plateStyle = plateStyleInput.value.trim();
 
-  if (!apiKey) {
-    showStatus(statusDiv, 'Please enter an API key', 'error');
+  // Validate that the selected provider has an API key
+  if (aiProvider === 'openai' && !openaiApiKey) {
+    showStatus(statusDiv, 'Please enter an OpenAI API key', 'error');
+    return;
+  }
+  if (aiProvider === 'gemini' && !geminiApiKey) {
+    showStatus(statusDiv, 'Please enter a Gemini API key', 'error');
     return;
   }
 
   try {
     await chrome.storage.local.set({
-      apiKey,
+      aiProvider,
+      openaiApiKey,
+      geminiApiKey,
       dietaryPreference,
       visualStyle,
       plateStyle,
@@ -126,33 +186,45 @@ async function saveSettings(apiKeyInput, dietaryPreferenceInput, visualStyleInpu
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-  const apiKeyInput = document.getElementById('apiKey');
+  const aiProviderInput = document.getElementById('aiProvider');
+  const openaiApiKeyInput = document.getElementById('openaiApiKey');
+  const geminiApiKeyInput = document.getElementById('geminiApiKey');
   const dietaryPreferenceInput = document.getElementById('dietaryPreference');
   const visualStyleInput = document.getElementById('visualStyle');
   const plateStyleInput = document.getElementById('plateStyle');
   const menuLinkBtn = document.getElementById('menuLink');
   const statusDiv = document.getElementById('status');
 
+  // Handle AI provider change
+  aiProviderInput.addEventListener('change', async () => {
+    toggleApiKeySection(aiProviderInput.value);
+    await saveSettings(aiProviderInput, openaiApiKeyInput, geminiApiKeyInput, dietaryPreferenceInput, visualStyleInput, plateStyleInput, statusDiv);
+  });
+
   // Auto-save on input change
-  apiKeyInput.addEventListener('input', async () => {
-    await saveSettings(apiKeyInput, dietaryPreferenceInput, visualStyleInput, plateStyleInput, statusDiv);
+  openaiApiKeyInput.addEventListener('input', async () => {
+    await saveSettings(aiProviderInput, openaiApiKeyInput, geminiApiKeyInput, dietaryPreferenceInput, visualStyleInput, plateStyleInput, statusDiv);
+  });
+
+  geminiApiKeyInput.addEventListener('input', async () => {
+    await saveSettings(aiProviderInput, openaiApiKeyInput, geminiApiKeyInput, dietaryPreferenceInput, visualStyleInput, plateStyleInput, statusDiv);
   });
 
   dietaryPreferenceInput.addEventListener('change', async () => {
-    await saveSettings(apiKeyInput, dietaryPreferenceInput, visualStyleInput, plateStyleInput, statusDiv);
+    await saveSettings(aiProviderInput, openaiApiKeyInput, geminiApiKeyInput, dietaryPreferenceInput, visualStyleInput, plateStyleInput, statusDiv);
   });
 
   visualStyleInput.addEventListener('change', async () => {
-    await saveSettings(apiKeyInput, dietaryPreferenceInput, visualStyleInput, plateStyleInput, statusDiv);
+    await saveSettings(aiProviderInput, openaiApiKeyInput, geminiApiKeyInput, dietaryPreferenceInput, visualStyleInput, plateStyleInput, statusDiv);
   });
 
   plateStyleInput.addEventListener('change', async () => {
-    await saveSettings(apiKeyInput, dietaryPreferenceInput, visualStyleInput, plateStyleInput, statusDiv);
+    await saveSettings(aiProviderInput, openaiApiKeyInput, geminiApiKeyInput, dietaryPreferenceInput, visualStyleInput, plateStyleInput, statusDiv);
   });
 
   menuLinkBtn.addEventListener('click', () => {
     chrome.tabs.create({ url: 'https://sites.google.com/verkada.com/verkada-menu' });
   });
 
-  await loadSettingsIntoUi(apiKeyInput, dietaryPreferenceInput, visualStyleInput, plateStyleInput);
+  await loadSettingsIntoUi(aiProviderInput, openaiApiKeyInput, geminiApiKeyInput, dietaryPreferenceInput, visualStyleInput, plateStyleInput);
 });
