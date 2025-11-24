@@ -82,12 +82,10 @@ export async function parseMenuWithGemini({ imageUrl, dietaryPreference, apiKey,
 
     // Gemini 3 Pro configuration
     const modelName = 'gemini-3-pro-preview';
-    const mediaResolution = 'MEDIA_RESOLUTION_HIGH';  // Options: 'MEDIA_RESOLUTION_LOW', 'MEDIA_RESOLUTION_MEDIUM', 'MEDIA_RESOLUTION_HIGH'
 
     // Call Gemini 3 Pro (vision model) to parse the menu
     updateProgress(20, 'Reading menu with AI...', 'This takes 20-30 seconds. ' + getRandomFoodFact());
     console.log(`🤖 [GEMINI] Calling ${modelName} for menu analysis...`);
-    console.log(`🎯 [GEMINI] Configuration: ${mediaResolution}`);
 
     const requestBody = {
       contents: [
@@ -99,9 +97,6 @@ export async function parseMenuWithGemini({ imageUrl, dietaryPreference, apiKey,
                 mime_type: 'image/png',
                 data: imageBase64
               },
-              // media_resolution: {
-              //   level: mediaResolution
-              // }
             }
           ]
         }

@@ -123,11 +123,19 @@ async function processImageRequest({ imageUrl, requestId, signal }) {
       console.log('🎯 [IMAGE GENERATION] Selected items:', parsedMenuData.selectedItems?.length || 0);
       console.log('🎨 [IMAGE GENERATION] Menu theme:', parsedMenuData.menuTheme);
 
-      // Validate that we have exactly 5 items
-      if (parsedMenuData.selectedItems?.length !== 5) {
-        console.warn('⚠️ [IMAGE GENERATION] AI returned', parsedMenuData.selectedItems?.length, 'items instead of 5, falling back to static prompt');
-        throw new Error('AI did not return exactly 5 items');
+      // Validate that we have at least some items
+      if (!parsedMenuData.selectedItems || parsedMenuData.selectedItems.length < 3) {
+        console.warn('⚠️ [IMAGE GENERATION] AI returned too few items:', parsedMenuData.selectedItems?.length || 0);
+        throw new Error(`AI returned insufficient items (${parsedMenuData.selectedItems?.length || 0}). Need at least 3 dishes.`);
       }
+
+      if (parsedMenuData.selectedItems.length > 12) {
+        console.warn('⚠️ [IMAGE GENERATION] AI returned too many items:', parsedMenuData.selectedItems.length, '(max 12)');
+        console.warn('⚠️ [IMAGE GENERATION] Trimming to first 12 items for optimal visualization');
+        parsedMenuData.selectedItems = parsedMenuData.selectedItems.slice(0, 12);
+      }
+
+      console.log('✅ [IMAGE GENERATION] Validation passed - proceeding with', parsedMenuData.selectedItems.length, 'dishes');
 
       // STAGE 2: Build dynamic prompt from parsed data
       updateProgress(requestId, 52, 'Building visualization prompt...', 'Creating detailed food photography instructions');

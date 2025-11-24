@@ -372,32 +372,57 @@ Analyze the menu and return a JSON object with the following structure:
 2. **Categorize Items**: Assign each dish to a category (soup, salad, main, pasta, sandwich, pizza, dessert, side)
 3. **Extract All Items**: List ALL dishes you can identify from the menu in "allItems"
 
-## RULES FOR SELECTION (EXACTLY 5 dishes - NO MORE, NO LESS)
-1. **MANDATORY COUNT**: You MUST select EXACTLY 5 dishes. Not 3, not 4, not 6. Always 5 dishes.
+## RULES FOR SELECTION (MAXIMIZE DIVERSITY - SELECT AS MANY AS POSSIBLE)
+1. **DYNAMIC COUNT RULE**: Select AS MANY dishes as possible while maintaining quality visualization
+   - **Target**: 5-8 dishes (optimal for visualization)
+   - **Minimum**: At least 3 dishes
+   - **Maximum**: Up to 12 dishes if the menu is extensive and diverse
+   - YOU decide the count based on:
+     * How many distinct categories are available
+     * The visual appeal and diversity of available dishes
+     * User's dietary preferences (some menus may have limited matching items)
+     * Whether adding more dishes enhances or clutters the visualization
 
-2. **STRICT DIVERSITY RULE**: You MUST select dishes from DIFFERENT categories ONLY
-   - Each selected dish MUST have a UNIQUE category
-   - MAXIMUM ONE dish per category
+2. **STRICT DIVERSITY RULE**: Prioritize dishes from DIFFERENT categories
+   - **Priority 1**: One dish per category (soup, salad, main, pasta, sandwich, pizza, dessert, side)
+   - **Priority 2**: If you've covered all categories and want to add more, you MAY select a second dish from a category IF:
+     * The dish is visually distinct from the first (different colors, textures, presentation)
+     * It adds meaningful variety to the overall visualization
+     * The menu has that many high-quality options
    - ✅ GOOD EXAMPLES:
-     * 1 soup + 1 salad + 1 main + 1 pasta + 1 dessert (5 different categories) ✓
-     * 1 pizza + 1 main + 1 side + 1 soup + 1 sandwich (5 different categories) ✓
+     * 8 dishes from 8 different categories (ideal - maximum diversity) ✓
+     * 6 dishes: 1 soup + 1 salad + 2 mains (if mains are very different) + 1 pasta + 1 dessert ✓
+     * 5 dishes from 5 different categories (classic balanced selection) ✓
    - ❌ BAD EXAMPLES (DO NOT DO THIS):
-     * Only 3 dishes selected (WRONG - need 5)
-     * 2 soups (duplicate category)
-     * 2 salads (duplicate category)
-     * 2 mains (duplicate category)
-     * 2 pizzas (duplicate category)
-   - **CRITICAL**: Before finalizing your selection, count:
-     1. Total dishes = exactly 5? If not, add more dishes from different categories
-     2. Each category appears only once? If not, remove duplicates and pick from different categories
+     * Only 2 dishes when menu has 20+ items (too few - missed opportunity)
+     * 3 pasta dishes + 2 salads (poor diversity - too repetitive)
+     * 15 dishes when menu only has 8 (impossible - hallucinating dishes)
 
-3. **Visual Appeal**: Prioritize colorful, photogenic dishes
+3. **INTELLIGENT SELECTION CRITERIA**:
+   - **Visual Appeal**: Prioritize colorful, photogenic dishes with interesting textures
+   - **Dietary Preference**: ${preference.modifier ? 'CRITICAL - Apply this dietary filter: ' + preference.modifier : 'No dietary restrictions - select from all available options'}
+   - **Balance**: Mix textures and colors (creamy + crunchy, green + red/orange, etc.)
+   - **Variety**: Choose dishes that look different from each other
+   - **Quality over Quantity**: Better to have 5 stunning dishes than 10 mediocre ones
+   - **Restaurant Appeal**: Favor dishes that sound unique, special, or signature items
 
-4. **Dietary Preference**: ${preference.modifier ? 'Apply this dietary filter: ' + preference.modifier : 'No dietary restrictions'}
+4. **DECISION FRAMEWORK**:
+   Before finalizing your selection, ask yourself:
+   1. "Have I selected at least one dish from each available category?" (If no, add more)
+   2. "Do these dishes offer good visual variety?" (different colors, textures, presentations)
+   3. "Are all selections aligned with the dietary preference?" (Critical check)
+   4. "Would adding one more dish enhance or clutter the visualization?" (Use your judgment)
+   5. "Is this count realistic for the menu size?" (Don't overselect from a small menu)
 
-5. **Balance**: Mix textures and colors (creamy + crunchy, green + red/orange, etc.)
+## QUALITY CONTROL - WHEN TO LIMIT SELECTIONS
+Even though you should maximize selections, there are cases where LESS IS MORE:
+- **Small menus**: If menu has only 6-8 total items, select 4-6 (not all - leave room for curation)
+- **Limited variety**: If most dishes are similar (e.g., 10 pasta dishes), select 3-5 most distinct ones
+- **Dietary restrictions**: If dietary preference leaves only 3-4 options, that's perfectly fine
+- **Poor quality items**: Don't include boring/generic items just to hit a count (e.g., "French Fries")
+- **Visualization clarity**: Prioritize clear, stunning visualization over cramming in every possible dish
 
-6. **Interesting Items**: Choose dishes that sound unique or restaurant-quality
+**REMEMBER**: The goal is to create an IMPRESSIVE, APPETIZING visualization that showcases the BEST of the menu. Quality > Quantity.
 
 ## OUTPUT
 Return ONLY valid JSON, no additional text. Make sure the JSON is properly formatted and can be parsed.`;
@@ -474,13 +499,17 @@ ${styleModifiers.atmosphere}
 
 ${styleModifiers.lighting}
 
-**Food Arrangement in Bottom 2/3**:
-- Arrange ${selectedItems.length} dishes elegantly within the lower two-thirds of the frame
-- Use the specified plate for each dish (white or blue plates as noted above)
-- IMPORTANT: Space dishes apart generously - each dish should have breathing room
-- Slight overlapping is OK, but maintain clear separation between dishes
-- Keep the composition balanced and visually pleasing with clear negative space
+**Food Arrangement in Bottom 2/3** (${selectedItems.length} dishes total):
+- Arrange ALL ${selectedItems.length} dishes elegantly within the lower two-thirds of the frame
+- Use the specified plate for each dish as noted above
+- **SPACING RULES** (adjust based on dish count):
+  ${selectedItems.length <= 4 ? '* FEW DISHES (≤4): Generous spacing, each dish prominent with lots of breathing room' : ''}
+  ${selectedItems.length >= 5 && selectedItems.length <= 7 ? '* MEDIUM COUNT (5-7): Balanced spacing with clear separation between dishes' : ''}
+  ${selectedItems.length >= 8 && selectedItems.length <= 10 ? '* MANY DISHES (8-10): Tighter composition but still distinct, slight overlapping OK' : ''}
+  ${selectedItems.length > 10 ? '* MANY DISHES (10+): Compact arrangement, overlapping OK but each dish should be identifiable' : ''}
+- Keep the composition balanced and visually pleasing with appropriate negative space
 - View angle from above at an angle (looking down at 50-60 degrees)
+- **LAYOUT STRATEGY**: ${selectedItems.length <= 5 ? 'Spread dishes across the full width for visual impact' : 'Create a natural, organic arrangement with depth - some dishes closer, some further back'}
 
 **Perspective & Depth**:
 - Apply natural perspective: dishes in the back row appear smaller/higher in frame
@@ -508,6 +537,39 @@ ${styleModifiers.colorPalette}
 - Appropriate garnishes and plating techniques for each dish type
 - Proper portion sizes that look generous but not overwhelming
 - Steam or freshness indicators where appropriate (e.g., soup should look hot)
+
+## ADAPTIVE COMPOSITION STRATEGY (Based on ${selectedItems.length} dishes)
+${selectedItems.length <= 4 ? `
+**FEW DISHES STRATEGY** (${selectedItems.length} dishes):
+- Each dish is a HERO - give it prominence and breathing room
+- Use wide spacing to create visual impact
+- Allow plates to be fully visible with minimal overlap
+- This is a showcase of select premium items
+` : ''}
+${selectedItems.length >= 5 && selectedItems.length <= 7 ? `
+**BALANCED STRATEGY** (${selectedItems.length} dishes):
+- Classic food photography composition
+- Arrange in natural groupings with clear focal points
+- Front-to-back depth with 2-3 rows of dishes
+- Strategic overlapping to create depth without cluttering
+` : ''}
+${selectedItems.length >= 8 && selectedItems.length <= 10 ? `
+**ABUNDANT STRATEGY** (${selectedItems.length} dishes):
+- Create a "feast table" impression
+- Multiple rows with strong perspective (3-4 rows deep)
+- Controlled overlapping - each dish should be 70%+ visible
+- Tighter composition but maintain visual hierarchy (larger items in front)
+- Use depth and scale variation to maintain clarity
+` : ''}
+${selectedItems.length > 10 ? `
+**MAXIMUM VARIETY STRATEGY** (${selectedItems.length} dishes):
+- Full table spread showing menu diversity
+- Deep perspective with 4-5 rows
+- Strategic overlapping acceptable - aim for 60%+ visibility per dish
+- Vary plate sizes naturally (some plates closer/larger, some further/smaller)
+- Create visual rhythm - don't make it look crowded, make it look ABUNDANT
+- Think "family-style restaurant spread" or "buffet showcase"
+` : ''}
 
 ## PHOTOREALISM REQUIREMENTS - CRITICAL
 **Make food look REAL, not CGI or artificial. Apply these techniques:**
@@ -559,11 +621,13 @@ Before generating, verify:
 ## COMPOSITION VERIFICATION
 Before finalizing the image, verify this critical layout:
 1. **Top 1/3 check**: Is the upper third of the image clear background space (no food)?
-2. **Bottom 2/3 check**: Are ALL dishes positioned in the lower two-thirds only?
+2. **Bottom 2/3 check**: Are ALL ${selectedItems.length} dishes positioned in the lower two-thirds only?
 3. **Text space**: Is there sufficient empty space at the top for menu text overlay?
-4. **Spacing**: Is there clear space between dishes (not overcrowded)?
-5. **Perspective**: Do back dishes appear smaller/higher and front dishes larger/lower?
-6. **Depth**: Does the scene show natural 3D table-top perspective?
+4. **Spacing**: ${selectedItems.length <= 6 ? 'Is there generous space between dishes?' : 'Are dishes arranged compactly but still identifiable?'}
+5. **Count verification**: Are there EXACTLY ${selectedItems.length} dishes visible (not more, not less)?
+6. **Perspective**: Do back dishes appear smaller/higher and front dishes larger/lower?
+7. **Depth**: Does the scene show natural 3D table-top perspective?
+8. **Visual balance**: Does the arrangement feel natural and not cluttered?
 
 ## OUTPUT DELIVERABLE
 A single, high-resolution PHOTOREALISTIC image (not CGI or 3D render) with the following layout:
