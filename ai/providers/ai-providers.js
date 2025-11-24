@@ -4,6 +4,10 @@
 
 import { parseMenuWithOpenAI, generateMenuImageWithOpenAI } from './openai-provider.js';
 import { parseMenuWithGemini, generateMenuImageWithGemini } from './gemini-provider.js';
+import { PROGRESS_STEPS } from './progress-steps.js';
+
+// Re-export progress steps as part of the AI provider API contract
+export { PROGRESS_STEPS };
 
 /**
  * Available AI providers metadata
@@ -44,9 +48,7 @@ export function getMenuParser(providerType = 'openai') {
  * @param {string} params.imageUrl - URL of menu image
  * @param {string} params.dietaryPreference - Dietary preference ID
  * @param {string} params.apiKey - API key
- * @param {string} params.requestId - Request ID for progress tracking
- * @param {Function} params.updateProgress - Progress update callback
- * @param {Function} params.getRandomFoodFact - Food fact generator
+ * @param {Function} params.updateProgress - Progress update callback (receives step and extra data)
  * @param {string} params.providerType - Provider type (default: 'openai')
  * @returns {Promise<Object>} Parsed menu data
  */
@@ -54,24 +56,16 @@ export async function parseMenuWithAI({
   imageUrl,
   dietaryPreference,
   apiKey,
-  requestId,
   updateProgress,
-  getRandomFoodFact,
   providerType = 'openai'
 }) {
   const parser = getMenuParser(providerType);
-
-  // Create a wrapped updateProgress that includes requestId
-  const wrappedUpdateProgress = (progress, statusText, detailText = '') => {
-    updateProgress(requestId, progress, statusText, detailText);
-  };
 
   return parser({
     imageUrl,
     dietaryPreference,
     apiKey,
-    updateProgress: wrappedUpdateProgress,
-    getRandomFoodFact,
+    updateProgress,
   });
 }
 

@@ -10,6 +10,7 @@ import {
   calculateAspectRatio,
   findClosestAspectRatio
 } from './image-utils.js';
+import { PROGRESS_STEPS } from './progress-steps.js';
 
 /**
  * Gemini 3 Pro Image supported aspect ratios
@@ -71,23 +72,22 @@ function selectGeminiConfig(width, height) {
  * @param {string} params.imageUrl - URL of menu image
  * @param {string} params.dietaryPreference - Dietary preference ID
  * @param {string} params.apiKey - Gemini API key
- * @param {Function} params.updateProgress - Progress update callback
- * @param {Function} params.getRandomFoodFact - Food fact generator
+ * @param {Function} params.updateProgress - Progress update callback (receives step and optional extra data)
  * @returns {Promise<Object>} Parsed menu data
  */
-export async function parseMenuWithGemini({ imageUrl, dietaryPreference, apiKey, updateProgress, getRandomFoodFact }) {
+export async function parseMenuWithGemini({ imageUrl, dietaryPreference, apiKey, updateProgress }) {
   console.log('🍽️ [GEMINI] Starting menu analysis...');
   console.log('📸 [GEMINI] Image URL:', imageUrl);
 
   try {
-    updateProgress(5, 'Analyzing menu...', getRandomFoodFact());
+    updateProgress(PROGRESS_STEPS.PARSING_MENU_START);
 
     if (!apiKey) {
       throw new Error('Gemini API key not configured');
     }
 
     // Fetch the menu image and convert to base64
-    updateProgress(10, 'Loading menu image...', 'Fetching high-resolution image');
+    updateProgress(PROGRESS_STEPS.FETCHING_MENU_IMAGE);
     console.log('⬇️ [GEMINI] Fetching menu image...');
     const imageBlob = await fetchImageAsBlob(imageUrl);
     const imageBase64 = await blobToBase64(imageBlob);
@@ -99,7 +99,7 @@ export async function parseMenuWithGemini({ imageUrl, dietaryPreference, apiKey,
     console.log('📋 [GEMINI] Dietary preference:', preference.name);
 
     // Build the menu parsing prompt
-    updateProgress(15, 'Preparing AI analysis...', `Analyzing for ${preference.name} preferences`);
+    updateProgress(PROGRESS_STEPS.PREPARING_AI_ANALYSIS, { preferenceName: preference.name });
     const parsingPrompt = buildMenuParsingPrompt(preference);
     const promptLength = parsingPrompt.length;
     console.log(`📝 [GEMINI] Prompt built, length: ${promptLength} chars`);
@@ -108,7 +108,7 @@ export async function parseMenuWithGemini({ imageUrl, dietaryPreference, apiKey,
     const modelName = 'gemini-3-pro-preview';
 
     // Call Gemini 3 Pro (vision model) to parse the menu
-    updateProgress(20, 'Reading menu with AI...', 'This takes 20-30 seconds. ' + getRandomFoodFact());
+    updateProgress(PROGRESS_STEPS.READING_MENU_WITH_AI);
     console.log(`🤖 [GEMINI] Calling ${modelName} for menu analysis...`);
 
     const requestBody = {
@@ -151,7 +151,7 @@ export async function parseMenuWithGemini({ imageUrl, dietaryPreference, apiKey,
       throw new Error(`Gemini API error: ${errorMessage}`);
     }
 
-    updateProgress(40, 'Processing AI response...', getRandomFoodFact());
+    updateProgress(PROGRESS_STEPS.PROCESSING_AI_RESPONSE);
 
     const data = await response.json();
     console.log('📦 [GEMINI] Raw API response:', JSON.stringify(data, null, 2));
@@ -164,7 +164,7 @@ export async function parseMenuWithGemini({ imageUrl, dietaryPreference, apiKey,
     console.log('💬 [GEMINI] AI Response:\n', aiResponse);
 
     // Parse the JSON response from AI
-    updateProgress(45, 'Extracting dishes...', 'Identifying the best menu items');
+    updateProgress(PROGRESS_STEPS.EXTRACTING_DISHES);
     let parsedData;
     try {
       // Extract JSON from markdown code blocks if present
@@ -183,15 +183,8 @@ export async function parseMenuWithGemini({ imageUrl, dietaryPreference, apiKey,
     console.log('✨ [GEMINI] Menu analysis complete!');
 
     // Show selected dishes to the user
-    if (parsedData.selectedItems && parsedData.selectedItems.length > 0) {
-      const dishNames = parsedData.selectedItems.map(item => item.name);
-      const maxDisplayItems = 3;
-      const remainingCount = dishNames.length - maxDisplayItems;
-      const displayNames = dishNames.length > maxDisplayItems
-        ? `${dishNames.slice(0, maxDisplayItems).join(', ')}, and ${remainingCount} more`
-        : dishNames.join(', ');
-      updateProgress(50, 'Menu analyzed!', `Selected: ${displayNames}`);
-    }
+    const selectedDishes = parsedData.selectedItems?.map(item => item.name) || [];
+    updateProgress(PROGRESS_STEPS.MENU_ANALYZED, { selectedDishes });
 
     return parsedData;
   } catch (error) {

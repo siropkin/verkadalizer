@@ -1,16 +1,179 @@
-const FOOD_EMOJIS = ['🍕', '🍔', '🌮', '🌯', '🥗', '🍣', '🍜', '🍝', '🍗', '🥪', '🥙', '🍤', '🥟', '🍩', '🍪', '🍿', '🧁', '🍦', '🍱', '🥞'];
+// ============================================================================
+// VERKADALIZER CONTENT SCRIPT
+// ============================================================================
+// Consolidated content script for the Verkadalizer Chrome extension.
+// Handles menu image detection, UI controls, and AI image processing.
 
-function getRandomFoodEmoji() {
-  const index = Math.floor(Math.random() * FOOD_EMOJIS.length);
-  return FOOD_EMOJIS[index];
+// ============================================================================
+// PROGRESS STEPS & UI MAPPING
+// ============================================================================
+
+const PROGRESS_STEPS = {
+  STARTING: 'STARTING',
+  PARSING_MENU_START: 'PARSING_MENU_START',
+  FETCHING_MENU_IMAGE: 'FETCHING_MENU_IMAGE',
+  PREPARING_AI_ANALYSIS: 'PREPARING_AI_ANALYSIS',
+  READING_MENU_WITH_AI: 'READING_MENU_WITH_AI',
+  PROCESSING_AI_RESPONSE: 'PROCESSING_AI_RESPONSE',
+  EXTRACTING_DISHES: 'EXTRACTING_DISHES',
+  MENU_ANALYZED: 'MENU_ANALYZED',
+  BUILDING_PROMPT: 'BUILDING_PROMPT',
+  PREPARING_IMAGE_GENERATION: 'PREPARING_IMAGE_GENERATION',
+  GENERATING_IMAGE: 'GENERATING_IMAGE',
+  FINALIZING_IMAGE: 'FINALIZING_IMAGE',
+  IMAGE_GENERATED: 'IMAGE_GENERATED',
+  MERGING_IMAGES: 'MERGING_IMAGES',
+  COMPLETE: 'COMPLETE',
+};
+
+const FOOD_FACTS = [
+  'Honey never spoils - archaeologists found 3000-year-old honey in Egyptian tombs that was still edible! 🍯',
+  'Carrots were originally purple - orange carrots were developed in the Netherlands in the 17th century 🥕',
+  'Apples float because they are 25% air 🍎',
+  'Pistachios can spontaneously combust when stored in large quantities 🔥',
+  'Chocolate was once used as currency by the Aztecs 🍫',
+  'Peanuts aren\'t actually nuts - they\'re legumes! 🥜',
+  'A strawberry is not a berry, but a banana is 🍓🍌',
+  'Tomatoes have more genes than humans 🍅',
+  'White chocolate isn\'t actually chocolate 🤍',
+  'Avocados are berries, but strawberries aren\'t 🥑',
+  'The most expensive pizza in the world costs $12,000 💰',
+  'Ranch dressing is most popular in the United States but virtually unknown elsewhere 🇺🇸',
+  'Nutmeg is a hallucinogen in large quantities ⚠️',
+  'Ketchup was sold as medicine in the 1830s 💊',
+  'The popsicle was invented by an 11-year-old 🧊',
+];
+
+function getRandomFoodFact() {
+  return FOOD_FACTS[Math.floor(Math.random() * FOOD_FACTS.length)];
 }
 
-const ACTIONS = {
-  PROCESS_IMAGE: 'processImage',
-  CANCEL_REQUEST: 'cancelRequest',
-  MERGE_IMAGES: 'mergeImages',
-  GET_PROGRESS: 'getProgress',
+const STEP_CONFIG = {
+  [PROGRESS_STEPS.STARTING]: {
+    progress: 5,
+    statusText: 'Starting menu analysis...',
+    detailText: () => getRandomFoodFact(),
+  },
+  [PROGRESS_STEPS.PARSING_MENU_START]: {
+    progress: 5,
+    statusText: 'Analyzing menu...',
+    detailText: () => getRandomFoodFact(),
+  },
+  [PROGRESS_STEPS.FETCHING_MENU_IMAGE]: {
+    progress: 10,
+    statusText: 'Loading menu image...',
+    detailText: 'Fetching high-resolution image',
+  },
+  [PROGRESS_STEPS.PREPARING_AI_ANALYSIS]: {
+    progress: 15,
+    statusText: 'Preparing AI analysis...',
+    detailText: (extra) => `Analyzing for ${extra?.preferenceName || 'dietary'} preferences`,
+  },
+  [PROGRESS_STEPS.READING_MENU_WITH_AI]: {
+    progress: 20,
+    statusText: 'Reading menu with AI...',
+    detailText: () => 'This takes 20-30 seconds. ' + getRandomFoodFact(),
+  },
+  [PROGRESS_STEPS.PROCESSING_AI_RESPONSE]: {
+    progress: 40,
+    statusText: 'Processing AI response...',
+    detailText: () => getRandomFoodFact(),
+  },
+  [PROGRESS_STEPS.EXTRACTING_DISHES]: {
+    progress: 45,
+    statusText: 'Extracting dishes...',
+    detailText: 'Identifying the best menu items',
+  },
+  [PROGRESS_STEPS.MENU_ANALYZED]: {
+    progress: 50,
+    statusText: 'Menu analyzed!',
+    detailText: (extra) => {
+      if (extra?.selectedDishes) {
+        const maxDisplayItems = 3;
+        const dishes = extra.selectedDishes.slice(0, maxDisplayItems);
+        const remaining = extra.selectedDishes.length - maxDisplayItems;
+        return remaining > 0
+          ? `Selected: ${dishes.join(', ')}, and ${remaining} more`
+          : `Selected: ${dishes.join(', ')}`;
+      }
+      return 'Dishes selected successfully';
+    },
+  },
+  [PROGRESS_STEPS.BUILDING_PROMPT]: {
+    progress: 52,
+    statusText: 'Building visualization prompt...',
+    detailText: 'Creating detailed food photography instructions',
+  },
+  [PROGRESS_STEPS.PREPARING_IMAGE_GENERATION]: {
+    progress: 55,
+    statusText: 'Preparing for image generation...',
+    detailText: () => getRandomFoodFact(),
+  },
+  [PROGRESS_STEPS.GENERATING_IMAGE]: {
+    progress: 60,
+    statusText: 'Generating food visualization...',
+    detailText: () => 'This takes 60-90 seconds. ' + getRandomFoodFact(),
+  },
+  [PROGRESS_STEPS.FINALIZING_IMAGE]: {
+    progress: 85,
+    statusText: 'Finalizing image...',
+    detailText: 'Processing AI-generated visualization',
+  },
+  [PROGRESS_STEPS.IMAGE_GENERATED]: {
+    progress: 88,
+    statusText: 'Image generated!',
+    detailText: 'Preparing to merge with menu text',
+  },
+  [PROGRESS_STEPS.MERGING_IMAGES]: {
+    progress: 90,
+    statusText: 'Merging images...',
+    detailText: 'Creating final visualization',
+  },
+  [PROGRESS_STEPS.COMPLETE]: {
+    progress: 100,
+    statusText: 'Complete!',
+    detailText: 'Your menu is ready',
+  },
 };
+
+// Cache for generated detail text per step (so food facts don't change on every poll)
+const stepDetailCache = {};
+
+function stepToProgressData(step, extra = {}) {
+  const config = STEP_CONFIG[step];
+
+  if (!config) {
+    console.warn(`Unknown progress step: ${step}`);
+    return {
+      progress: 0,
+      statusText: 'Processing...',
+      detailText: '',
+    };
+  }
+
+  // Generate detail text only once per step (cache it)
+  let detailText;
+  if (typeof config.detailText === 'function') {
+    // Create a cache key that includes extra data for dynamic messages
+    const cacheKey = step + JSON.stringify(extra);
+    if (!stepDetailCache[cacheKey]) {
+      stepDetailCache[cacheKey] = config.detailText(extra);
+    }
+    detailText = stepDetailCache[cacheKey];
+  } else {
+    detailText = config.detailText;
+  }
+
+  return {
+    progress: config.progress,
+    statusText: config.statusText,
+    detailText: detailText,
+  };
+}
+
+// ============================================================================
+// PAGE DETECTION
+// ============================================================================
 
 function isVerkadaMenuPage() {
   return window.location.href.includes('sites.google.com/verkada.com/verkada-menu');
@@ -25,9 +188,20 @@ function queryMenuImages() {
   return images.filter(isMenuImage);
 }
 
+// ============================================================================
+// UI COMPONENTS
+// ============================================================================
+
+const FOOD_EMOJIS = ['🍕', '🍔', '🌮', '🌯', '🥗', '🍣', '🍜', '🍝', '🍗', '🥪', '🥙', '🍤', '🥟', '🍩', '🍪', '🍿', '🧁', '🍦', '🍱', '🥞'];
+
+function getRandomFoodEmoji() {
+  const index = Math.floor(Math.random() * FOOD_EMOJIS.length);
+  return FOOD_EMOJIS[index];
+}
+
 function ensureControllerAttached(img) {
-  if (!img || !img.parentElement) { 
-    return null; 
+  if (!img || !img.parentElement) {
+    return null;
   }
 
   if (img.dataset.vkControllerAttached === 'true') {
@@ -83,8 +257,6 @@ function renderController(img) {
   }
 
   // Lazily create buttons once; then just toggle/retarget handlers and visibility
-  // Ensure left-to-right ordering: [showOriginal] [showGenerated] [generate OR stop]
-  // We will create or move elements to preserve this order.
   let generateBtn = container.querySelector('.vk-btn-generate');
   if (!generateBtn) {
     // Pick and store a stable emoji per image on first render
@@ -185,6 +357,10 @@ function attachController(img) {
   img.dataset.vkControllerObserverAttached = 'true';
 }
 
+// ============================================================================
+// SPINNER OVERLAY
+// ============================================================================
+
 function createSpinnerOverlay(img) {
   const spinner = document.createElement('div');
   spinner.className = 'menu-image-spinner-overlay';
@@ -283,22 +459,25 @@ function createSpinnerOverlay(img) {
   return spinner;
 }
 
-function updateSpinnerProgress(img, progress, statusText, detailText = '') {
+function updateSpinnerProgress(img, step, extra = {}) {
   const spinner = img.parentElement.querySelector('.menu-image-spinner-overlay');
   if (!spinner) return;
+
+  // Convert step to UI-ready progress data
+  const progressData = stepToProgressData(step, extra);
 
   const progressBar = spinner.querySelector('.vk-progress-bar');
   const statusElement = spinner.querySelector('.vk-status-text');
   const detailElement = spinner.querySelector('.vk-detail-text');
 
   if (progressBar) {
-    progressBar.style.width = `${Math.min(100, Math.max(0, progress))}%`;
+    progressBar.style.width = `${Math.min(100, Math.max(0, progressData.progress))}%`;
   }
   if (statusElement) {
-    statusElement.textContent = statusText;
+    statusElement.textContent = progressData.statusText;
   }
   if (detailElement) {
-    detailElement.textContent = detailText;
+    detailElement.textContent = progressData.detailText;
   }
 }
 
@@ -312,13 +491,28 @@ function removeSpinnerOverlay(img) {
   img.style.opacity = '1';
 }
 
+// ============================================================================
+// STORAGE & REQUEST MANAGEMENT
+// ============================================================================
+
+const ACTIONS = {
+  GENERATE_REQUEST_ID: 'generateRequestId',
+  SAVE_GENERATED_IMAGE: 'saveGeneratedImage',
+  LOAD_SAVED_IMAGE: 'loadSavedImage',
+  CLEANUP_OLD_IMAGES: 'cleanupOldImages',
+  PROCESS_IMAGE: 'processImage',
+  CANCEL_REQUEST: 'cancelRequest',
+  MERGE_IMAGES: 'mergeImages',
+  GET_PROGRESS: 'getProgress',
+};
+
 async function generateRequestId(img) {
   const imageUrl = img.dataset.vkOriginalSrc || img.src;
   const response = await chrome.runtime.sendMessage({
-    action: 'generateRequestId',
+    action: ACTIONS.GENERATE_REQUEST_ID,
     imageUrl
   });
-  
+
   if (response.success) {
     return response.requestId;
   } else {
@@ -329,7 +523,7 @@ async function generateRequestId(img) {
 async function saveGeneratedImage(requestId, generatedSrc) {
   try {
     const response = await chrome.runtime.sendMessage({
-      action: 'saveGeneratedImage',
+      action: ACTIONS.SAVE_GENERATED_IMAGE,
       requestId,
       generatedSrc
     });
@@ -344,7 +538,7 @@ async function saveGeneratedImage(requestId, generatedSrc) {
 async function cleanupOldSavedImages() {
   try {
     const response = await chrome.runtime.sendMessage({
-      action: 'cleanupOldImages'
+      action: ACTIONS.CLEANUP_OLD_IMAGES
     });
     if (!response.success) {
       throw new Error(response.error);
@@ -357,7 +551,7 @@ async function cleanupOldSavedImages() {
 async function loadSavedImage(requestId) {
   try {
     const response = await chrome.runtime.sendMessage({
-      action: 'loadSavedImage',
+      action: ACTIONS.LOAD_SAVED_IMAGE,
       requestId
     });
     if (response.success) {
@@ -373,19 +567,22 @@ async function loadSavedImage(requestId) {
 async function restoreSavedImage(img) {
   const requestId = await generateRequestId(img);
   const savedImage = await loadSavedImage(requestId);
-  
+
   if (savedImage && savedImage.generatedSrc) {
     img.dataset.vkGeneratedSrc = savedImage.generatedSrc;
     img.dataset.vkOriginalSrc = img.dataset.vkOriginalSrc || img.src;
-    
+
     // Show generated image by default when restored
     img.src = savedImage.generatedSrc;
     img.dataset.vkView = 'generated';
-    
+
     renderController(img);
   }
 }
 
+// ============================================================================
+// IMAGE PROCESSING
+// ============================================================================
 
 async function startImageProcessing(img) {
   if (!img) return;
@@ -396,10 +593,6 @@ async function startImageProcessing(img) {
   img.dataset.vkOriginalSrc = img.dataset.vkOriginalSrc || img.src;
   createSpinnerOverlay(img);
   renderController(img);
-
-  // Track last update time for rotating messages
-  let lastDetailText = '';
-  let lastDetailUpdateTime = Date.now();
 
   // Start progress polling
   const progressInterval = setInterval(async () => {
@@ -415,17 +608,11 @@ async function startImageProcessing(img) {
       });
 
       if (progressResponse && progressResponse.success) {
-        // Store detail text if it changed
-        if (progressResponse.detailText !== lastDetailText) {
-          lastDetailText = progressResponse.detailText;
-          lastDetailUpdateTime = Date.now();
-        }
-
+        // Progress response now contains { step, extra }
         updateSpinnerProgress(
           img,
-          progressResponse.progress,
-          progressResponse.statusText,
-          progressResponse.detailText
+          progressResponse.step,
+          progressResponse.extra || {}
         );
       }
     } catch (error) {
@@ -441,7 +628,7 @@ async function startImageProcessing(img) {
     });
 
     if (aiResponse && aiResponse.success) {
-      updateSpinnerProgress(img, 90, 'Merging images...', 'Creating final visualization');
+      updateSpinnerProgress(img, PROGRESS_STEPS.MERGING_IMAGES);
       let imageData = `data:image/png;base64,${aiResponse.b64}`;
 
       try {
@@ -461,7 +648,7 @@ async function startImageProcessing(img) {
         console.error('Error during merge, falling back to generated image:', mergeError);
         // Fallback: just use the generated background without text overlay
       } finally {
-        updateSpinnerProgress(img, 100, 'Complete!', 'Your menu is ready');
+        updateSpinnerProgress(img, PROGRESS_STEPS.COMPLETE);
         img.dataset.vkGeneratedSrc = imageData;
         img.src = imageData;
         img.dataset.vkView = 'generated';
@@ -474,7 +661,16 @@ async function startImageProcessing(img) {
     }
   } catch (error) {
     console.error('Error processing image:', error);
-    updateSpinnerProgress(img, 0, 'Error occurred', error.message || 'Unknown error');
+    // For errors, just show raw error message (not a step)
+    const spinner = img.parentElement.querySelector('.menu-image-spinner-overlay');
+    if (spinner) {
+      const progressBar = spinner.querySelector('.vk-progress-bar');
+      const statusElement = spinner.querySelector('.vk-status-text');
+      const detailElement = spinner.querySelector('.vk-detail-text');
+      if (progressBar) progressBar.style.width = '0%';
+      if (statusElement) statusElement.textContent = 'Error occurred';
+      if (detailElement) detailElement.textContent = error.message || 'Unknown error';
+    }
   } finally {
     clearInterval(progressInterval);
     img.dataset.vkIsProcessing = 'false';
@@ -498,26 +694,30 @@ async function cancelImageProcessing(img) {
   renderController(img);
 }
 
+// ============================================================================
+// INITIALIZATION
+// ============================================================================
+
 async function init() {
   if (!isVerkadaMenuPage()) {
     return;
   }
-  
+
   // Clean up old saved images (older than 7 days)
   await cleanupOldSavedImages();
-  
+
   // Restore saved images first
   const restoreSavedImages = async () => {
     const menuImages = queryMenuImages();
     await Promise.all(menuImages.map((img) => restoreSavedImage(img)));
   };
-  
+
   // Attach controller to existing images
   const attachControllers = () => {
     const menuImages = queryMenuImages();
     menuImages.forEach((img) => attachController(img));
   };
-  
+
   await restoreSavedImages();
   attachControllers();
 

@@ -9,6 +9,7 @@ import {
   getImageDimensions,
   calculateAspectRatio
 } from './image-utils.js';
+import { PROGRESS_STEPS } from './progress-steps.js';
 
 /**
  * OpenAI GPT-Image-1 supported sizes for edits endpoint
@@ -53,23 +54,22 @@ function selectOpenAISize(width, height) {
  * @param {string} params.imageUrl - URL of menu image
  * @param {string} params.dietaryPreference - Dietary preference ID
  * @param {string} params.apiKey - OpenAI API key
- * @param {Function} params.updateProgress - Progress update callback
- * @param {Function} params.getRandomFoodFact - Food fact generator
+ * @param {Function} params.updateProgress - Progress update callback (receives step and optional extra data)
  * @returns {Promise<Object>} Parsed menu data
  */
-export async function parseMenuWithOpenAI({ imageUrl, dietaryPreference, apiKey, updateProgress, getRandomFoodFact }) {
+export async function parseMenuWithOpenAI({ imageUrl, dietaryPreference, apiKey, updateProgress }) {
   console.log('🍽️ [OPENAI] Starting menu analysis...');
   console.log('📸 [OPENAI] Image URL:', imageUrl);
 
   try {
-    updateProgress(5, 'Analyzing menu...', getRandomFoodFact());
+    updateProgress(PROGRESS_STEPS.PARSING_MENU_START);
 
     if (!apiKey) {
       throw new Error('API key not configured');
     }
 
     // Fetch the menu image and convert to base64
-    updateProgress(10, 'Loading menu image...', 'Fetching high-resolution image');
+    updateProgress(PROGRESS_STEPS.FETCHING_MENU_IMAGE);
     console.log('⬇️ [OPENAI] Fetching menu image...');
     const imageBlob = await fetchImageAsBlob(imageUrl);
     const imageBase64 = await blobToBase64(imageBlob);
@@ -81,7 +81,7 @@ export async function parseMenuWithOpenAI({ imageUrl, dietaryPreference, apiKey,
     console.log('📋 [OPENAI] Dietary preference:', preference.name);
 
     // Build the menu parsing prompt
-    updateProgress(15, 'Preparing AI analysis...', `Analyzing for ${preference.name} preferences`);
+    updateProgress(PROGRESS_STEPS.PREPARING_AI_ANALYSIS, { preferenceName: preference.name });
     const parsingPrompt = buildMenuParsingPrompt(preference);
     const promptLength = parsingPrompt.length;
     console.log(`📝 [OPENAI] Prompt built, length: ${promptLength} chars`);
@@ -90,7 +90,7 @@ export async function parseMenuWithOpenAI({ imageUrl, dietaryPreference, apiKey,
     const modelName = 'gpt-4o';
 
     // Call GPT-4o (vision model) to parse the menu
-    updateProgress(20, 'Reading menu with AI...', 'This takes 20-30 seconds. ' + getRandomFoodFact());
+    updateProgress(PROGRESS_STEPS.READING_MENU_WITH_AI);
     console.log(`🤖 [OPENAI] Calling ${modelName} for menu analysis...`);
     const requestBody = {
       model: modelName,
@@ -133,7 +133,7 @@ export async function parseMenuWithOpenAI({ imageUrl, dietaryPreference, apiKey,
       throw new Error(`OpenAI API error: ${errorMessage}`);
     }
 
-    updateProgress(40, 'Processing AI response...', getRandomFoodFact());
+    updateProgress(PROGRESS_STEPS.PROCESSING_AI_RESPONSE);
 
     const data = await response.json();
     console.log('📦 [OPENAI] Raw API response:', JSON.stringify(data, null, 2));
@@ -146,7 +146,7 @@ export async function parseMenuWithOpenAI({ imageUrl, dietaryPreference, apiKey,
     console.log('💬 [OPENAI] AI Response:\n', aiResponse);
 
     // Parse the JSON response from AI
-    updateProgress(45, 'Extracting dishes...', 'Identifying the best menu items');
+    updateProgress(PROGRESS_STEPS.EXTRACTING_DISHES);
     let parsedData;
     try {
       // Extract JSON from markdown code blocks if present
@@ -165,15 +165,8 @@ export async function parseMenuWithOpenAI({ imageUrl, dietaryPreference, apiKey,
     console.log('✨ [OPENAI] Menu analysis complete!');
 
     // Show selected dishes to the user
-    if (parsedData.selectedItems && parsedData.selectedItems.length > 0) {
-      const dishNames = parsedData.selectedItems.map(item => item.name);
-      const maxDisplayItems = 3;
-      const remainingCount = dishNames.length - maxDisplayItems;
-      const displayNames = dishNames.length > maxDisplayItems
-        ? `${dishNames.slice(0, maxDisplayItems).join(', ')}, and ${remainingCount} more`
-        : dishNames.join(', ');
-      updateProgress(50, 'Menu analyzed!', `Selected: ${displayNames}`);
-    }
+    const selectedDishes = parsedData.selectedItems?.map(item => item.name) || [];
+    updateProgress(PROGRESS_STEPS.MENU_ANALYZED, { selectedDishes });
 
     return parsedData;
   } catch (error) {

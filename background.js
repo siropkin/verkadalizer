@@ -4,9 +4,10 @@
 
 import { DIETARY_PREFERENCES, IMAGE_STYLES, PLATE_STYLES, buildImageGenerationPrompt } from './ai/prompts.js';
 import { parseMenuWithAI, generateImageWithAI, AI_PROVIDERS } from './ai/providers/ai-providers.js';
+import { PROGRESS_STEPS } from './ai/providers/progress-steps.js';
 import { fetchImageAsBlob, mergeImages } from './lib/image-processing.js';
 import { loadSettings, generateRequestIdFromImage, saveGeneratedImageToStorage, loadSavedImageFromStorage, cleanupOldSavedImages } from './lib/storage.js';
-import { assertSetting, throwIfAborted, getRandomFoodFact } from './lib/utils.js';
+import { assertSetting, throwIfAborted } from './lib/utils.js';
 
 // ============================================================================
 // CONSTANTS - Configuration and Static Data
@@ -42,22 +43,18 @@ const inFlightRequests = new Map(); // requestId -> { controller, timeoutId, pro
 // ============================================================================
 
 /**
- * Update progress for a request
+ * Update progress for a request with a step identifier
  * @param {string} requestId - Request ID
- * @param {number} progress - Progress percentage (0-100)
- * @param {string} statusText - Status message
- * @param {string} detailText - Detail message (optional)
- * @param {Object} extraData - Additional data to include (optional)
+ * @param {string} step - Progress step identifier from PROGRESS_STEPS
+ * @param {Object} extra - Additional data for dynamic content (optional)
  */
-function updateProgress(requestId, progress, statusText, detailText = '', extraData = {}) {
+function updateProgress(requestId, step, extra = {}) {
   const entry = inFlightRequests.get(requestId);
   if (entry) {
     entry.progress = {
-      progress,
-      statusText,
-      detailText,
+      step,
+      extra,
       timestamp: Date.now(),
-      ...extraData
     };
   }
 }
@@ -98,7 +95,7 @@ async function processImageRequest({ imageUrl, requestId, signal }) {
     console.log('📸 [IMAGE GENERATION] Image URL:', imageUrl);
 
     // STAGE 1: Parse the menu with AI to get intelligent dish selection
-    updateProgress(requestId, 5, 'Starting menu analysis...', getRandomFoodFact());
+    updateProgress(requestId, PROGRESS_STEPS.STARTING);
     console.log('⚡ [IMAGE GENERATION] Stage 1: Parsing menu with AI...');
     const stored = await chrome.storage.local.get(['dietaryPreference', 'visualStyle', 'plateStyle']);
     const dietaryPreference = stored.dietaryPreference || 'regular';
@@ -109,14 +106,17 @@ async function processImageRequest({ imageUrl, requestId, signal }) {
     let dynamicPrompt;
 
     try {
+      // Create a wrapped updateProgress for providers
+      const wrappedUpdateProgress = (step, extra = {}) => {
+        updateProgress(requestId, step, extra);
+      };
+
       // Use the selected AI provider from settings
       parsedMenuData = await parseMenuWithAI({
         imageUrl,
         dietaryPreference,
         apiKey: settings.apiKey,
-        requestId,
-        updateProgress,
-        getRandomFoodFact,
+        updateProgress: wrappedUpdateProgress,
         providerType: settings.aiProvider || 'openai'
       });
       console.log('✅ [IMAGE GENERATION] Stage 1 complete - Menu parsed successfully');
@@ -138,7 +138,7 @@ async function processImageRequest({ imageUrl, requestId, signal }) {
       console.log('✅ [IMAGE GENERATION] Validation passed - proceeding with', parsedMenuData.selectedItems.length, 'dishes');
 
       // STAGE 2: Build dynamic prompt from parsed data
-      updateProgress(requestId, 52, 'Building visualization prompt...', 'Creating detailed food photography instructions');
+      updateProgress(requestId, PROGRESS_STEPS.BUILDING_PROMPT);
       console.log('⚡ [IMAGE GENERATION] Stage 2: Building dynamic prompt...');
       dynamicPrompt = buildImageGenerationPrompt(parsedMenuData, visualStyle, dietaryPreference, plateStyle);
       console.log('✅ [IMAGE GENERATION] Stage 2 complete - Prompt generated');
@@ -154,7 +154,7 @@ async function processImageRequest({ imageUrl, requestId, signal }) {
 
     // Timeout is now handled by the provider internally
 
-    updateProgress(requestId, 55, 'Preparing for image generation...', getRandomFoodFact());
+    updateProgress(requestId, PROGRESS_STEPS.PREPARING_IMAGE_GENERATION);
     console.log('⬇️ [IMAGE GENERATION] Fetching image for processing...');
     const imageBlob = await fetchImageAsBlob(imageUrl, signal);
     if (!imageBlob || imageBlob.size === 0) {
@@ -164,7 +164,7 @@ async function processImageRequest({ imageUrl, requestId, signal }) {
 
     throwIfAborted(signal);
 
-    updateProgress(requestId, 60, 'Generating food visualization...', 'This takes 60-90 seconds. ' + getRandomFoodFact());
+    updateProgress(requestId, PROGRESS_STEPS.GENERATING_IMAGE);
     console.log('🤖 [IMAGE GENERATION] Calling image generation API...');
 
     const b64 = await generateImageWithAI({
@@ -175,9 +175,9 @@ async function processImageRequest({ imageUrl, requestId, signal }) {
       providerType: settings.aiProvider
     });
 
-    updateProgress(requestId, 85, 'Finalizing image...', 'Processing AI-generated visualization');
+    updateProgress(requestId, PROGRESS_STEPS.FINALIZING_IMAGE);
 
-    updateProgress(requestId, 88, 'Image generated!', 'Preparing to merge with menu text');
+    updateProgress(requestId, PROGRESS_STEPS.IMAGE_GENERATED);
     console.log('✅ [IMAGE GENERATION] Image generated successfully!');
     console.log('🎉 [IMAGE GENERATION] Two-stage pipeline complete!');
 
@@ -246,7 +246,12 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     const requestId = request.requestId;
     const entry = inFlightRequests.get(requestId);
     if (entry && entry.progress) {
-      sendResponse({ success: true, ...entry.progress });
+      sendResponse({
+        success: true,
+        step: entry.progress.step,
+        extra: entry.progress.extra,
+        timestamp: entry.progress.timestamp
+      });
     } else {
       sendResponse({ success: false, error: 'No progress found' });
     }
@@ -260,9 +265,8 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
       controller,
       timeoutId: null,
       progress: {
-        progress: 0,
-        statusText: 'Starting...',
-        detailText: 'Preparing to analyze menu',
+        step: PROGRESS_STEPS.STARTING,
+        extra: {},
         timestamp: Date.now()
       }
     });
