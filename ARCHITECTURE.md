@@ -41,37 +41,33 @@ The progress tracking system is designed with clean separation between **busines
                 (step + extra data)
                         ↓
 ┌─────────────────────────────────────────────────────────┐
-│  Client Layer (content/)                                 │
+│  Client Layer (content.js)                               │
 │  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  │
 │                                                           │
 │  ┌─────────────────────────────────────────┐            │
-│  │ content/main.js (Entry point)            │            │
+│  │ content.js (Single consolidated file)   │            │
 │  │ ─────────────────────────────────────── │            │
+│  │ • Inlined PROGRESS_STEPS (copy)          │            │
+│  │ • STEP_CONFIG (UI mapping)               │            │
+│  │ • stepToProgressData() with caching      │            │
+│  │ • Food facts with emojis 🍯🥕🍎         │            │
+│  │ • Page detection & image queries         │            │
+│  │ • UI components (buttons, spinner)       │            │
+│  │ • Storage & request management           │            │
+│  │ • Image processing orchestration         │            │
 │  │ • Initialization & DOM observation       │            │
-│  │ • Coordinates all modules                │            │
 │  └─────────────────────────────────────────┘            │
-│              ↓ uses                                      │
+│                                                           │
+│  Note: Single file due to Chrome content script         │
+│  module limitations. Well-organized with sections.      │
+│                                                           │
 │  ┌─────────────────────────────────────────┐            │
-│  │ Modular Content Scripts (ES6)            │            │
-│  │ ─────────────────────────────────────── │            │
-│  │ • progress-ui.js (imports from lib!)     │            │
-│  │ • ui-components.js (buttons, controls)   │            │
-│  │ • spinner.js (progress overlay)          │            │
-│  │ • storage.js (image persistence)         │            │
-│  │ • image-processor.js (orchestration)     │            │
-│  │ • page-detector.js (menu detection)      │            │
-│  └─────────────────────────────────────────┘            │
-│              ↓ imports                                   │
-│  ┌─────────────────────────────────────────┐            │
-│  │ lib/progress-steps.js                    │            │
+│  │ lib/progress-steps.js (for other uses)  │            │
 │  │ ─────────────────────────────────────── │            │
 │  │ • Re-exports PROGRESS_STEPS              │            │
 │  │ • STEP_CONFIG (shared UI mapping)        │            │
-│  │ • stepToProgressData() with caching      │            │
+│  │ • Used by popup.html and other contexts │            │
 │  └─────────────────────────────────────────┘            │
-│                                                           │
-│  Note: Manifest V3 supports "type": "module"            │
-│  for content scripts, enabling ES6 imports!             │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -109,24 +105,18 @@ const progressData = stepToProgressData('MENU_ANALYZED', extra);
 
 | File | Responsibility | Type | Lines |
 |------|---------------|------|-------|
-| `ai/providers/progress-steps.js` | Define step constants (API contract) | Business Logic | 37 |
+| `ai/providers/progress-steps.js` | Define step constants (API contract) | Business Logic | 38 |
 | `ai/providers/gemini-provider.js` | Emit steps during Gemini processing | Business Logic | 338 |
 | `ai/providers/openai-provider.js` | Emit steps during OpenAI processing | Business Logic | 257 |
 | `background.js` | Store and forward step data | Orchestration | 325 |
-| `lib/progress-steps.js` | Map steps to UI text/progress/facts | Presentation | 177 |
-| **`content/main.js`** | **Entry point, initialization** | **Presentation** | **113** |
-| **`content/page-detector.js`** | **Page/image detection** | **Presentation** | **31** |
-| **`content/ui-components.js`** | **Button and controller UI** | **Presentation** | **192** |
-| **`content/spinner.js`** | **Progress overlay** | **Presentation** | **151** |
-| **`content/progress-ui.js`** | **Progress step imports** | **Presentation** | **8** |
-| **`content/storage.js`** | **Image persistence** | **Presentation** | **96** |
-| **`content/image-processor.js`** | **Processing orchestration** | **Presentation** | **124** |
+| `lib/progress-steps.js` | Map steps to UI text/progress/facts | Presentation | 176 |
+| `content.js` | All client-side functionality (single file) | Presentation | 768 |
 
-**Modular Content Scripts:** Manifest V3 supports ES6 modules for content scripts via `"type": "module"`:
-- Content scripts can now use `import` statements
-- Split 742-line content.js into 7 focused modules (~715 lines total)
-- Each module has a single responsibility
-- `content/progress-ui.js` imports from `lib/progress-steps.js` (no more duplication!)
+**Content Script Approach:** Single consolidated file with clear section organization:
+- Content scripts have poor ES6 module support in Chrome
+- Single file (~768 lines) is simpler than fighting module limitations
+- Well-organized with section comments for easy navigation
+- PROGRESS_STEPS inlined (kept in sync with ai/providers via comments)
 
 ### Future Backend Migration
 
