@@ -2,19 +2,20 @@
 
 <img src="images/verkadalizer.png" alt="Verkadalizer Chrome Extension"/>
 
-A Chrome extension that transforms food menu images on Verkada Menu pages into beautiful, appetizing visualizations using a sophisticated two-stage AI pipeline powered by OpenAI (GPT-4o + GPT-Image-1) or Google Gemini (Gemini 2.5 Flash + Gemini 2.5 Flash Image).
+A Chrome extension that transforms food menu images on Verkada Menu pages into beautiful, appetizing visualizations using a sophisticated two-stage AI pipeline powered by OpenAI (GPT-4o + GPT-Image-1) or Google Gemini (Gemini 3 Pro + Gemini 3 Pro Image).
 
 ## Features
 
 ### Core Functionality
+
 - **Smart Image Detection**: Automatically detects menu images on Verkada Menu pages (`https://sites.google.com/verkada.com/verkada-menu`) and adds interactive control buttons
 - **Two-Stage AI Processing Pipeline** (Choose between OpenAI or Google Gemini):
   - **Stage 1**: AI analyzes the menu text and intelligently selects dishes based on your dietary preferences
     - **OpenAI**: GPT-4o vision model
-    - **Google Gemini**: Gemini 2.5 Flash with vision capabilities
+    - **Google Gemini**: Gemini 3 Pro
   - **Stage 2**: AI generates a photorealistic visualization of the selected dishes
     - **OpenAI**: GPT-Image-1 for high-quality image generation
-    - **Google Gemini**: Gemini 2.5 Flash Image for fast image creation
+    - **Google Gemini**: Gemini 3 Pro Image for professional 2K/4K image generation with superior text rendering
 - **Smart Image Controls**: Interactive buttons for each menu image:
   - ✨🍕 **Generate** - Process the menu image with AI
   - **Show Original** - Toggle back to the original menu
@@ -22,7 +23,9 @@ A Chrome extension that transforms food menu images on Verkada Menu pages into b
   - **Stop** - Cancel ongoing processing
 
 ### Dietary Preferences
+
 Choose from 8 dietary preference options that guide AI dish selection:
+
 - 🍽️ **Regular (Default)** - All menu items available with no restrictions
 - 🥗 **Vegetarian** - Plant-based with eggs & dairy (no meat, poultry, or fish)
 - 🌱 **Vegan** - Strictly plant-based (no animal products including dairy and eggs)
@@ -33,7 +36,9 @@ Choose from 8 dietary preference options that guide AI dish selection:
 - 🥑 **Keto** - High-fat, low-carb with no bread, pasta, rice, or sugar
 
 ### Visual Styles
+
 Choose from 6 artistic styles that transform the AI-generated food imagery:
+
 - 📸 **Modern Photography (Default)** - Clean, contemporary food photography with natural lighting
 - 🕯️ **Moody Dark Academia** - Dramatic chiaroscuro lighting with deep shadows and rich atmosphere
 - 🌸 **Pastel Dream Pop** - Soft, ethereal aesthetic with dreamy pastel colors
@@ -42,6 +47,7 @@ Choose from 6 artistic styles that transform the AI-generated food imagery:
 - 🌺 **Hyper-Maximalist Grandmillennial** - Bold, ornate "more is more" aesthetic with rich jewel tones
 
 ### User Experience
+
 - **Real-Time Progress Tracking**: Animated progress bar with percentage and status updates
 - **Fun Food Facts**: Educational food trivia displayed during processing to keep you entertained
 - **Visual Feedback**: Branded overlay with smooth animations and clear status messages
@@ -62,7 +68,7 @@ Click the extension icon to access settings:
 
 - **AI Provider**: Choose between OpenAI or Google Gemini
   - **OpenAI**: Uses GPT-4o for menu analysis and GPT-Image-1 for image generation
-  - **Google Gemini**: Uses Gemini 2.5 Flash for menu analysis and Gemini 2.5 Flash Image for generation
+  - **Google Gemini**: Uses Gemini 3 Pro for menu analysis and Gemini 3 Pro Image for generation
 - **API Key**: Your personal API key for the selected provider (stored securely in local browser storage)
   - **OpenAI API Key**: Required when using OpenAI provider
   - **Gemini API Key**: Required when using Google Gemini provider
@@ -73,22 +79,28 @@ Click the extension icon to access settings:
 ## How It Works
 
 ### 1. Image Detection & Setup
+
 - Scans pages for images hosted on `googleusercontent.com` with the `=w1280` parameter
 - Injects interactive control buttons next to each detected menu image
 - Assigns a unique food emoji to each image for personality
 
 ### 2. Stage 1: Intelligent Menu Analysis
+
 When you click the generate button:
+
 - Extracts text from the menu image using OCR
-- Sends to your selected AI provider (GPT-4o or Gemini 2.5 Flash) with your dietary preference
+- Sends to your selected AI provider (GPT-4o or Gemini 3 Pro) with your dietary preference
 - AI analyzes and selects 6-8 appropriate dishes based on:
   - Dietary constraints (e.g., vegan, gluten-free)
   - Visual appeal and variety
   - Menu theme and cuisine type
+- Gemini 3 Pro uses advanced multimodal understanding for superior text recognition
 - Returns structured JSON with selected dishes and visual descriptions
 
 ### 3. Stage 2: Photorealistic Image Generation
+
 Using the parsed menu data and selected visual style:
+
 - Builds a detailed image generation prompt with:
   - Selected visual style aesthetic (Modern, Dark Academia, Pastel Dream, Cyberpunk, Vintage Film, or Maximalist)
   - Style-specific lighting, background, surface, color palette, atmosphere, and camera settings
@@ -97,10 +109,11 @@ Using the parsed menu data and selected visual style:
   - Photorealism requirements (textures, lighting, organic presentation)
 - Sends to your selected AI provider for image creation:
   - **OpenAI**: GPT-Image-1 for high-quality photorealistic images
-  - **Google Gemini**: Gemini 2.5 Flash Image for fast, high-quality generation
+  - **Google Gemini**: Gemini 3 Pro Image for professional 2K resolution with native text rendering and "thinking mode" for optimal composition
 - Receives professional-quality food photography visualization in your chosen style
 
 ### 4. Display & Interaction
+
 - Replaces original image with generated visualization
 - Enables toggle buttons to switch between original and generated versions
 - Preserves exact dimensions for seamless layout integration
@@ -108,6 +121,7 @@ Using the parsed menu data and selected visual style:
 ## Technical Details
 
 ### Architecture
+
 - **Manifest Version**: 3 (latest Chrome extension standard)
 - **Permissions**: `storage` (for API keys and preferences)
 - **Host Permissions**: Verkada Menu pages, OpenAI API, Google Gemini API, Google User Content
@@ -120,20 +134,30 @@ Using the parsed menu data and selected visual style:
 ### AI Integration
 
 #### OpenAI Provider
+
 - **GPT-4o**: Vision-based menu text analysis and intelligent dish selection
 - **GPT-Image-1**: High-quality photorealistic image generation with advanced control
 
 #### Google Gemini Provider
-- **Gemini 2.5 Flash**: Fast vision-based menu analysis with JSON output
-- **Gemini 2.5 Flash Image**: Rapid high-quality image generation with multimodal capabilities
+
+- **Gemini 3 Pro**: Advanced vision model with superior multimodal understanding (71.8% MMMU benchmark)
+  - Enhanced OCR and text recognition for menu parsing
+  - Complex image reasoning with knowledge cutoff January 2025
+- **Gemini 3 Pro Image** (Nano Banana Pro): State-of-the-art image generation model
+  - Native 2K/4K resolution support (currently configured for 2K, 16:9 aspect ratio)
+  - Advanced text rendering for legible menu item labels
+  - "Thinking mode" for optimal composition planning
+  - Supports up to 14 reference images for consistent styling
 
 #### Features
+
 - **Modular Architecture**: Easy to add new AI providers
 - **Provider Selection**: Choose provider dynamically in settings
 - **Prompt Engineering**: Sophisticated multi-stage prompting with dietary modifiers
 - **Output Size**: Default 1536×1024 (optimized for menu layouts)
 
 ### Processing Pipeline
+
 1. Request initialization with unique ID
 2. Progress tracking system (0-100%) with status updates
 3. Stage 1: Menu parsing (~30-50% progress)
@@ -142,6 +166,7 @@ Using the parsed menu data and selected visual style:
 6. Cleanup and UI state management
 
 ### Advanced Features
+
 - **Concurrent Request Management**: Handles multiple simultaneous image processing requests
 - **AbortController Integration**: Cancellable requests with proper cleanup
 - **Progress State Machine**: Real-time updates via message passing

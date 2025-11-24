@@ -80,9 +80,15 @@ export async function parseMenuWithGemini({ imageUrl, dietaryPreference, apiKey,
     const parsingPrompt = buildMenuParsingPrompt(preference);
     console.log('📝 [GEMINI] Prompt built, length:', parsingPrompt.length, 'chars');
 
-    // Call Gemini 2.5 Flash (vision model) to parse the menu
+    // Gemini 3 Pro configuration
+    const modelName = 'gemini-3-pro-preview';
+    const mediaResolution = 'MEDIA_RESOLUTION_HIGH';  // Options: 'MEDIA_RESOLUTION_LOW', 'MEDIA_RESOLUTION_MEDIUM', 'MEDIA_RESOLUTION_HIGH'
+
+    // Call Gemini 3 Pro (vision model) to parse the menu
     updateProgress(20, 'Reading menu with AI...', 'This takes 20-30 seconds. ' + getRandomFoodFact());
-    console.log('🤖 [GEMINI] Calling Gemini 2.5 Flash for menu analysis...');
+    console.log(`🤖 [GEMINI] Calling ${modelName} for menu analysis...`);
+    console.log(`🎯 [GEMINI] Configuration: ${mediaResolution}`);
+
     const requestBody = {
       contents: [
         {
@@ -92,7 +98,10 @@ export async function parseMenuWithGemini({ imageUrl, dietaryPreference, apiKey,
               inline_data: {
                 mime_type: 'image/png',
                 data: imageBase64
-              }
+              },
+              // media_resolution: {
+              //   level: mediaResolution
+              // }
             }
           ]
         }
@@ -104,7 +113,7 @@ export async function parseMenuWithGemini({ imageUrl, dietaryPreference, apiKey,
     };
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: {
@@ -171,7 +180,7 @@ export async function parseMenuWithGemini({ imageUrl, dietaryPreference, apiKey,
 }
 
 /**
- * Generate menu image with Gemini 2.5 Flash Image
+ * Generate menu image with Gemini 3 Pro Image
  * @param {Object} params - Parameters
  * @param {string} params.prompt - Image generation prompt
  * @param {Blob} params.imageBlob - Image blob for reference
@@ -179,9 +188,20 @@ export async function parseMenuWithGemini({ imageUrl, dietaryPreference, apiKey,
  * @param {AbortSignal} params.signal - Abort signal
  * @returns {Promise<string>} Base64 encoded image
  */
-export async function generateMenuImageWithGemini({ prompt, imageBlob, apiKey, signal }) {
-  console.log('🎨 [GEMINI] Starting image generation...');
+export async function generateMenuImageWithGemini({
+  prompt,
+  imageBlob,
+  apiKey,
+  signal
+}) {
+  // Gemini 3 Pro Image configuration
+  const resolution = '2K';      // Options: '1K', '2K', '4K'
+  const aspectRatio = '16:9';   // Options: '1:1', '2:3', '3:2', '3:4', '4:3', '4:5', '5:4', '9:16', '16:9', '21:9'
+
+  const modelName = 'gemini-3-pro-image-preview';
+  console.log(`🎨 [GEMINI] Starting image generation with ${modelName}...`);
   console.log('📝 [GEMINI] Prompt length:', prompt.length, 'chars');
+  console.log(`🎯 [GEMINI] Configuration: ${resolution} resolution, ${aspectRatio} aspect ratio`);
 
   try {
     if (!apiKey) {
@@ -189,10 +209,10 @@ export async function generateMenuImageWithGemini({ prompt, imageBlob, apiKey, s
     }
 
     // Convert image blob to base64
-    console.log('🤖 [GEMINI] Calling Gemini 2.5 Flash Image for image generation...');
+    console.log(`🤖 [GEMINI] Calling ${modelName} for image generation...`);
     const imageBase64 = await blobToBase64(imageBlob);
 
-    // Build request for Gemini 2.5 Flash Image
+    // Build request body for Gemini 3 Pro Image
     const requestBody = {
       contents: [
         {
@@ -208,12 +228,16 @@ export async function generateMenuImageWithGemini({ prompt, imageBlob, apiKey, s
         }
       ],
       generationConfig: {
-        responseModalities: ['IMAGE']
+        responseModalities: ['TEXT', 'IMAGE'],
+        imageConfig: {
+          image_size: resolution,
+          aspect_ratio: aspectRatio
+        }
       }
     };
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: {
@@ -239,17 +263,27 @@ export async function generateMenuImageWithGemini({ prompt, imageBlob, apiKey, s
 
     const parts = data?.candidates?.[0]?.content?.parts || [];
 
+    // Extract text response if present (Gemini 3 includes text explanation)
+    let textResponse = null;
     let b64 = null;
+    let thoughtSignature = null;
+
     for (const part of parts) {
-      // Try both inline_data (old format) and inlineData (new format)
+      // Extract text (Gemini 3 Pro Image provides reasoning/explanation)
+      if (part.text) {
+        textResponse = part.text;
+        console.log('💬 [GEMINI] AI explanation:', textResponse);
+      }
+
+      // Extract image data - try both formats
       if (part.inlineData && part.inlineData.data) {
         b64 = part.inlineData.data;
+        thoughtSignature = part.thought_signature;
         console.log('✅ [GEMINI] Found image data in inlineData format');
-        break;
       } else if (part.inline_data && part.inline_data.data) {
         b64 = part.inline_data.data;
+        thoughtSignature = part.thought_signature;
         console.log('✅ [GEMINI] Found image data in inline_data format');
-        break;
       }
     }
 
@@ -259,7 +293,13 @@ export async function generateMenuImageWithGemini({ prompt, imageBlob, apiKey, s
       throw new Error('No image data returned from Gemini');
     }
 
-    console.log('✅ [GEMINI] Image generated successfully!');
+    console.log('✅ [GEMINI] Image generated with Gemini 3 Pro Image!');
+    if (textResponse) {
+      console.log('📝 [GEMINI] Model provided explanation:', textResponse.substring(0, 200) + '...');
+    }
+    if (thoughtSignature) {
+      console.log('🧠 [GEMINI] Thought signature available for multi-turn refinement');
+    }
     return b64;
   } catch (error) {
     console.error('❌ [GEMINI] Error:', error);
