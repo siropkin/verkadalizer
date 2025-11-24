@@ -3,44 +3,55 @@
 // ============================================================================
 
 import { DIETARY_PREFERENCES, buildMenuParsingPrompt } from '../prompts.js';
+import {
+  blobToBase64,
+  fetchImageAsBlob,
+  getImageDimensions,
+  calculateAspectRatio,
+  findClosestAspectRatio
+} from './image-utils.js';
 
 /**
- * Convert a Blob to base64 string
- * @param {Blob} blob - The blob to convert
- * @returns {Promise<string>} Base64 string without data URL prefix
+ * Gemini 3 Pro Image supported aspect ratios
  */
-function blobToBase64(blob) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64String = String(reader.result).split(',')[1];
-      resolve(base64String);
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
-}
+const GEMINI_ASPECT_RATIOS = [
+  '1:1',   // 1.000 - Square
+  '2:3',   // 0.667 - Portrait
+  '3:2',   // 1.500 - Landscape
+  '3:4',   // 0.750 - Portrait
+  '4:3',   // 1.333 - Landscape
+  '4:5',   // 0.800 - Portrait
+  '5:4',   // 1.250 - Landscape
+  '9:16',  // 0.562 - Portrait (mobile)
+  '16:9',  // 1.778 - Landscape (widescreen)
+  '21:9'   // 2.333 - Ultra-wide
+];
 
 /**
- * Fetch an image from a URL and return as Blob
- * @param {string} imageUrl - URL of the image
- * @param {AbortSignal} signal - Optional abort signal
- * @returns {Promise<Blob>} Image blob
+ * Gemini 3 Pro Image supported resolutions
  */
-async function fetchImageAsBlob(imageUrl, signal) {
-  try {
-    const response = await fetch(imageUrl, { signal });
-    if (!response.ok) {
-      throw new Error(`Failed to fetch image: ${response.statusText}`);
-    }
-    return await response.blob();
-  } catch (error) {
-    // Normalize AbortError
-    if (signal?.aborted) {
-      throw new DOMException('Aborted', 'AbortError');
-    }
-    throw new Error(`Failed to fetch image: ${error.message}`);
-  }
+const GEMINI_RESOLUTIONS = ['1K', '2K', '4K'];
+
+/**
+ * Select optimal Gemini aspect ratio and resolution based on input image
+ * @param {number} width - Input image width
+ * @param {number} height - Input image height
+ * @param {string} preferredResolution - Preferred resolution ('1K', '2K', or '4K')
+ * @returns {Object} { aspectRatio, resolution }
+ */
+function selectGeminiConfig(width, height, preferredResolution = '2K') {
+  const ratio = calculateAspectRatio(width, height);
+  const aspectRatio = findClosestAspectRatio(ratio.decimal, GEMINI_ASPECT_RATIOS);
+
+  // Validate resolution
+  const resolution = GEMINI_RESOLUTIONS.includes(preferredResolution)
+    ? preferredResolution
+    : '2K';
+
+  console.log(`📐 [GEMINI] Input: ${width}×${height} (${ratio.decimal.toFixed(3)})`);
+  console.log(`🎯 [GEMINI] Selected config: ${aspectRatio} @ ${resolution}`);
+
+  return { aspectRatio, resolution };
 }
 
 /**
@@ -181,30 +192,37 @@ export async function parseMenuWithGemini({ imageUrl, dietaryPreference, apiKey,
  * @param {Blob} params.imageBlob - Image blob for reference
  * @param {string} params.apiKey - Gemini API key
  * @param {AbortSignal} params.signal - Abort signal
+ * @param {string} params.preferredResolution - Preferred resolution ('1K', '2K', or '4K'), defaults to '2K'
  * @returns {Promise<string>} Base64 encoded image
  */
 export async function generateMenuImageWithGemini({
   prompt,
   imageBlob,
   apiKey,
-  signal
+  signal,
+  preferredResolution = '2K'
 }) {
-  // Gemini 3 Pro Image configuration
-  const resolution = '2K';      // Options: '1K', '2K', '4K'
-  const aspectRatio = '16:9';   // Options: '1:1', '2:3', '3:2', '3:4', '4:3', '4:5', '5:4', '9:16', '16:9', '21:9'
-
   const modelName = 'gemini-3-pro-image-preview';
   console.log(`🎨 [GEMINI] Starting image generation with ${modelName}...`);
   console.log('📝 [GEMINI] Prompt length:', prompt.length, 'chars');
-  console.log(`🎯 [GEMINI] Configuration: ${resolution} resolution, ${aspectRatio} aspect ratio`);
 
   try {
     if (!apiKey) {
       throw new Error('Gemini API key not configured');
     }
 
-    // Convert image blob to base64
+    // Get image dimensions and select optimal configuration
+    const dimensions = await getImageDimensions(imageBlob);
+    const { aspectRatio, resolution } = selectGeminiConfig(
+      dimensions.width,
+      dimensions.height,
+      preferredResolution
+    );
+
+    console.log(`🎯 [GEMINI] Configuration: ${resolution} resolution, ${aspectRatio} aspect ratio`);
     console.log(`🤖 [GEMINI] Calling ${modelName} for image generation...`);
+
+    // Convert image blob to base64
     const imageBase64 = await blobToBase64(imageBlob);
 
     // Build request body for Gemini 3 Pro Image

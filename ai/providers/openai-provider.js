@@ -3,44 +3,47 @@
 // ============================================================================
 
 import { DIETARY_PREFERENCES, buildMenuParsingPrompt } from '../prompts.js';
+import {
+  blobToBase64,
+  fetchImageAsBlob,
+  getImageDimensions,
+  calculateAspectRatio
+} from './image-utils.js';
 
 /**
- * Convert a Blob to base64 string
- * @param {Blob} blob - The blob to convert
- * @returns {Promise<string>} Base64 string without data URL prefix
+ * OpenAI GPT-Image-1 supported sizes for edits endpoint
  */
-function blobToBase64(blob) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64String = String(reader.result).split(',')[1];
-      resolve(base64String);
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
-}
+const OPENAI_IMAGE_SIZES = [
+  { width: 1024, height: 1024, ratio: 1.000, name: '1024x1024' },     // Square
+  { width: 1536, height: 1024, ratio: 1.500, name: '1536x1024' },     // Landscape
+  { width: 1024, height: 1536, ratio: 0.667, name: '1024x1536' }      // Portrait
+];
 
 /**
- * Fetch an image from a URL and return as Blob
- * @param {string} imageUrl - URL of the image
- * @param {AbortSignal} signal - Optional abort signal
- * @returns {Promise<Blob>} Image blob
+ * Select optimal OpenAI image size based on input image aspect ratio
+ * @param {number} width - Input image width
+ * @param {number} height - Input image height
+ * @returns {string} Best matching size (e.g., '1536x1024')
  */
-async function fetchImageAsBlob(imageUrl, signal) {
-  try {
-    const response = await fetch(imageUrl, { signal });
-    if (!response.ok) {
-      throw new Error(`Failed to fetch image: ${response.statusText}`);
+function selectOpenAISize(width, height) {
+  const ratio = calculateAspectRatio(width, height);
+  const targetRatio = ratio.decimal;
+
+  let closestSize = OPENAI_IMAGE_SIZES[0];
+  let smallestDifference = Infinity;
+
+  for (const size of OPENAI_IMAGE_SIZES) {
+    const difference = Math.abs(targetRatio - size.ratio);
+    if (difference < smallestDifference) {
+      smallestDifference = difference;
+      closestSize = size;
     }
-    return await response.blob();
-  } catch (error) {
-    // Normalize AbortError
-    if (signal?.aborted) {
-      throw new DOMException('Aborted', 'AbortError');
-    }
-    throw new Error(`Failed to fetch image: ${error.message}`);
   }
+
+  console.log(`📐 [OPENAI] Input: ${width}×${height} (${ratio.decimal.toFixed(3)})`);
+  console.log(`🎯 [OPENAI] Selected size: ${closestSize.name} (ratio: ${closestSize.ratio.toFixed(3)})`);
+
+  return closestSize.name;
 }
 
 /**
@@ -191,15 +194,21 @@ export async function generateMenuImageWithOpenAI({ prompt, imageBlob, apiKey, s
       throw new Error('OpenAI API key not configured');
     }
 
-    // Build request for GPT-Image-1
+    // Get image dimensions and select optimal size
+    const dimensions = await getImageDimensions(imageBlob);
+    const size = selectOpenAISize(dimensions.width, dimensions.height);
+
+    console.log(`🎯 [OPENAI] Selected size: ${size}`);
     console.log('🤖 [OPENAI] Calling GPT-Image-1 for image generation...');
+
+    // Build request for GPT-Image-1
     const formData = new FormData();
     formData.append('model', 'gpt-image-1');
     formData.append('prompt', prompt);
     formData.append('n', '1');
     formData.append('input_fidelity', 'high');
     formData.append('quality', 'high');
-    formData.append('size', '1536x1024');
+    formData.append('size', size);
     formData.append('image', imageBlob, 'image.png');
 
     const response = await fetch('https://api.openai.com/v1/images/edits', {
