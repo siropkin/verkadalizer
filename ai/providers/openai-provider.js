@@ -40,14 +40,15 @@ function selectOpenAISize(width, height) {
     }
   }
 
-  console.log(`📐 [OPENAI] Input: ${width}×${height} (${ratio.decimal.toFixed(3)})`);
+  const totalPixels = width * height;
+  console.log(`📐 [OPENAI] Input: ${width}×${height} (ratio: ${ratio.decimal.toFixed(3)}, pixels: ${totalPixels.toLocaleString()})`);
   console.log(`🎯 [OPENAI] Selected size: ${closestSize.name} (ratio: ${closestSize.ratio.toFixed(3)})`);
 
   return closestSize.name;
 }
 
 /**
- * Parse menu with OpenAI GPT-4o (Stage 1)
+ * Parse menu with OpenAI GPT-4o
  * @param {Object} params - Parameters
  * @param {string} params.imageUrl - URL of menu image
  * @param {string} params.dietaryPreference - Dietary preference ID
@@ -72,7 +73,8 @@ export async function parseMenuWithOpenAI({ imageUrl, dietaryPreference, apiKey,
     console.log('⬇️ [OPENAI] Fetching menu image...');
     const imageBlob = await fetchImageAsBlob(imageUrl);
     const imageBase64 = await blobToBase64(imageBlob);
-    console.log('✅ [OPENAI] Image fetched, size:', Math.round(imageBase64.length / 1024), 'KB');
+    const imageSizeKB = Math.round(imageBase64.length / 1024);
+    console.log(`✅ [OPENAI] Image fetched, size: ${imageSizeKB} KB`);
 
     // Get dietary preference context
     const preference = DIETARY_PREFERENCES[dietaryPreference] || DIETARY_PREFERENCES['regular'];
@@ -81,13 +83,17 @@ export async function parseMenuWithOpenAI({ imageUrl, dietaryPreference, apiKey,
     // Build the menu parsing prompt
     updateProgress(15, 'Preparing AI analysis...', `Analyzing for ${preference.name} preferences`);
     const parsingPrompt = buildMenuParsingPrompt(preference);
-    console.log('📝 [OPENAI] Prompt built, length:', parsingPrompt.length, 'chars');
+    const promptLength = parsingPrompt.length;
+    console.log(`📝 [OPENAI] Prompt built, length: ${promptLength} chars`);
+
+    // OpenAI GPT-4o configuration
+    const modelName = 'gpt-4o';
 
     // Call GPT-4o (vision model) to parse the menu
     updateProgress(20, 'Reading menu with AI...', 'This takes 20-30 seconds. ' + getRandomFoodFact());
-    console.log('🤖 [OPENAI] Calling OpenAI GPT-4o for menu analysis...');
+    console.log(`🤖 [OPENAI] Calling ${modelName} for menu analysis...`);
     const requestBody = {
-      model: 'gpt-4o',
+      model: modelName,
       messages: [
         {
           role: 'user',
@@ -106,7 +112,6 @@ export async function parseMenuWithOpenAI({ imageUrl, dietaryPreference, apiKey,
           ]
         }
       ],
-      max_tokens: 2000,
       temperature: 0.7
     };
 
@@ -162,9 +167,10 @@ export async function parseMenuWithOpenAI({ imageUrl, dietaryPreference, apiKey,
     // Show selected dishes to the user
     if (parsedData.selectedItems && parsedData.selectedItems.length > 0) {
       const dishNames = parsedData.selectedItems.map(item => item.name);
-      // Show first 3 items, then "and X more" if there are more
-      const displayNames = dishNames.length > 3
-        ? `${dishNames.slice(0, 3).join(', ')}, and ${dishNames.length - 3} more`
+      const maxDisplayItems = 3;
+      const remainingCount = dishNames.length - maxDisplayItems;
+      const displayNames = dishNames.length > maxDisplayItems
+        ? `${dishNames.slice(0, maxDisplayItems).join(', ')}, and ${remainingCount} more`
         : dishNames.join(', ');
       updateProgress(50, 'Menu analyzed!', `Selected: ${displayNames}`);
     }
@@ -186,7 +192,8 @@ export async function parseMenuWithOpenAI({ imageUrl, dietaryPreference, apiKey,
  * @returns {Promise<string>} Base64 encoded image
  */
 export async function generateMenuImageWithOpenAI({ prompt, imageBlob, apiKey, signal }) {
-  console.log('🎨 [OPENAI] Starting image generation...');
+  const modelName = 'gpt-image-1';
+  console.log(`🎨 [OPENAI] Starting image generation with ${modelName}...`);
   console.log('📝 [OPENAI] Prompt length:', prompt.length, 'chars');
 
   try {
@@ -198,12 +205,12 @@ export async function generateMenuImageWithOpenAI({ prompt, imageBlob, apiKey, s
     const dimensions = await getImageDimensions(imageBlob);
     const size = selectOpenAISize(dimensions.width, dimensions.height);
 
-    console.log(`🎯 [OPENAI] Selected size: ${size}`);
-    console.log('🤖 [OPENAI] Calling GPT-Image-1 for image generation...');
+    console.log(`🎯 [OPENAI] Configuration: ${size}`);
+    console.log(`🤖 [OPENAI] Calling ${modelName} for image generation...`);
 
     // Build request for GPT-Image-1
     const formData = new FormData();
-    formData.append('model', 'gpt-image-1');
+    formData.append('model', modelName);
     formData.append('prompt', prompt);
     formData.append('n', '1');
     formData.append('input_fidelity', 'high');
@@ -231,12 +238,16 @@ export async function generateMenuImageWithOpenAI({ prompt, imageBlob, apiKey, s
 
     console.log('📦 [OPENAI] Extracting image data...');
     const data = await response.json();
+    console.log('📦 [OPENAI] Raw API response:', JSON.stringify(data, null, 2));
+
     const b64 = data?.data?.[0]?.b64_json;
     if (!b64) {
+      console.error('❌ [OPENAI] No image data found in response');
+      console.error('📦 [OPENAI] Response structure:', JSON.stringify(data, null, 2));
       throw new Error('No image data returned from OpenAI');
     }
 
-    console.log('✅ [OPENAI] Image generated successfully!');
+    console.log('✅ [OPENAI] Image generated with GPT-Image-1!');
     return b64;
   } catch (error) {
     console.error('❌ [OPENAI] Error:', error);

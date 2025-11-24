@@ -36,26 +36,37 @@ const GEMINI_RESOLUTIONS = ['1K', '2K', '4K'];
  * Select optimal Gemini aspect ratio and resolution based on input image
  * @param {number} width - Input image width
  * @param {number} height - Input image height
- * @param {string} preferredResolution - Preferred resolution ('1K', '2K', or '4K')
  * @returns {Object} { aspectRatio, resolution }
  */
-function selectGeminiConfig(width, height, preferredResolution = '2K') {
+function selectGeminiConfig(width, height) {
   const ratio = calculateAspectRatio(width, height);
   const aspectRatio = findClosestAspectRatio(ratio.decimal, GEMINI_ASPECT_RATIOS);
 
-  // Validate resolution
-  const resolution = GEMINI_RESOLUTIONS.includes(preferredResolution)
-    ? preferredResolution
-    : '2K';
+  // Auto-select resolution based on image size (total pixels)
+  const totalPixels = width * height;
+  const threshold4K = 3840 * 2160;
+  const threshold2K = 1920 * 1080;
+  let resolution;
 
-  console.log(`📐 [GEMINI] Input: ${width}×${height} (${ratio.decimal.toFixed(3)})`);
+  if (totalPixels >= threshold4K) {
+    // 4K+ images
+    resolution = '4K';
+  } else if (totalPixels >= threshold2K) {
+    // 2K+ images
+    resolution = '2K';
+  } else {
+    // Smaller images
+    resolution = '1K';
+  }
+
+  console.log(`📐 [GEMINI] Input: ${width}×${height} (ratio: ${ratio.decimal.toFixed(3)}, pixels: ${totalPixels.toLocaleString()})`);
   console.log(`🎯 [GEMINI] Selected config: ${aspectRatio} @ ${resolution}`);
 
   return { aspectRatio, resolution };
 }
 
 /**
- * Parse menu with Google Gemini (Stage 1)
+ * Parse menu with Google Gemini
  * @param {Object} params - Parameters
  * @param {string} params.imageUrl - URL of menu image
  * @param {string} params.dietaryPreference - Dietary preference ID
@@ -69,7 +80,7 @@ export async function parseMenuWithGemini({ imageUrl, dietaryPreference, apiKey,
   console.log('📸 [GEMINI] Image URL:', imageUrl);
 
   try {
-    updateProgress(5, 'Analyzing menu with Gemini...', getRandomFoodFact());
+    updateProgress(5, 'Analyzing menu...', getRandomFoodFact());
 
     if (!apiKey) {
       throw new Error('Gemini API key not configured');
@@ -80,7 +91,8 @@ export async function parseMenuWithGemini({ imageUrl, dietaryPreference, apiKey,
     console.log('⬇️ [GEMINI] Fetching menu image...');
     const imageBlob = await fetchImageAsBlob(imageUrl);
     const imageBase64 = await blobToBase64(imageBlob);
-    console.log('✅ [GEMINI] Image fetched, size:', Math.round(imageBase64.length / 1024), 'KB');
+    const imageSizeKB = Math.round(imageBase64.length / 1024);
+    console.log(`✅ [GEMINI] Image fetched, size: ${imageSizeKB} KB`);
 
     // Get dietary preference context
     const preference = DIETARY_PREFERENCES[dietaryPreference] || DIETARY_PREFERENCES['regular'];
@@ -89,7 +101,8 @@ export async function parseMenuWithGemini({ imageUrl, dietaryPreference, apiKey,
     // Build the menu parsing prompt
     updateProgress(15, 'Preparing AI analysis...', `Analyzing for ${preference.name} preferences`);
     const parsingPrompt = buildMenuParsingPrompt(preference);
-    console.log('📝 [GEMINI] Prompt built, length:', parsingPrompt.length, 'chars');
+    const promptLength = parsingPrompt.length;
+    console.log(`📝 [GEMINI] Prompt built, length: ${promptLength} chars`);
 
     // Gemini 3 Pro configuration
     const modelName = 'gemini-3-pro-preview';
@@ -172,8 +185,10 @@ export async function parseMenuWithGemini({ imageUrl, dietaryPreference, apiKey,
     // Show selected dishes to the user
     if (parsedData.selectedItems && parsedData.selectedItems.length > 0) {
       const dishNames = parsedData.selectedItems.map(item => item.name);
-      const displayNames = dishNames.length > 3
-        ? `${dishNames.slice(0, 3).join(', ')}, and ${dishNames.length - 3} more`
+      const maxDisplayItems = 3;
+      const remainingCount = dishNames.length - maxDisplayItems;
+      const displayNames = dishNames.length > maxDisplayItems
+        ? `${dishNames.slice(0, maxDisplayItems).join(', ')}, and ${remainingCount} more`
         : dishNames.join(', ');
       updateProgress(50, 'Menu analyzed!', `Selected: ${displayNames}`);
     }
@@ -192,15 +207,13 @@ export async function parseMenuWithGemini({ imageUrl, dietaryPreference, apiKey,
  * @param {Blob} params.imageBlob - Image blob for reference
  * @param {string} params.apiKey - Gemini API key
  * @param {AbortSignal} params.signal - Abort signal
- * @param {string} params.preferredResolution - Preferred resolution ('1K', '2K', or '4K'), defaults to '2K'
  * @returns {Promise<string>} Base64 encoded image
  */
 export async function generateMenuImageWithGemini({
   prompt,
   imageBlob,
   apiKey,
-  signal,
-  preferredResolution = '2K'
+  signal
 }) {
   const modelName = 'gemini-3-pro-image-preview';
   console.log(`🎨 [GEMINI] Starting image generation with ${modelName}...`);
@@ -215,8 +228,7 @@ export async function generateMenuImageWithGemini({
     const dimensions = await getImageDimensions(imageBlob);
     const { aspectRatio, resolution } = selectGeminiConfig(
       dimensions.width,
-      dimensions.height,
-      preferredResolution
+      dimensions.height
     );
 
     console.log(`🎯 [GEMINI] Configuration: ${resolution} resolution, ${aspectRatio} aspect ratio`);
@@ -308,7 +320,11 @@ export async function generateMenuImageWithGemini({
 
     console.log('✅ [GEMINI] Image generated with Gemini 3 Pro Image!');
     if (textResponse) {
-      console.log('📝 [GEMINI] Model provided explanation:', textResponse.substring(0, 200) + '...');
+      const maxPreviewLength = 200;
+      const preview = textResponse.length > maxPreviewLength
+        ? textResponse.substring(0, maxPreviewLength) + '...'
+        : textResponse;
+      console.log(`📝 [GEMINI] Model provided explanation: ${preview}`);
     }
     if (thoughtSignature) {
       console.log('🧠 [GEMINI] Thought signature available for multi-turn refinement');
