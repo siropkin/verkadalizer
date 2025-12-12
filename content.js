@@ -72,7 +72,8 @@ const STEP_CONFIG = {
   [PROGRESS_STEPS.READING_MENU_WITH_AI]: {
     progress: 20,
     statusText: 'Reading menu with AI...',
-    detailText: () => 'This takes 20-30 seconds. ' + getRandomFoodFact(),
+    timeEstimate: '20-30 seconds',
+    detailText: () => getRandomFoodFact(),
   },
   [PROGRESS_STEPS.PROCESSING_AI_RESPONSE]: {
     progress: 40,
@@ -112,7 +113,8 @@ const STEP_CONFIG = {
   [PROGRESS_STEPS.GENERATING_IMAGE]: {
     progress: 60,
     statusText: 'Generating food visualization...',
-    detailText: () => 'This takes 60-90 seconds. ' + getRandomFoodFact(),
+    timeEstimate: '60-90 seconds',
+    detailText: () => getRandomFoodFact(),
   },
   [PROGRESS_STEPS.FINALIZING_IMAGE]: {
     progress: 85,
@@ -164,9 +166,15 @@ function stepToProgressData(step, extra = {}) {
     detailText = config.detailText;
   }
 
+  // Combine status text with time estimate if present
+  let statusText = config.statusText;
+  if (config.timeEstimate) {
+    statusText = `${config.statusText} (${config.timeEstimate})`;
+  }
+
   return {
     progress: config.progress,
-    statusText: config.statusText,
+    statusText: statusText,
     detailText: detailText,
   };
 }
