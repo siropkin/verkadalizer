@@ -159,6 +159,80 @@ const uiData = stepToProgressData(step, extra);
 
 ---
 
+## Image Processing Pipeline
+
+### Three-Stage Processing Architecture
+
+The extension uses a sophisticated three-stage AI processing pipeline:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  Stage 1: Menu Analysis                                  │
+│  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  │
+│  • AI analyzes menu image (GPT-4o or Gemini 3 Pro)      │
+│  • Extracts dish names, categories, descriptions        │
+│  • Applies dietary preference filters                   │
+│  • Returns structured JSON with selected items          │
+└─────────────────────────────────────────────────────────┘
+                        ↓
+┌─────────────────────────────────────────────────────────┐
+│  Stage 2: Image Generation                               │
+│  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  │
+│  • Builds dynamic prompt from parsed menu data          │
+│  • Includes unified image style (plates + aesthetics)   │
+│  • AI generates photorealistic visualization            │
+│  • (GPT-Image-1 or Gemini 3 Pro Image)                  │
+└─────────────────────────────────────────────────────────┘
+                        ↓
+┌─────────────────────────────────────────────────────────┐
+│  Stage 3: Post-Processing                                │
+│  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  │
+│  • Shared post-processing pipeline                      │
+│  • (ai/providers/image-processing.js)                   │
+│  • Upscales original image 2x                           │
+│  • Removes white background from original               │
+│  • Enhances text contrast                               │
+│  • Merges original + AI images                          │
+│  • Downscales to original dimensions                    │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Unified Image Style System
+
+Image styles combine plate design and visual aesthetics into cohesive presets:
+
+**Data Structure:**
+```javascript
+IMAGE_STYLES = {
+  'verkada-classic': {
+    // Plate configuration
+    plates: { soup: '...', salad: '...', main: '...', ... },
+    materialDescription: 'Classic ceramic plates...',
+
+    // Visual style modifiers
+    lighting: 'Soft, diffused natural light...',
+    background: 'Soft gradient background...',
+    surface: 'Light marble with subtle veining...',
+    colorPalette: 'Vibrant and natural...',
+    atmosphere: 'Modern, clean, contemporary...',
+    camera: 'Sharp focus with beautiful bokeh...'
+  }
+}
+```
+
+**Available Styles:**
+- Verkada Classic, Verkada Cyberpunk, Verkada Grandmillennial
+- Neon Tokyo Night Market, Grandma's Maximalist Garden Tea Party
+- Rustic Film Photography Cabin
+
+**Benefits:**
+- ✅ Simplified UX (1 dropdown instead of 2)
+- ✅ Curated combinations ensure cohesive results
+- ✅ Smart caching includes style in request ID
+- ✅ Automatic migration for existing users
+
+---
+
 ## Content Script Structure
 
 The content script is a single consolidated file that handles all client-side functionality.

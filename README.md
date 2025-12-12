@@ -35,16 +35,19 @@ Choose from 8 dietary preference options that guide AI dish selection:
 - 🥩 **High Protein** - Protein-forward dishes with substantial meat, fish, eggs, or legumes
 - 🥑 **Keto** - High-fat, low-carb with no bread, pasta, rice, or sugar
 
-### Visual Styles
+### Image Styles
 
-Choose from 6 artistic styles that transform the AI-generated food imagery:
+Choose from 6 unified image styles that combine plate design with visual aesthetics:
 
-- 📸 **Modern Photography (Default)** - Clean, contemporary food photography with natural lighting
-- 🕯️ **Moody Dark Academia** - Dramatic chiaroscuro lighting with deep shadows and rich atmosphere
-- 🌸 **Pastel Dream Pop** - Soft, ethereal aesthetic with dreamy pastel colors
-- ⚡ **Cyberpunk Neon Kitchen** - Futuristic sci-fi aesthetic with dramatic neon lighting
-- 📷 **Vintage Film Photography** - Nostalgic film aesthetic with warm, faded tones
-- 🌺 **Hyper-Maximalist Grandmillennial** - Bold, ornate "more is more" aesthetic with rich jewel tones
+**Verkada Styles:**
+- 🍽️ **Verkada Classic (Default)** - Blue and white Verkada plates with modern clean photography
+- ⚡ **Verkada Cyberpunk** - Blue and white Verkada plates with futuristic neon lighting
+- 🌺 **Verkada Grandmillennial** - Blue and white Verkada plates with bold maximalist styling
+
+**Universal Styles:**
+- 🌃 **Neon Tokyo Night Market** - Traditional Asian ceramics under futuristic neon lights
+- 🌺 **Grandma's Maximalist Garden Tea Party** - Colorful whimsical plates with bold maximalist patterns
+- 📷 **Rustic Film Photography Cabin** - Handcrafted stoneware with warm vintage film aesthetic
 
 ### User Experience
 
@@ -73,8 +76,7 @@ Click the extension icon to access settings:
   - **OpenAI API Key**: Required when using OpenAI provider
   - **Gemini API Key**: Required when using Google Gemini provider
 - **Dietary Preference**: Select your dietary preference from 8 options (affects dish selection in Stage 1)
-- **Plate Style**: Choose from 6 plate types and styles for visual presentation
-- **Visual Style**: Choose from 6 artistic styles that influence the image generation aesthetic
+- **Image Style**: Choose from 6 unified styles that combine plate design and photography aesthetics
 
 ## How It Works
 
@@ -99,18 +101,18 @@ When you click the generate button:
 
 ### 3. Stage 2: Photorealistic Image Generation
 
-Using the parsed menu data and selected visual style:
+Using the parsed menu data and selected image style:
 
 - Builds a detailed image generation prompt with:
-  - Selected visual style aesthetic (Modern, Dark Academia, Pastel Dream, Cyberpunk, Vintage Film, or Maximalist)
+  - Unified image style combining plate design and visual aesthetics (e.g., Verkada Classic, Neon Tokyo, etc.)
+  - Style-specific plate types matched to dish categories (ceramic, stoneware, wooden boards, porcelain)
   - Style-specific lighting, background, surface, color palette, atmosphere, and camera settings
-  - Specific plate types (white/blue plates) matched to dish categories
   - Composition layout (top 1/3 clear for text, bottom 2/3 for food)
   - Photorealism requirements (textures, lighting, organic presentation)
 - Sends to your selected AI provider for image creation:
   - **OpenAI**: GPT-Image-1 for high-quality photorealistic images
   - **Google Gemini**: Gemini 3 Pro Image for professional 2K resolution with native text rendering and "thinking mode" for optimal composition
-- Receives professional-quality food photography visualization in your chosen style
+- Receives professional-quality food photography visualization in your chosen unified style
 
 ### 4. Display & Interaction
 
