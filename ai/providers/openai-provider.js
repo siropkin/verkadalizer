@@ -10,6 +10,12 @@ import {
   calculateAspectRatio
 } from './image-utils.js';
 import { PROGRESS_STEPS } from './progress-steps.js';
+import { postProcessImage } from './image-processing.js';
+
+// ============================================================================
+// OPENAI PROVIDER API - Public functions
+// ============================================================================
+
 
 /**
  * OpenAI GPT-Image-1 supported sizes for edits endpoint
@@ -246,4 +252,14 @@ export async function generateMenuImageWithOpenAI({ prompt, imageBlob, apiKey, s
     console.error('❌ [OPENAI] Error:', error);
     throw error;
   }
+}
+
+/**
+ * Post-process and merge original menu image with AI generated background (OpenAI-specific)
+ * @param {string} originalImageUrl - URL of original menu image
+ * @param {string} aiImageData - Base64 data URL of AI generated image
+ * @returns {Promise<string>} Base64 string of merged image
+ */
+export async function postProcessImageWithOpenAI(originalImageUrl, aiImageData) {
+  return postProcessImage(originalImageUrl, aiImageData, 'OPENAI');
 }

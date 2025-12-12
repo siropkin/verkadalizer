@@ -2,8 +2,8 @@
 // AI PROVIDERS - Provider registry and factory
 // ============================================================================
 
-import { parseMenuWithOpenAI, generateMenuImageWithOpenAI } from './openai-provider.js';
-import { parseMenuWithGemini, generateMenuImageWithGemini } from './gemini-provider.js';
+import { parseMenuWithOpenAI, generateMenuImageWithOpenAI, postProcessImageWithOpenAI } from './openai-provider.js';
+import { parseMenuWithGemini, generateMenuImageWithGemini, postProcessImageWithGemini } from './gemini-provider.js';
 import { PROGRESS_STEPS } from './progress-steps.js';
 
 // Re-export progress steps as part of the AI provider API contract
@@ -31,6 +31,14 @@ const MENU_PARSER_PROVIDERS = {
 const IMAGE_GENERATOR_PROVIDERS = {
   'openai': generateMenuImageWithOpenAI,
   'gemini': generateMenuImageWithGemini,
+};
+
+/**
+ * Provider types for image post-processing
+ */
+const IMAGE_POST_PROCESSOR_PROVIDERS = {
+  'openai': postProcessImageWithOpenAI,
+  'gemini': postProcessImageWithGemini,
 };
 
 /**
@@ -103,4 +111,31 @@ export async function generateImageWithAI({
     apiKey,
     signal,
   });
+}
+
+/**
+ * Get the image post-processor function for a given provider type
+ * @param {string} providerType - Provider type (e.g., 'openai', 'gemini')
+ * @returns {Function} Image post-processor function
+ */
+export function getImagePostProcessor(providerType = 'openai') {
+  return IMAGE_POST_PROCESSOR_PROVIDERS[providerType] || IMAGE_POST_PROCESSOR_PROVIDERS['openai'];
+}
+
+/**
+ * Post-process and merge images using the specified provider
+ * @param {Object} params - Parameters
+ * @param {string} params.originalImageUrl - URL of original menu image
+ * @param {string} params.aiImageData - Base64 data URL of AI generated image
+ * @param {string} params.providerType - Provider type (default: 'openai')
+ * @returns {Promise<string>} Base64 string of merged image
+ */
+export async function postProcessImageWithAI({
+  originalImageUrl,
+  aiImageData,
+  providerType = 'openai'
+}) {
+  const postProcessor = getImagePostProcessor(providerType);
+
+  return postProcessor(originalImageUrl, aiImageData);
 }

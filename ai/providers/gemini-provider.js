@@ -11,6 +11,12 @@ import {
   findClosestAspectRatio
 } from './image-utils.js';
 import { PROGRESS_STEPS } from './progress-steps.js';
+import { postProcessImage } from './image-processing.js';
+
+// ============================================================================
+// GEMINI PROVIDER API - Public functions
+// ============================================================================
+
 
 /**
  * Gemini 3 Pro Image supported aspect ratios
@@ -27,11 +33,6 @@ const GEMINI_ASPECT_RATIOS = [
   '16:9',  // 1.778 - Landscape (widescreen)
   '21:9'   // 2.333 - Ultra-wide
 ];
-
-/**
- * Gemini 3 Pro Image supported resolutions
- */
-const GEMINI_RESOLUTIONS = ['1K', '2K', '4K'];
 
 /**
  * Select optimal Gemini aspect ratio and resolution based on input image
@@ -327,4 +328,14 @@ export async function generateMenuImageWithGemini({
     console.error('❌ [GEMINI] Error:', error);
     throw error;
   }
+}
+
+/**
+ * Post-process and merge original menu image with AI generated background (Gemini-specific)
+ * @param {string} originalImageUrl - URL of original menu image
+ * @param {string} aiImageData - Base64 data URL of AI generated image
+ * @returns {Promise<string>} Base64 string of merged image
+ */
+export async function postProcessImageWithGemini(originalImageUrl, aiImageData) {
+  return postProcessImage(originalImageUrl, aiImageData, 'GEMINI');
 }

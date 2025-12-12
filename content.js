@@ -502,7 +502,6 @@ const ACTIONS = {
   CLEANUP_OLD_IMAGES: 'cleanupOldImages',
   PROCESS_IMAGE: 'processImage',
   CANCEL_REQUEST: 'cancelRequest',
-  MERGE_IMAGES: 'mergeImages',
   GET_PROGRESS: 'getProgress',
 };
 
@@ -628,32 +627,14 @@ async function startImageProcessing(img) {
     });
 
     if (aiResponse && aiResponse.success) {
-      updateSpinnerProgress(img, PROGRESS_STEPS.MERGING_IMAGES);
-      let imageData = `data:image/png;base64,${aiResponse.b64}`;
+      // Image is already merged (post-processing happens in the provider)
+      const imageData = `data:image/png;base64,${aiResponse.b64}`;
 
-      try {
-        // Merge images in the background service
-        const mergeResponse = await chrome.runtime.sendMessage({
-          action: ACTIONS.MERGE_IMAGES,
-          originalImageUrl: img.dataset.vkOriginalSrc,
-          aiImageData: imageData,
-        });
-
-        if (mergeResponse && mergeResponse.success) {
-          imageData = `data:image/png;base64,${mergeResponse.b64}`;
-        } else {
-          throw new Error(mergeResponse?.error || 'Image merge failed');
-        }
-      } catch (mergeError) {
-        console.error('Error during merge, falling back to generated image:', mergeError);
-        // Fallback: just use the generated background without text overlay
-      } finally {
-        updateSpinnerProgress(img, PROGRESS_STEPS.COMPLETE);
-        img.dataset.vkGeneratedSrc = imageData;
-        img.src = imageData;
-        img.dataset.vkView = 'generated';
-        await saveGeneratedImage(img.dataset.vkRequestId, imageData);
-      }
+      updateSpinnerProgress(img, PROGRESS_STEPS.COMPLETE);
+      img.dataset.vkGeneratedSrc = imageData;
+      img.src = imageData;
+      img.dataset.vkView = 'generated';
+      await saveGeneratedImage(img.dataset.vkRequestId, imageData);
     } else {
       if (!aiResponse?.canceled) {
         throw new Error(aiResponse?.error || 'Unknown error');

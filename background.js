@@ -3,9 +3,9 @@
 // ============================================================================
 
 import { DIETARY_PREFERENCES, IMAGE_STYLES, PLATE_STYLES, buildImageGenerationPrompt } from './ai/prompts.js';
-import { parseMenuWithAI, generateImageWithAI, AI_PROVIDERS } from './ai/providers/ai-providers.js';
+import { parseMenuWithAI, generateImageWithAI, postProcessImageWithAI, AI_PROVIDERS } from './ai/providers/ai-providers.js';
 import { PROGRESS_STEPS } from './ai/providers/progress-steps.js';
-import { fetchImageAsBlob, mergeImages } from './lib/image-processing.js';
+import { fetchImageAsBlob } from './lib/image-processing.js';
 import { loadSettings, generateRequestIdFromImage, saveGeneratedImageToStorage, loadSavedImageFromStorage, cleanupOldSavedImages } from './lib/storage.js';
 import { assertSetting, throwIfAborted } from './lib/utils.js';
 
@@ -25,7 +25,6 @@ const ACTIONS = {
   SAVE_GENERATED_IMAGE: 'saveGeneratedImage',
   LOAD_SAVED_IMAGE: 'loadSavedImage',
   CLEANUP_OLD_IMAGES: 'cleanupOldImages',
-  MERGE_IMAGES: 'mergeImages',
   GET_PROGRESS: 'getProgress',
 };
 
@@ -91,7 +90,7 @@ async function processImageRequest({ imageUrl, requestId, signal }) {
     assertSetting(settings.aiProvider, 'AI Provider not configured');
     assertSetting(settings.apiKey, 'API key not configured');
 
-    console.log('🚀 [IMAGE GENERATION] Starting two-stage pipeline...');
+    console.log('🚀 [IMAGE GENERATION] Starting three-stage pipeline...');
     console.log('📸 [IMAGE GENERATION] Image URL:', imageUrl);
 
     // STAGE 1: Parse the menu with AI to get intelligent dish selection
@@ -167,7 +166,7 @@ async function processImageRequest({ imageUrl, requestId, signal }) {
     updateProgress(requestId, PROGRESS_STEPS.GENERATING_IMAGE);
     console.log('🤖 [IMAGE GENERATION] Calling image generation API...');
 
-    const b64 = await generateImageWithAI({
+    const generatedB64 = await generateImageWithAI({
       prompt: finalPrompt,
       imageBlob,
       apiKey: settings.apiKey,
@@ -175,11 +174,22 @@ async function processImageRequest({ imageUrl, requestId, signal }) {
       providerType: settings.aiProvider
     });
 
+    console.log('✅ [IMAGE GENERATION] Image generated successfully!');
+
+    // STAGE 3: Post-process and merge images (provider-specific)
     updateProgress(requestId, PROGRESS_STEPS.FINALIZING_IMAGE);
+    console.log('⚡ [IMAGE GENERATION] Stage 3: Post-processing and merging images...');
+
+    const aiImageDataUrl = `data:image/png;base64,${generatedB64}`;
+    const b64 = await postProcessImageWithAI({
+      originalImageUrl: imageUrl,
+      aiImageData: aiImageDataUrl,
+      providerType: settings.aiProvider
+    });
 
     updateProgress(requestId, PROGRESS_STEPS.IMAGE_GENERATED);
-    console.log('✅ [IMAGE GENERATION] Image generated successfully!');
-    console.log('🎉 [IMAGE GENERATION] Two-stage pipeline complete!');
+    console.log('✅ [IMAGE GENERATION] Post-processing complete!');
+    console.log('🎉 [IMAGE GENERATION] Three-stage pipeline complete!');
 
     return { success: true, b64 };
   } catch (error) {
@@ -315,13 +325,6 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
   if (request && request.action === ACTIONS.CLEANUP_OLD_IMAGES) {
     cleanupOldSavedImages()
       .then(result => sendResponse({ success: true }))
-      .catch(error => sendResponse({ success: false, error: error.message }));
-    return true;
-  }
-
-  if (request && request.action === ACTIONS.MERGE_IMAGES) {
-    mergeImages(request.originalImageUrl, request.aiImageData)
-      .then(result => sendResponse({ success: true, b64: result }))
       .catch(error => sendResponse({ success: false, error: error.message }));
     return true;
   }
