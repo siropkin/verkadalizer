@@ -63,14 +63,16 @@ export const DIETARY_PREFERENCES = {
   },
 };
 
-// Plate style configurations
-export const PLATE_STYLES = {
-  'verkada': {
-    id: 'verkada',
+// Unified image style configurations combining plates and visual aesthetics
+export const IMAGE_STYLES = {
+  'verkada-classic': {
+    id: 'verkada-classic',
     name: 'Verkada Classic',
     displayName: 'Verkada Classic (Default)',
     emoji: '🍽️',
-    description: 'Blue and white ceramic plates - the Verkada standard',
+    description: 'Blue and white Verkada plates with modern clean photography',
+
+    // Plate configuration
     plates: {
       'soup': 'Medium Deep Blue Plate (9-inch, 4-inch depth)',
       'salad': 'Large Flat White Plate (12-inch)',
@@ -82,102 +84,8 @@ export const PLATE_STYLES = {
       'side': 'Medium Deep Blue Plate (9-inch, 4-inch depth)',
     },
     materialDescription: 'Classic ceramic plates in clean blue and white finishes',
-  },
-  'rustic': {
-    id: 'rustic',
-    name: 'Rustic Artisan',
-    emoji: '🏺',
-    description: 'Handcrafted stoneware with earthy, organic textures',
-    plates: {
-      'soup': 'Medium Deep Stoneware Bowl (9-inch, 4-inch depth, matte charcoal glaze)',
-      'salad': 'Large Flat Stoneware Plate (12-inch, rough earthy texture, warm beige)',
-      'main': 'Large Flat Stoneware Plate (12-inch, rough earthy texture, warm beige)',
-      'pasta': 'Large Deep Stoneware Bowl (12-inch, 2-inch depth, rustic brown glaze)',
-      'sandwich': 'Rectangular Wooden Board (14x8-inch, natural wood grain)',
-      'pizza': 'Round Wooden Pizza Board (14-inch, natural wood with charred edges)',
-      'dessert': 'Small Artisan Stoneware Plate (9-inch, speckled glaze)',
-      'side': 'Small Rustic Bowl (7-inch, 3-inch depth, earthy tones)',
-    },
-    materialDescription: 'Handcrafted stoneware with visible artisan marks, rough textures, earthy glazes in charcoal, beige, and brown tones. Mix with natural wooden boards for sandwiches and pizza.',
-  },
-  'elegant': {
-    id: 'elegant',
-    name: 'Fine Dining Elegance',
-    emoji: '✨',
-    description: 'Pristine white bone china with gold trim - upscale restaurant style',
-    plates: {
-      'soup': 'Medium Deep White Bowl with Gold Rim (9-inch, 4-inch depth, bone china)',
-      'salad': 'Large Flat White Plate with Gold Edge (12-inch, fine bone china)',
-      'main': 'Large Flat White Plate with Gold Edge (12-inch, fine bone china)',
-      'pasta': 'Large Deep White Bowl with Gold Rim (12-inch, 2-inch depth, bone china)',
-      'sandwich': 'Large Flat White Plate with Gold Edge (12-inch, fine bone china)',
-      'pizza': 'Large Flat White Plate with Gold Edge (12-inch, fine bone china)',
-      'dessert': 'Small White Dessert Plate with Gold Detail (8-inch, fine bone china)',
-      'side': 'Medium White Bowl with Gold Rim (9-inch, 3-inch depth)',
-    },
-    materialDescription: 'Pristine white bone china with delicate gold trim. Immaculate, glossy finish with subtle translucency. Upscale restaurant quality with refined elegance.',
-  },
-  'modern': {
-    id: 'modern',
-    name: 'Modern Minimalist',
-    emoji: '⬛',
-    description: 'Sleek matte black and slate gray - contemporary design',
-    plates: {
-      'soup': 'Medium Deep Matte Black Bowl (9-inch, 4-inch depth)',
-      'salad': 'Large Flat Slate Gray Plate (12-inch, matte finish)',
-      'main': 'Large Flat Matte Black Plate (12-inch)',
-      'pasta': 'Large Deep Matte Black Bowl (12-inch, 2-inch depth)',
-      'sandwich': 'Rectangular Black Slate Plate (14x7-inch, natural stone texture)',
-      'pizza': 'Large Flat Matte Black Plate (13-inch)',
-      'dessert': 'Small Square Slate Gray Plate (8x8-inch, matte finish)',
-      'side': 'Small Deep Black Bowl (7-inch, 3-inch depth)',
-    },
-    materialDescription: 'Sleek contemporary plates in matte black and slate gray. Modern minimalist aesthetic with clean lines, smooth matte surfaces, and occasional angular/square shapes.',
-  },
-  'colorful': {
-    id: 'colorful',
-    name: 'Colorful Cafe',
-    emoji: '🌈',
-    description: 'Vibrant mixed colors - playful bistro style',
-    plates: {
-      'soup': 'Medium Deep Turquoise Bowl (9-inch, 4-inch depth, glossy ceramic)',
-      'salad': 'Large Flat Coral Pink Plate (12-inch, glossy ceramic)',
-      'main': 'Large Flat Sunny Yellow Plate (12-inch, glossy ceramic)',
-      'pasta': 'Large Deep Mint Green Bowl (12-inch, 2-inch depth, glossy ceramic)',
-      'sandwich': 'Large Flat Sky Blue Plate (12-inch, glossy ceramic)',
-      'pizza': 'Large Flat Lavender Plate (13-inch, glossy ceramic)',
-      'dessert': 'Small Flat Peach Plate (8-inch, glossy ceramic)',
-      'side': 'Small Deep Seafoam Bowl (7-inch, 3-inch depth)',
-    },
-    materialDescription: 'Vibrant, cheerful ceramic plates in mixed pastel and bright colors: turquoise, coral pink, sunny yellow, mint green, sky blue, lavender, peach, and seafoam. Each dish should be on a different colored plate for a playful, eclectic cafe vibe.',
-  },
-  'asian': {
-    id: 'asian',
-    name: 'Asian Fusion',
-    emoji: '🥢',
-    description: 'Traditional Asian ceramics with painted patterns',
-    plates: {
-      'soup': 'Medium Deep Blue-White Porcelain Bowl (9-inch, 4-inch depth, hand-painted floral patterns)',
-      'salad': 'Large Flat White Porcelain Plate with Blue Rim (12-inch, delicate painted border)',
-      'main': 'Large Flat Cream Porcelain Plate (12-inch, subtle bamboo pattern)',
-      'pasta': 'Large Deep Ramen Bowl (12-inch, 3-inch depth, white with blue waves pattern)',
-      'sandwich': 'Rectangular Sushi Plate (14x6-inch, white with geometric patterns)',
-      'pizza': 'Large Round Platter (13-inch, cream with painted cherry blossoms)',
-      'dessert': 'Small Square Plate (7x7-inch, white porcelain with red accents)',
-      'side': 'Small Rice Bowl (6-inch, 3-inch depth, white with blue geometric pattern)',
-    },
-    materialDescription: 'Traditional Asian-inspired porcelain with hand-painted details: blue and white patterns, floral motifs, bamboo, waves, cherry blossoms, and geometric designs. Mix of round, rectangular, and square shapes.',
-  },
-};
 
-// Visual style configurations with prompt modifiers
-export const IMAGE_STYLES = {
-  'modern': {
-    id: 'modern',
-    name: 'Modern Photography',
-    displayName: 'Modern Photography (Default)',
-    emoji: '📸',
-    description: 'Clean, contemporary food photography with natural lighting',
+    // Visual style modifiers
     lighting: `**Lighting**: Soft, diffused natural light
 - Single soft light source positioned at 10-2 o'clock angle
 - Creates gentle shadows for depth but keeps everything bright and appetizing
@@ -191,55 +99,27 @@ export const IMAGE_STYLES = {
     camera: `- Sharp focus on the food with beautiful bokeh in background
 - Restaurant-quality, magazine-worthy presentation`
   },
-  'dark-academia': {
-    id: 'dark-academia',
-    name: 'Moody Dark Academia',
-    emoji: '🕯️',
-    description: 'Dramatic chiaroscuro lighting with deep shadows and rich atmosphere',
-    lighting: `**Lighting**: Dramatic chiaroscuro lighting
-- Single warm light source from the side (Rembrandt lighting style)
-- Deep, rich shadows contrasting with golden highlights
-- Creates bold dramatic atmosphere like a Renaissance painting
-- Candlelit dinner ambiance with mysterious depth`,
-    background: `- Dark, moody gradient: deep charcoal to rich brown, or black to deep burgundy
-  * Editorial fine-dining aesthetic with rustic textures
-  * Dramatic and luxurious atmosphere`,
-    surface: `- Aged dark wood with visible weathering and character, OR black slate with natural texture, OR deep mahogany surface`,
-    colorPalette: `- Rich, saturated colors with crushed blacks and deep shadows
-- Warm golden highlights on food surfaces
-- Luxurious, dramatic color palette`,
-    atmosphere: `Dark academia aesthetic - moody, dramatic, editorial fine-dining with theatrical lighting. Evoke mystery and sophistication.`,
-    camera: `- High contrast with deep blacks and rich highlights
-- Slightly warmer color grading
-- Dramatic depth with bold shadows`
-  },
-  'pastel-dream': {
-    id: 'pastel-dream',
-    name: 'Pastel Dream Pop',
-    emoji: '🌸',
-    description: 'Soft, ethereal aesthetic with dreamy pastel colors',
-    lighting: `**Lighting**: Ultra-soft, diffused overhead light
-- Almost flat but dreamy, ethereal quality
-- Gentle glow creating soft, romantic atmosphere
-- No harsh shadows, everything bathed in soft light
-- Slight overexposure for dreamy effect`,
-    background: `- Soft pastel gradient: blush pink to lavender, OR mint to peach, OR cream to soft lilac
-  * Whimsical, kawaii café vibes
-  * Add delicate decorative elements like small flowers or cotton candy wisps`,
-    surface: `- White marble with rose gold accents, OR glossy ceramic tiles in soft colors, OR pearl-white surface with iridescent sheen`,
-    colorPalette: `- Desaturated pastels throughout: blush pink, lavender, mint, peach, soft yellow
-- Creamy whites and gentle colors
-- Soft, dreamy, Instagram-worthy aesthetic`,
-    atmosphere: `Pastel dream pop aesthetic - soft, whimsical, ethereal. Like a magical café in a fairy tale with gentle romantic vibes.`,
-    camera: `- Slightly overexposed by 0.5 stops for dreamy glow
-- Soft focus edges with bloom effect
-- Gentle, romantic rendering`
-  },
-  'cyberpunk': {
-    id: 'cyberpunk',
-    name: 'Cyberpunk Neon Kitchen',
+
+  'verkada-cyberpunk': {
+    id: 'verkada-cyberpunk',
+    name: 'Verkada Cyberpunk',
     emoji: '⚡',
-    description: 'Futuristic sci-fi aesthetic with dramatic neon lighting',
+    description: 'Verkada blue & white plates with futuristic neon lighting',
+
+    // Verkada plates
+    plates: {
+      'soup': 'Medium Deep Blue Plate (9-inch, 4-inch depth)',
+      'salad': 'Large Flat White Plate (12-inch)',
+      'main': 'Large Flat White Plate (12-inch)',
+      'pasta': 'Large Deep Blue Plate (12-inch, 2-inch depth)',
+      'sandwich': 'Large Flat White Plate (12-inch)',
+      'pizza': 'Large Flat White Plate (12-inch)',
+      'dessert': 'Large Flat White Plate (12-inch)',
+      'side': 'Medium Deep Blue Plate (9-inch, 4-inch depth)',
+    },
+    materialDescription: 'Classic ceramic plates in clean blue and white finishes',
+
+    // Cyberpunk visual style
     lighting: `**Lighting**: Futuristic multi-colored LED lighting
 - Dramatic neon lights in electric cyan, hot magenta, and deep purple
 - Colored backlighting creating bold rim lights on food
@@ -257,34 +137,27 @@ export const IMAGE_STYLES = {
 - Lens flares from neon lights
 - Sharp, modern, futuristic rendering`
   },
-  'vintage-film': {
-    id: 'vintage-film',
-    name: 'Vintage Film Photography',
-    emoji: '📷',
-    description: 'Nostalgic film aesthetic with warm, faded tones',
-    lighting: `**Lighting**: Natural golden hour sunlight
-- Soft, warm light with honey-golden tones
-- Gentle shadows creating cozy atmosphere
-- Window light quality from afternoon sun
-- Nostalgic, warm illumination`,
-    background: `- Warm cream with subtle vignetting at edges
-  * 1970s cookbook aesthetic with nostalgic charm
-  * Cozy grandma's kitchen atmosphere`,
-    surface: `- Light wood with honey tones and visible grain, OR vintage tablecloth with subtle texture, OR worn butcher block with character`,
-    colorPalette: `- Kodak Gold film color palette: warm oranges, muted greens, creamy yellows
-- Slightly faded colors like old photographs from the 1970s
-- Warm, nostalgic tones throughout`,
-    atmosphere: `Vintage 35mm film photography aesthetic - shot on Kodak Gold 200. Nostalgic, warm, homey atmosphere like old cookbooks from the 1970s.`,
-    camera: `- Natural film grain texture throughout
-- Soft vignetting at edges
-- Warm tone curve with characteristic film lens rendering
-- Gentle bokeh with analog lens quality`
-  },
-  'maximalist': {
-    id: 'maximalist',
-    name: 'Hyper-Maximalist Grandmillennial',
+
+  'verkada-grandmillennial': {
+    id: 'verkada-grandmillennial',
+    name: 'Verkada Grandmillennial',
     emoji: '🌺',
-    description: 'Bold, ornate "more is more" aesthetic with rich jewel tones',
+    description: 'Verkada plates with bold maximalist styling and rich patterns',
+
+    // Verkada plates
+    plates: {
+      'soup': 'Medium Deep Blue Plate (9-inch, 4-inch depth)',
+      'salad': 'Large Flat White Plate (12-inch)',
+      'main': 'Large Flat White Plate (12-inch)',
+      'pasta': 'Large Deep Blue Plate (12-inch, 2-inch depth)',
+      'sandwich': 'Large Flat White Plate (12-inch)',
+      'pizza': 'Large Flat White Plate (12-inch)',
+      'dessert': 'Large Flat White Plate (12-inch)',
+      'side': 'Medium Deep Blue Plate (9-inch, 4-inch depth)',
+    },
+    materialDescription: 'Classic ceramic plates in clean blue and white finishes',
+
+    // Maximalist visual style
     lighting: `**Lighting**: Bright, even lighting with decorative flair
 - Well-lit scene showing all details and patterns
 - Warm ambient light bringing out rich jewel tones
@@ -303,36 +176,135 @@ export const IMAGE_STYLES = {
     camera: `- Saturated, vibrant colors
 - Everything in sharp focus to show all details
 - Rich, bold rendering showing patterns and textures`
+  },
+
+  'neon-tokyo': {
+    id: 'neon-tokyo',
+    name: 'Neon Tokyo Night Market',
+    emoji: '🌃',
+    description: 'Traditional Asian ceramics under futuristic neon lights',
+
+    // Asian plates
+    plates: {
+      'soup': 'Medium Deep Blue-White Porcelain Bowl (9-inch, 4-inch depth, hand-painted floral patterns)',
+      'salad': 'Large Flat White Porcelain Plate with Blue Rim (12-inch, delicate painted border)',
+      'main': 'Large Flat Cream Porcelain Plate (12-inch, subtle bamboo pattern)',
+      'pasta': 'Large Deep Ramen Bowl (12-inch, 3-inch depth, white with blue waves pattern)',
+      'sandwich': 'Rectangular Sushi Plate (14x6-inch, white with geometric patterns)',
+      'pizza': 'Large Round Platter (13-inch, cream with painted cherry blossoms)',
+      'dessert': 'Small Square Plate (7x7-inch, white porcelain with red accents)',
+      'side': 'Small Rice Bowl (6-inch, 3-inch depth, white with blue geometric pattern)',
+    },
+    materialDescription: 'Traditional Asian-inspired porcelain with hand-painted details: blue and white patterns, floral motifs, bamboo, waves, cherry blossoms, and geometric designs. Mix of round, rectangular, and square shapes.',
+
+    // Cyberpunk visual style
+    lighting: `**Lighting**: Futuristic multi-colored LED lighting
+- Dramatic neon lights in electric cyan, hot magenta, and deep purple
+- Colored backlighting creating bold rim lights on food
+- High contrast with glowing neon accents
+- Sci-fi atmosphere with dramatic colored shadows`,
+    background: `- Dark background (near black) with glowing neon strips or holographic elements
+  * Blade Runner meets molecular gastronomy aesthetic
+  * Add subtle digital/holographic UI elements or neon signs`,
+    surface: `- Glossy black acrylic surface with neon reflections, OR metallic chrome surface reflecting colored lights, OR dark glass with cyberpunk neon glow`,
+    colorPalette: `- Electric, vivid colors: neon cyan, hot magenta, acid green, electric purple
+- Deep blacks contrasting with vibrant neons
+- Futuristic, high-tech color palette`,
+    atmosphere: `Cyberpunk neon aesthetic - futuristic restaurant from 2077. High-tech molecular gastronomy meets dramatic neon lighting and sci-fi vibes.`,
+    camera: `- High contrast with chromatic aberration on edges
+- Lens flares from neon lights
+- Sharp, modern, futuristic rendering`
+  },
+
+  'grandmas-garden': {
+    id: 'grandmas-garden',
+    name: "Grandma's Maximalist Garden Tea Party",
+    emoji: '🌺',
+    description: 'Colorful whimsical plates with bold maximalist patterns',
+
+    // Colorful plates
+    plates: {
+      'soup': 'Medium Deep Turquoise Bowl (9-inch, 4-inch depth, glossy ceramic)',
+      'salad': 'Large Flat Coral Pink Plate (12-inch, glossy ceramic)',
+      'main': 'Large Flat Sunny Yellow Plate (12-inch, glossy ceramic)',
+      'pasta': 'Large Deep Mint Green Bowl (12-inch, 2-inch depth, glossy ceramic)',
+      'sandwich': 'Large Flat Sky Blue Plate (12-inch, glossy ceramic)',
+      'pizza': 'Large Flat Lavender Plate (13-inch, glossy ceramic)',
+      'dessert': 'Small Flat Peach Plate (8-inch, glossy ceramic)',
+      'side': 'Small Deep Seafoam Bowl (7-inch, 3-inch depth)',
+    },
+    materialDescription: 'Vibrant, cheerful ceramic plates in mixed pastel and bright colors: turquoise, coral pink, sunny yellow, mint green, sky blue, lavender, peach, and seafoam. Each dish should be on a different colored plate for a playful, eclectic cafe vibe.',
+
+    // Maximalist visual style
+    lighting: `**Lighting**: Bright, even lighting with decorative flair
+- Well-lit scene showing all details and patterns
+- Warm ambient light bringing out rich jewel tones
+- No dramatic shadows - everything visible and ornate
+- Grand, luxurious illumination`,
+    background: `- Bold floral wallpaper OR rich jewel-tone damask patterns
+  * English tea room meets maximalist Instagram aesthetic
+  * Layer decorative elements: add fresh flowers, vintage decorations`,
+    surface: `- Mix of ornate vintage plates with gold trim, patterned tablecloth underneath
+- Layer decorative elements: lace doilies, vintage silverware, scattered fresh flowers
+- More is more - bold patterns and textures`,
+    colorPalette: `- Rich jewel tones: emerald green, sapphire blue, ruby red, gold accents everywhere
+- Saturated, vibrant colors with ornate patterns
+- Eclectic grandmillennial aesthetic with bold choices`,
+    atmosphere: `Hyper-maximalist grandmillennial aesthetic - more is more! Ornate, bold, eclectic with layers of patterns and decorative vintage elements. English tea room meets maximalist Instagram.`,
+    camera: `- Saturated, vibrant colors
+- Everything in sharp focus to show all details
+- Rich, bold rendering showing patterns and textures`
+  },
+
+  'rustic-film': {
+    id: 'rustic-film',
+    name: 'Rustic Film Photography Cabin',
+    emoji: '📷',
+    description: 'Handcrafted stoneware with warm vintage film aesthetic',
+
+    // Rustic plates
+    plates: {
+      'soup': 'Medium Deep Stoneware Bowl (9-inch, 4-inch depth, matte charcoal glaze)',
+      'salad': 'Large Flat Stoneware Plate (12-inch, rough earthy texture, warm beige)',
+      'main': 'Large Flat Stoneware Plate (12-inch, rough earthy texture, warm beige)',
+      'pasta': 'Large Deep Stoneware Bowl (12-inch, 2-inch depth, rustic brown glaze)',
+      'sandwich': 'Rectangular Wooden Board (14x8-inch, natural wood grain)',
+      'pizza': 'Round Wooden Pizza Board (14-inch, natural wood with charred edges)',
+      'dessert': 'Small Artisan Stoneware Plate (9-inch, speckled glaze)',
+      'side': 'Small Rustic Bowl (7-inch, 3-inch depth, earthy tones)',
+    },
+    materialDescription: 'Handcrafted stoneware with visible artisan marks, rough textures, earthy glazes in charcoal, beige, and brown tones. Mix with natural wooden boards for sandwiches and pizza.',
+
+    // Vintage film visual style
+    lighting: `**Lighting**: Natural golden hour sunlight
+- Soft, warm light with honey-golden tones
+- Gentle shadows creating cozy atmosphere
+- Window light quality from afternoon sun
+- Nostalgic, warm illumination`,
+    background: `- Warm cream with subtle vignetting at edges
+  * 1970s cookbook aesthetic with nostalgic charm
+  * Cozy grandma's kitchen atmosphere`,
+    surface: `- Light wood with honey tones and visible grain, OR vintage tablecloth with subtle texture, OR worn butcher block with character`,
+    colorPalette: `- Kodak Gold film color palette: warm oranges, muted greens, creamy yellows
+- Slightly faded colors like old photographs from the 1970s
+- Warm, nostalgic tones throughout`,
+    atmosphere: `Vintage 35mm film photography aesthetic - shot on Kodak Gold 200. Nostalgic, warm, homey atmosphere like old cookbooks from the 1970s.`,
+    camera: `- Natural film grain texture throughout
+- Soft vignetting at edges
+- Warm tone curve with characteristic film lens rendering
+- Gentle bokeh with analog lens quality`
   }
 };
 
 /**
- * Get plate style configuration based on style name
- * @param {string} styleName - Plate style ID
- * @returns {Object} Plate style configuration
- */
-export function getPlateStyleConfig(styleName) {
-  return PLATE_STYLES[styleName] || PLATE_STYLES['verkada'];
-}
-
-/**
- * Assign the appropriate plate type based on dish category and plate style
+ * Assign the appropriate plate type based on dish category and image style
  * @param {string} category - Dish category
- * @param {string} plateStyleName - Plate style ID (default: 'verkada')
+ * @param {string} imageStyleName - Image style ID (default: 'verkada-classic')
  * @returns {string} Plate type specification
  */
-export function assignPlateType(category, plateStyleName = 'verkada') {
-  const plateStyle = getPlateStyleConfig(plateStyleName);
-  return plateStyle.plates[category] || plateStyle.plates['main'];
-}
-
-/**
- * Get visual style modifiers based on user's selected style
- * @param {string} styleName - Style name
- * @returns {Object} Visual style configuration
- */
-export function getVisualStyleModifiers(styleName) {
-  return IMAGE_STYLES[styleName] || IMAGE_STYLES['modern'];
+export function assignPlateType(category, imageStyleName = 'verkada-classic') {
+  const imageStyle = IMAGE_STYLES[imageStyleName] || IMAGE_STYLES['verkada-classic'];
+  return imageStyle.plates[category] || imageStyle.plates['main'];
 }
 
 /**
@@ -431,39 +403,32 @@ Return ONLY valid JSON, no additional text. Make sure the JSON is properly forma
 /**
  * Build the dynamic image generation prompt from parsed menu data (Stage 2)
  * @param {Object} parsedMenuData - Parsed menu data from Stage 1
- * @param {string} visualStyle - Visual style ID (default: 'modern')
+ * @param {string} imageStyle - Image style ID (default: 'verkada-classic')
  * @param {string} dietaryPreference - Dietary preference ID (default: 'regular')
- * @param {string} plateStyle - Plate style ID (default: 'verkada')
  * @returns {string} Image generation prompt
  */
-export function buildImageGenerationPrompt(parsedMenuData, visualStyle = 'modern', dietaryPreference = 'regular', plateStyle = 'verkada') {
+export function buildImageGenerationPrompt(parsedMenuData, imageStyle = 'verkada-classic', dietaryPreference = 'regular') {
   const { menuTheme, selectedItems } = parsedMenuData;
 
   console.log('🎨 [PROMPT BUILDER] Building dynamic image generation prompt...');
   console.log('📋 [PROMPT BUILDER] Menu Theme:', menuTheme);
   console.log('🍽️ [PROMPT BUILDER] Selected Items:', selectedItems.length);
-  console.log('🎭 [PROMPT BUILDER] Visual Style:', visualStyle);
+  console.log('🎨 [PROMPT BUILDER] Image Style:', imageStyle);
   console.log('🥗 [PROMPT BUILDER] Dietary Preference:', dietaryPreference);
-  console.log('🍽️ [PROMPT BUILDER] Plate Style:', plateStyle);
 
-  // Get plate style configuration
-  const plateStyleConfig = getPlateStyleConfig(plateStyle);
-  console.log('🍽️ [PROMPT BUILDER] Plate style config:', JSON.stringify(plateStyleConfig, null, 2));
+  // Get unified image style configuration
+  const imageStyleConfig = IMAGE_STYLES[imageStyle] || IMAGE_STYLES['verkada-classic'];
+  console.log('🎨 [PROMPT BUILDER] Image style config:', JSON.stringify(imageStyleConfig, null, 2));
 
   // Build the dish descriptions with plate assignments
   const dishDescriptions = selectedItems.map((item, index) => {
-    const plateType = assignPlateType(item.category, plateStyle);
+    const plateType = assignPlateType(item.category, imageStyle);
     return `${index + 1}. **${item.name}** (${item.category})
    - Plate: ${plateType}
    - Visual Notes: ${item.visualAppeal}`;
   }).join('\n\n');
 
   console.log('🍽️ [PROMPT BUILDER] Dish descriptions created');
-
-  // Get style modifiers based on selected visual style
-  const styleModifiers = getVisualStyleModifiers(visualStyle);
-  console.log('🎨 [PROMPT BUILDER] Applied visual style modifiers for:', visualStyle);
-  console.log('🎨 [PROMPT BUILDER] Style config:', JSON.stringify(styleModifiers, null, 2));
 
   const prompt = `You are a specialized AI system that creates photorealistic food scenes.
 
@@ -473,13 +438,13 @@ ${menuTheme}
 ## DISHES TO VISUALIZE
 ${dishDescriptions}
 
-## VISUAL STYLE: ${styleModifiers.name}
-${styleModifiers.atmosphere}
+## VISUAL STYLE: ${imageStyleConfig.name}
+${imageStyleConfig.atmosphere}
 
 **CRITICAL COMPOSITION LAYOUT**:
 - **TOP 1/3 of image**: Soft, clean background space (for menu text overlay)
   * This area MUST be kept completely clear and simple
-  ${styleModifiers.background}
+  ${imageStyleConfig.background}
   * ABSOLUTELY NO food elements in this upper third - leave space for text
   * Background fades naturally into the surface below
 
@@ -487,7 +452,7 @@ ${styleModifiers.atmosphere}
   * This is where ALL ${selectedItems.length} dishes should be arranged
   * Food occupies the lower two-thirds of the frame only
   * GENEROUS spacing between dishes - avoid crowding
-  ${styleModifiers.surface}
+  ${imageStyleConfig.surface}
 
 **Spatial Distribution & Perspective**:
 - Imagine looking at a table from above at an angle
@@ -497,7 +462,7 @@ ${styleModifiers.atmosphere}
 - Dishes arranged with breathing room - not touching or overlapping too much
 - Create sense of depth through perspective: back dishes smaller, front dishes larger
 
-${styleModifiers.lighting}
+${imageStyleConfig.lighting}
 
 **Food Arrangement in Bottom 2/3** (${selectedItems.length} dishes total):
 - Arrange ALL ${selectedItems.length} dishes elegantly within the lower two-thirds of the frame
@@ -521,19 +486,19 @@ ${styleModifiers.lighting}
 **Camera & Quality**:
 - Elevated camera angle (50-60 degrees from horizontal) looking down at table
 - Strong perspective showing depth from back to front
-${styleModifiers.camera}
+${imageStyleConfig.camera}
 - Restaurant-quality, magazine-worthy presentation
 - Make the food look absolutely delicious and irresistible
 
-## PLATE STYLE: ${plateStyleConfig.name}
-${plateStyleConfig.materialDescription}
+## PLATE STYLE: ${imageStyleConfig.name}
+${imageStyleConfig.materialDescription}
 
 **Specific Plate Assignments**:
-${Object.entries(plateStyleConfig.plates).map(([category, plate]) => `- **${category}**: ${plate}`).join('\n')}
+${Object.entries(imageStyleConfig.plates).map(([category, plate]) => `- **${category}**: ${plate}`).join('\n')}
 
 ## FOOD STYLING REQUIREMENTS
 - Each dish should look restaurant-quality and professionally plated
-${styleModifiers.colorPalette}
+${imageStyleConfig.colorPalette}
 - Appropriate garnishes and plating techniques for each dish type
 - Proper portion sizes that look generous but not overwhelming
 - Steam or freshness indicators where appropriate (e.g., soup should look hot)
@@ -607,7 +572,7 @@ ${selectedItems.length > 10 ? `
 - Each dish listed above should appear EXACTLY ONCE in the image (no duplicates)
 - DO NOT create multiple versions of the same dish
 - Use the exact plate types specified for each dish
-- Maintain the ${styleModifiers.name} aesthetic throughout
+- Maintain the ${imageStyleConfig.name} aesthetic throughout
 - Keep the scene clean and uncluttered
 - Make the food the star - background supports but doesn't compete
 - Final image should make viewers hungry and excited to eat
@@ -631,8 +596,8 @@ Before finalizing the image, verify this critical layout:
 
 ## OUTPUT DELIVERABLE
 A single, high-resolution PHOTOREALISTIC image (not CGI or 3D render) with the following layout:
-- **Top 1/3**: Clean gradient background styled for ${styleModifiers.name} (space for menu text)
-- **Bottom 2/3**: All ${selectedItems.length} dishes in ${styleModifiers.name} presentation with generous spacing and natural perspective depth
+- **Top 1/3**: Clean gradient background styled for ${imageStyleConfig.name} (space for menu text)
+- **Bottom 2/3**: All ${selectedItems.length} dishes in ${imageStyleConfig.name} presentation with generous spacing and natural perspective depth
 
 The image should look like a professional food photograph taken with a real camera, showing real food that actually exists.`;
 

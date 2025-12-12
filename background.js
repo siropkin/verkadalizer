@@ -2,12 +2,80 @@
 // IMPORTS - External modules
 // ============================================================================
 
-import { DIETARY_PREFERENCES, IMAGE_STYLES, PLATE_STYLES, buildImageGenerationPrompt } from './ai/prompts.js';
+import { DIETARY_PREFERENCES, IMAGE_STYLES, buildImageGenerationPrompt } from './ai/prompts.js';
 import { parseMenuWithAI, generateImageWithAI, postProcessImageWithAI, AI_PROVIDERS } from './ai/providers/ai-providers.js';
 import { PROGRESS_STEPS } from './ai/providers/progress-steps.js';
 import { fetchImageAsBlob } from './lib/image-processing.js';
 import { loadSettings, generateRequestIdFromImage, saveGeneratedImageToStorage, loadSavedImageFromStorage, cleanupOldSavedImages } from './lib/storage.js';
 import { assertSetting, throwIfAborted } from './lib/utils.js';
+
+// ============================================================================
+// MIGRATION - Storage migration for unified image styles
+// ============================================================================
+
+/**
+ * Migrate old storage format to new unified IMAGE_STYLE format
+ * Called on extension startup/update
+ */
+async function migrateStorageToUnifiedStyle() {
+  const stored = await chrome.storage.local.get(['plateStyle', 'visualStyle', 'imageStyle']);
+
+  // If new format already exists, no migration needed
+  if (stored.imageStyle) {
+    console.log('✅ [MIGRATION] Already using new unified imageStyle format');
+    return;
+  }
+
+  // If no old settings exist, set default
+  if (!stored.plateStyle && !stored.visualStyle) {
+    console.log('✅ [MIGRATION] No previous settings - setting default');
+    await chrome.storage.local.set({ imageStyle: 'verkada-classic' });
+    return;
+  }
+
+  const oldPlateStyle = stored.plateStyle || 'verkada';
+  const oldVisualStyle = stored.visualStyle || 'modern';
+
+  console.log('🔄 [MIGRATION] Migrating from old format:', { oldPlateStyle, oldVisualStyle });
+
+  // Migration mapping
+  let newImageStyle = 'verkada-classic'; // default fallback
+
+  if (oldPlateStyle === 'verkada') {
+    if (oldVisualStyle === 'modern') {
+      newImageStyle = 'verkada-classic';
+    } else if (oldVisualStyle === 'cyberpunk') {
+      newImageStyle = 'verkada-cyberpunk';
+    } else if (oldVisualStyle === 'maximalist') {
+      newImageStyle = 'verkada-grandmillennial';
+    } else {
+      newImageStyle = 'verkada-classic';
+    }
+  } else if (oldPlateStyle === 'asian' && oldVisualStyle === 'cyberpunk') {
+    newImageStyle = 'neon-tokyo';
+  } else if (oldPlateStyle === 'colorful' && oldVisualStyle === 'maximalist') {
+    newImageStyle = 'grandmas-garden';
+  } else if (oldPlateStyle === 'rustic' && oldVisualStyle === 'vintage-film') {
+    newImageStyle = 'rustic-film';
+  } else {
+    newImageStyle = 'verkada-classic';
+  }
+
+  console.log('✅ [MIGRATION] Setting new imageStyle:', newImageStyle);
+
+  await chrome.storage.local.set({ imageStyle: newImageStyle });
+  await chrome.storage.local.remove(['plateStyle', 'visualStyle']);
+
+  console.log('✅ [MIGRATION] Migration complete');
+}
+
+// Run migration on extension install/update
+chrome.runtime.onInstalled.addListener(() => {
+  migrateStorageToUnifiedStyle();
+});
+
+// Also run on service worker startup
+migrateStorageToUnifiedStyle();
 
 // ============================================================================
 // CONSTANTS - Configuration and Static Data
@@ -16,8 +84,7 @@ import { assertSetting, throwIfAborted } from './lib/utils.js';
 // Action types for message handling
 const ACTIONS = {
   GET_DIETARY_PREFERENCES: 'getDietaryPreferences',
-  GET_VISUAL_STYLES: 'getVisualStyles',
-  GET_PLATE_STYLES: 'getPlateStyles',
+  GET_IMAGE_STYLES: 'getImageStyles',
   GET_AI_PROVIDERS: 'getAiProviders',
   GENERATE_REQUEST_ID: 'generateRequestId',
   PROCESS_IMAGE: 'processImage',
@@ -96,10 +163,9 @@ async function processImageRequest({ imageUrl, requestId, signal }) {
     // STAGE 1: Parse the menu with AI to get intelligent dish selection
     updateProgress(requestId, PROGRESS_STEPS.STARTING);
     console.log('⚡ [IMAGE GENERATION] Stage 1: Parsing menu with AI...');
-    const stored = await chrome.storage.local.get(['dietaryPreference', 'visualStyle', 'plateStyle']);
+    const stored = await chrome.storage.local.get(['dietaryPreference', 'imageStyle']);
     const dietaryPreference = stored.dietaryPreference || 'regular';
-    const visualStyle = stored.visualStyle || 'modern';
-    const plateStyle = stored.plateStyle || 'verkada';
+    const imageStyle = stored.imageStyle || 'verkada-classic';
 
     let parsedMenuData;
     let dynamicPrompt;
@@ -139,7 +205,7 @@ async function processImageRequest({ imageUrl, requestId, signal }) {
       // STAGE 2: Build dynamic prompt from parsed data
       updateProgress(requestId, PROGRESS_STEPS.BUILDING_PROMPT);
       console.log('⚡ [IMAGE GENERATION] Stage 2: Building dynamic prompt...');
-      dynamicPrompt = buildImageGenerationPrompt(parsedMenuData, visualStyle, dietaryPreference, plateStyle);
+      dynamicPrompt = buildImageGenerationPrompt(parsedMenuData, imageStyle, dietaryPreference);
       console.log('✅ [IMAGE GENERATION] Stage 2 complete - Prompt generated');
     } catch (parseError) {
       console.error('❌ [IMAGE GENERATION] Menu parsing failed:', parseError.message);
@@ -230,23 +296,12 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     return true;
   }
 
-  if (request && request.action === ACTIONS.GET_VISUAL_STYLES) {
+  if (request && request.action === ACTIONS.GET_IMAGE_STYLES) {
     const styles = Object.keys(IMAGE_STYLES).map(key => ({
       id: IMAGE_STYLES[key].id,
       name: IMAGE_STYLES[key].displayName || IMAGE_STYLES[key].name,
       emoji: IMAGE_STYLES[key].emoji,
       description: IMAGE_STYLES[key].description,
-    }));
-    sendResponse({ success: true, styles });
-    return true;
-  }
-
-  if (request && request.action === ACTIONS.GET_PLATE_STYLES) {
-    const styles = Object.keys(PLATE_STYLES).map(key => ({
-      id: PLATE_STYLES[key].id,
-      name: PLATE_STYLES[key].displayName || PLATE_STYLES[key].name,
-      emoji: PLATE_STYLES[key].emoji,
-      description: PLATE_STYLES[key].description,
     }));
     sendResponse({ success: true, styles });
     return true;
