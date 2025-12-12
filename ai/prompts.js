@@ -93,10 +93,13 @@ export const IMAGE_STYLES = {
     background: `- Soft gradient background in warm tones: beige-to-cream, OR soft sage green, OR warm off-white
   * Minimal, clean, Instagram-worthy aesthetic
   * Background fades naturally into the surface below`,
-    surface: `- Natural surface visible: light marble with subtle veining, OR white concrete, OR natural light wood with visible grain`,
+    surface: `- Natural surface visible: light marble with subtle veining and natural variations, OR white concrete with organic texture, OR natural light wood with visible grain and character`,
     colorPalette: `- Colors should be vibrant and natural, making food look fresh and appetizing`,
     atmosphere: `Modern, clean, contemporary food photography aesthetic.`,
     camera: `- Sharp focus on the food with beautiful bokeh in background
+- Subtle natural lens vignetting at edges
+- Natural color grading with realistic tone curve
+- Gentle bokeh with professional lens quality
 - Restaurant-quality, magazine-worthy presentation`
   },
 
@@ -128,14 +131,16 @@ export const IMAGE_STYLES = {
     background: `- Dark background (near black) with glowing neon strips or holographic elements
   * Blade Runner meets molecular gastronomy aesthetic
   * Add subtle digital/holographic UI elements or neon signs`,
-    surface: `- Glossy black acrylic surface with neon reflections, OR metallic chrome surface reflecting colored lights, OR dark glass with cyberpunk neon glow`,
+    surface: `- Glossy black acrylic surface with visible neon reflections and subtle imperfections, OR metallic chrome surface with colored light streaks and realistic reflections, OR dark glass with textured cyberpunk neon glow`,
     colorPalette: `- Electric, vivid colors: neon cyan, hot magenta, acid green, electric purple
 - Deep blacks contrasting with vibrant neons
 - Futuristic, high-tech color palette`,
     atmosphere: `Cyberpunk neon aesthetic - futuristic restaurant from 2077. High-tech molecular gastronomy meets dramatic neon lighting and sci-fi vibes.`,
     camera: `- High contrast with chromatic aberration on edges
-- Lens flares from neon lights
-- Sharp, modern, futuristic rendering`
+- Dramatic lens flares from neon lights with realistic bloom
+- Sharp focus with natural depth of field
+- Slight digital grain for cinematic quality
+- Professional sci-fi cinematography rendering`
   },
 
   'verkada-grandmillennial': {
@@ -166,16 +171,18 @@ export const IMAGE_STYLES = {
     background: `- Bold floral wallpaper OR rich jewel-tone damask patterns
   * English tea room meets maximalist Instagram aesthetic
   * Layer decorative elements: add fresh flowers, vintage decorations`,
-    surface: `- Mix of ornate vintage plates with gold trim, patterned tablecloth underneath
-- Layer decorative elements: lace doilies, vintage silverware, scattered fresh flowers
-- More is more - bold patterns and textures`,
+    surface: `- Ornate vintage plates with gold trim and visible wear, layered over patterned tablecloth with tactile fabric texture
+- Decorative elements with character: antique lace doilies with detailed weave, vintage silverware with patina, scattered fresh flowers
+- More is more - bold patterns and rich textures with depth`,
     colorPalette: `- Rich jewel tones: emerald green, sapphire blue, ruby red, gold accents everywhere
 - Saturated, vibrant colors with ornate patterns
 - Eclectic grandmillennial aesthetic with bold choices`,
     atmosphere: `Hyper-maximalist grandmillennial aesthetic - more is more! Ornate, bold, eclectic with layers of patterns and decorative vintage elements. English tea room meets maximalist Instagram.`,
-    camera: `- Saturated, vibrant colors
-- Everything in sharp focus to show all details
-- Rich, bold rendering showing patterns and textures`
+    camera: `- Saturated, vibrant colors with natural richness
+- Everything in sharp focus with professional lens clarity to show all details
+- Subtle lens vignetting to draw eye to center
+- Natural color grading preserving ornate textures
+- Rich, bold rendering showing patterns and textures with depth`
   },
 
   'neon-tokyo': {
@@ -206,14 +213,16 @@ export const IMAGE_STYLES = {
     background: `- Dark background (near black) with glowing neon strips or holographic elements
   * Blade Runner meets molecular gastronomy aesthetic
   * Add subtle digital/holographic UI elements or neon signs`,
-    surface: `- Glossy black acrylic surface with neon reflections, OR metallic chrome surface reflecting colored lights, OR dark glass with cyberpunk neon glow`,
+    surface: `- Glossy black acrylic surface with visible neon reflections and wet texture, OR metallic chrome surface with realistic colored light streaks and weathered imperfections, OR dark glass with textured depth and cyberpunk neon glow`,
     colorPalette: `- Electric, vivid colors: neon cyan, hot magenta, acid green, electric purple
 - Deep blacks contrasting with vibrant neons
 - Futuristic, high-tech color palette`,
     atmosphere: `Cyberpunk neon aesthetic - futuristic restaurant from 2077. High-tech molecular gastronomy meets dramatic neon lighting and sci-fi vibes.`,
     camera: `- High contrast with chromatic aberration on edges
-- Lens flares from neon lights
-- Sharp, modern, futuristic rendering`
+- Dramatic lens flares from neon lights with realistic bloom
+- Sharp focus with natural depth of field
+- Slight digital grain for cinematic night photography
+- Professional sci-fi cinematography with realistic lens characteristics`
   },
 
   'grandmas-garden': {
@@ -244,16 +253,18 @@ export const IMAGE_STYLES = {
     background: `- Bold floral wallpaper OR rich jewel-tone damask patterns
   * English tea room meets maximalist Instagram aesthetic
   * Layer decorative elements: add fresh flowers, vintage decorations`,
-    surface: `- Mix of ornate vintage plates with gold trim, patterned tablecloth underneath
-- Layer decorative elements: lace doilies, vintage silverware, scattered fresh flowers
-- More is more - bold patterns and textures`,
+    surface: `- Ornate vintage plates with gold trim and visible wear, layered over patterned tablecloth with tactile fabric texture
+- Decorative elements with character: antique lace doilies with detailed weave, vintage silverware with patina, scattered fresh flowers with realistic petals
+- More is more - bold patterns and rich textures with tangible depth and imperfections`,
     colorPalette: `- Rich jewel tones: emerald green, sapphire blue, ruby red, gold accents everywhere
 - Saturated, vibrant colors with ornate patterns
 - Eclectic grandmillennial aesthetic with bold choices`,
     atmosphere: `Hyper-maximalist grandmillennial aesthetic - more is more! Ornate, bold, eclectic with layers of patterns and decorative vintage elements. English tea room meets maximalist Instagram.`,
-    camera: `- Saturated, vibrant colors
-- Everything in sharp focus to show all details
-- Rich, bold rendering showing patterns and textures`
+    camera: `- Saturated, vibrant colors with natural richness
+- Everything in sharp focus with professional lens clarity to show all ornate details
+- Subtle lens vignetting to draw eye to center
+- Natural color grading preserving jewel tones and ornate textures
+- Rich, bold rendering showing patterns and textures with depth and dimension`
   },
 
   'rustic-film': {
