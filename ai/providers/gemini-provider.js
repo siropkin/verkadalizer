@@ -342,7 +342,7 @@ export async function generateMenuImageWithGemini({
  * @param {string} providerName - Provider name for logging
  * @returns {Promise<string>} Base64 string of AI-generated image
  */
-async function postProcessImageSimple(originalImageUrl, aiImageData, providerName = 'GEMINI') {
+export async function postProcessImageSimple(originalImageUrl, aiImageData, providerName = 'GEMINI') {
   console.log(`🎨 [${providerName}] Starting simple post-processing (no merge)...`);
 
   try {

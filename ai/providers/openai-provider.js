@@ -270,7 +270,7 @@ export async function generateMenuImageWithOpenAI({ prompt, imageBlob, apiKey, s
  * @param {string} providerName - Provider name for logging
  * @returns {Promise<string>} Base64 string of merged image
  */
-async function postProcessImageWithMerge(originalImageUrl, aiImageData, providerName = 'OPENAI') {
+export async function postProcessImageWithMerge(originalImageUrl, aiImageData, providerName = 'OPENAI') {
   console.log(`🎨 [${providerName}] Starting post-processing pipeline...`);
 
   try {

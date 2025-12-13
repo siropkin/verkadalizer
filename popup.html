@@ -97,6 +97,20 @@
       color: #666;
       margin-top: 5px;
     }
+
+    .beta-badge {
+      display: inline-block;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      font-size: 9px;
+      font-weight: bold;
+      padding: 2px 6px;
+      border-radius: 3px;
+      margin-left: 5px;
+      letter-spacing: 0.5px;
+      vertical-align: middle;
+      box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
+    }
   </style>
 </head>
 <body>
@@ -127,6 +141,15 @@
     <label for="imageStyle">Image Style:</label>
     <select id="imageStyle"></select>
     <div class="info">Changes plates and photography style</div>
+  </div>
+
+  <div class="section">
+    <label for="menuLanguage">
+      Menu Language
+      <span class="beta-badge">BETA</span>
+    </label>
+    <select id="menuLanguage"></select>
+    <div class="info">Experimental: Translate menu text</div>
   </div>
 
   <div class="section">

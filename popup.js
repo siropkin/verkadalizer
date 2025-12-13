@@ -31,6 +31,18 @@ async function loadImageStyles() {
   });
 }
 
+async function loadTranslationLanguages() {
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage({ action: 'getTranslationLanguages' }, response => {
+      if (response && response.success) {
+        resolve(response.languages);
+      } else {
+        reject(new Error(response?.error || 'Failed to load translation languages'));
+      }
+    });
+  });
+}
+
 async function loadAiProviders() {
   return new Promise((resolve, reject) => {
     chrome.runtime.sendMessage({ action: 'getAiProviders' }, response => {
@@ -63,6 +75,16 @@ function populateImageStyles(styleInput, styles) {
   }
 }
 
+function populateTranslationLanguages(languageInput, languages) {
+  languageInput.innerHTML = '';
+  for (const lang of languages) {
+    const opt = document.createElement('option');
+    opt.value = lang.id;
+    opt.textContent = `${lang.emoji || ''} ${lang.name}`;
+    languageInput.appendChild(opt);
+  }
+}
+
 function populateAiProviders(providerInput, providers) {
   providerInput.innerHTML = '';
   for (const provider of providers) {
@@ -73,7 +95,7 @@ function populateAiProviders(providerInput, providers) {
   }
 }
 
-async function loadSettingsIntoUi(aiProviderInput, openaiApiKeyInput, geminiApiKeyInput, dietaryPreferenceInput, imageStyleInput) {
+async function loadSettingsIntoUi(aiProviderInput, openaiApiKeyInput, geminiApiKeyInput, dietaryPreferenceInput, imageStyleInput, menuLanguageInput) {
   const aiProviders = await loadAiProviders();
   populateAiProviders(aiProviderInput, aiProviders);
 
@@ -83,7 +105,10 @@ async function loadSettingsIntoUi(aiProviderInput, openaiApiKeyInput, geminiApiK
   const imageStyles = await loadImageStyles();
   populateImageStyles(imageStyleInput, imageStyles);
 
-  const stored = await chrome.storage.local.get(['aiProvider', 'openaiApiKey', 'geminiApiKey', 'dietaryPreference', 'imageStyle']);
+  const translationLanguages = await loadTranslationLanguages();
+  populateTranslationLanguages(menuLanguageInput, translationLanguages);
+
+  const stored = await chrome.storage.local.get(['aiProvider', 'openaiApiKey', 'geminiApiKey', 'dietaryPreference', 'imageStyle', 'menuLanguage']);
 
   // Set AI provider
   const selectedProvider = stored.aiProvider || 'openai';
@@ -107,6 +132,11 @@ async function loadSettingsIntoUi(aiProviderInput, openaiApiKeyInput, geminiApiK
     imageStyleInput.value = selectedImageStyle;
   }
 
+  const selectedMenuLanguage = stored.menuLanguage || 'none';
+  if (selectedMenuLanguage) {
+    menuLanguageInput.value = selectedMenuLanguage;
+  }
+
   // Show/hide appropriate API key section
   toggleApiKeySection(selectedProvider);
 }
@@ -124,12 +154,13 @@ function toggleApiKeySection(provider) {
   }
 }
 
-async function saveSettings(aiProviderInput, openaiApiKeyInput, geminiApiKeyInput, dietaryPreferenceInput, imageStyleInput, statusDiv) {
+async function saveSettings(aiProviderInput, openaiApiKeyInput, geminiApiKeyInput, dietaryPreferenceInput, imageStyleInput, menuLanguageInput, statusDiv) {
   const aiProvider = aiProviderInput.value.trim();
   const openaiApiKey = openaiApiKeyInput.value.trim();
   const geminiApiKey = geminiApiKeyInput.value.trim();
   const dietaryPreference = dietaryPreferenceInput.value.trim();
   const imageStyle = imageStyleInput.value.trim();
+  const menuLanguage = menuLanguageInput.value.trim();
 
   // Validate that the selected provider has an API key
   if (aiProvider === 'openai' && !openaiApiKey) {
@@ -148,6 +179,7 @@ async function saveSettings(aiProviderInput, openaiApiKeyInput, geminiApiKeyInpu
       geminiApiKey,
       dietaryPreference,
       imageStyle,
+      menuLanguage,
     });
     showStatus(statusDiv, 'Settings saved successfully!', 'success');
   } catch (error) {
@@ -161,35 +193,40 @@ document.addEventListener('DOMContentLoaded', async () => {
   const geminiApiKeyInput = document.getElementById('geminiApiKey');
   const dietaryPreferenceInput = document.getElementById('dietaryPreference');
   const imageStyleInput = document.getElementById('imageStyle');
+  const menuLanguageInput = document.getElementById('menuLanguage');
   const menuLinkBtn = document.getElementById('menuLink');
   const statusDiv = document.getElementById('status');
 
   // Handle AI provider change
   aiProviderInput.addEventListener('change', async () => {
     toggleApiKeySection(aiProviderInput.value);
-    await saveSettings(aiProviderInput, openaiApiKeyInput, geminiApiKeyInput, dietaryPreferenceInput, imageStyleInput, statusDiv);
+    await saveSettings(aiProviderInput, openaiApiKeyInput, geminiApiKeyInput, dietaryPreferenceInput, imageStyleInput, menuLanguageInput, statusDiv);
   });
 
   // Auto-save on input change
   openaiApiKeyInput.addEventListener('input', async () => {
-    await saveSettings(aiProviderInput, openaiApiKeyInput, geminiApiKeyInput, dietaryPreferenceInput, imageStyleInput, statusDiv);
+    await saveSettings(aiProviderInput, openaiApiKeyInput, geminiApiKeyInput, dietaryPreferenceInput, imageStyleInput, menuLanguageInput, statusDiv);
   });
 
   geminiApiKeyInput.addEventListener('input', async () => {
-    await saveSettings(aiProviderInput, openaiApiKeyInput, geminiApiKeyInput, dietaryPreferenceInput, imageStyleInput, statusDiv);
+    await saveSettings(aiProviderInput, openaiApiKeyInput, geminiApiKeyInput, dietaryPreferenceInput, imageStyleInput, menuLanguageInput, statusDiv);
   });
 
   dietaryPreferenceInput.addEventListener('change', async () => {
-    await saveSettings(aiProviderInput, openaiApiKeyInput, geminiApiKeyInput, dietaryPreferenceInput, imageStyleInput, statusDiv);
+    await saveSettings(aiProviderInput, openaiApiKeyInput, geminiApiKeyInput, dietaryPreferenceInput, imageStyleInput, menuLanguageInput, statusDiv);
   });
 
   imageStyleInput.addEventListener('change', async () => {
-    await saveSettings(aiProviderInput, openaiApiKeyInput, geminiApiKeyInput, dietaryPreferenceInput, imageStyleInput, statusDiv);
+    await saveSettings(aiProviderInput, openaiApiKeyInput, geminiApiKeyInput, dietaryPreferenceInput, imageStyleInput, menuLanguageInput, statusDiv);
+  });
+
+  menuLanguageInput.addEventListener('change', async () => {
+    await saveSettings(aiProviderInput, openaiApiKeyInput, geminiApiKeyInput, dietaryPreferenceInput, imageStyleInput, menuLanguageInput, statusDiv);
   });
 
   menuLinkBtn.addEventListener('click', () => {
     chrome.tabs.create({ url: 'https://sites.google.com/verkada.com/verkada-menu' });
   });
 
-  await loadSettingsIntoUi(aiProviderInput, openaiApiKeyInput, geminiApiKeyInput, dietaryPreferenceInput, imageStyleInput);
+  await loadSettingsIntoUi(aiProviderInput, openaiApiKeyInput, geminiApiKeyInput, dietaryPreferenceInput, imageStyleInput, menuLanguageInput);
 });

@@ -308,6 +308,98 @@ export const IMAGE_STYLES = {
 };
 
 /**
+ * Translation language configurations for menu text
+ * Supports menu translation to various languages or no translation (default)
+ */
+export const TRANSLATION_LANGUAGES = {
+  'none': {
+    id: 'none',
+    name: 'No Translation',
+    displayName: 'No Translation (Default)',
+    emoji: '',
+    code: null,
+    description: 'Keep original menu text - overlay on AI background',
+  },
+  'en_US': {
+    id: 'en_US',
+    name: 'English (US)',
+    emoji: '🇺🇸',
+    code: 'en_US',
+    description: 'Translate menu to US English'
+  },
+  'fr': {
+    id: 'fr',
+    name: 'French',
+    emoji: '🇫🇷',
+    code: 'fr',
+    description: 'Translate menu to French'
+  },
+  'es': {
+    id: 'es',
+    name: 'Spanish',
+    emoji: '🇪🇸',
+    code: 'es',
+    description: 'Translate menu to Spanish'
+  },
+  'ja': {
+    id: 'ja',
+    name: 'Japanese',
+    emoji: '🇯🇵',
+    code: 'ja',
+    description: 'Translate menu to Japanese'
+  },
+  'ko-KR': {
+    id: 'ko-KR',
+    name: 'Korean',
+    emoji: '🇰🇷',
+    code: 'ko_KR',
+    description: 'Translate menu to Korean'
+  },
+  'pt': {
+    id: 'pt',
+    name: 'Portuguese',
+    emoji: '🇵🇹',
+    code: 'pt',
+    description: 'Translate menu to Portuguese'
+  },
+  'ru': {
+    id: 'ru',
+    name: 'Russian',
+    emoji: '🇷🇺',
+    code: 'ru',
+    description: 'Translate menu to Russian'
+  },
+  'zh': {
+    id: 'zh',
+    name: 'Chinese',
+    emoji: '🇨🇳',
+    code: 'zh',
+    description: 'Translate menu to Simplified Chinese'
+  },
+  'de': {
+    id: 'de',
+    name: 'German',
+    emoji: '🇩🇪',
+    code: 'de',
+    description: 'Translate menu to German'
+  },
+  'nl': {
+    id: 'nl',
+    name: 'Dutch',
+    emoji: '🇳🇱',
+    code: 'nl',
+    description: 'Translate menu to Dutch'
+  },
+  'da-DK': {
+    id: 'da-DK',
+    name: 'Danish',
+    emoji: '🇩🇰',
+    code: 'da_DK',
+    description: 'Translate menu to Danish'
+  },
+};
+
+/**
  * Assign the appropriate plate type based on dish category and image style
  * @param {string} category - Dish category
  * @param {string} imageStyleName - Image style ID (default: 'verkada-classic')
@@ -417,9 +509,10 @@ Return ONLY valid JSON, no additional text. Make sure the JSON is properly forma
  * @param {string} imageStyle - Image style ID (default: 'verkada-classic')
  * @param {string} dietaryPreference - Dietary preference ID (default: 'regular')
  * @param {string} providerType - AI provider type ('openai' or 'gemini')
+ * @param {string} translationLanguage - Translation language ID (default: 'none')
  * @returns {string} Image generation prompt
  */
-export function buildImageGenerationPrompt(parsedMenuData, imageStyle = 'verkada-classic', dietaryPreference = 'regular', providerType = 'openai') {
+export function buildImageGenerationPrompt(parsedMenuData, imageStyle = 'verkada-classic', dietaryPreference = 'regular', providerType = 'openai', translationLanguage = 'none') {
   const { menuTheme, selectedItems } = parsedMenuData;
 
   console.log('🎨 [PROMPT BUILDER] Building dynamic image generation prompt...');
@@ -442,22 +535,61 @@ export function buildImageGenerationPrompt(parsedMenuData, imageStyle = 'verkada
 
   console.log('🍽️ [PROMPT BUILDER] Dish descriptions created');
 
-  // Gemini-specific text preservation instructions
-  const geminiTextPreservation = providerType === 'gemini' ? `
+  // Translation-based text handling instructions
+  const translationConfig = TRANSLATION_LANGUAGES[translationLanguage] || TRANSLATION_LANGUAGES['none'];
+  const isTranslationEnabled = translationConfig.code !== null;
 
-## CRITICAL TEXT PRESERVATION REQUIREMENT
-You MUST preserve ALL original menu text EXACTLY as it appears in the input image:
-- Keep all dish names, descriptions, prices, and menu labels visible and legible
-- Maintain original text positioning and layout
-- Do NOT regenerate, restyle, or replace any text
-- Text should remain sharp and legible in the final image
-- This is a photo enhancement - preserve authenticity of the original menu
+  // Build text handling constraints based on translation mode
+  let textRenderingConstraint = '';
+  let negativePrompts = '';
 
-You are generating a beautiful background and food styling AROUND the existing text, not replacing it.
-` : '';
+  if (isTranslationEnabled) {
+    // Translation mode: AI renders translated text ON the food scene
+    textRenderingConstraint = `
+### TEXT RENDERING CONSTRAINT - TRANSLATION MODE
+**CRITICAL**: Include translated menu text rendered directly in the generated image:
+- Translate ALL menu text to **${translationConfig.name}** (language code: ${translationConfig.code})
+- Translate: dish names, descriptions, prices, section headers, menu labels
+- **PRESERVE EXACT LAYOUT**: Maintain the same text positioning and layout as the original menu
+- **MATCH MENU STYLE**: Use fonts and typography that match the original menu aesthetic
+- Render translated text OVER the food photography background
+- Text should be clearly legible and professionally formatted
+`;
+    negativePrompts = `### NEGATIVE PROMPTS (What to Avoid)
+- Do NOT create text-only translations without food photography
+- Do NOT generate only text or menu cards without the food scene
+- Avoid losing the food photography elements
+- Do NOT create abstract or minimalist text-only designs`;
+  } else {
+    // No translation: AI generates clean background (text added in post-processing)
+    textRenderingConstraint = `
+### TEXT RENDERING CONSTRAINT - NO TRANSLATION MODE
+**ABSOLUTELY NO TEXT IN THE IMAGE** - This is a pure food photography background:
+- ZERO text of any kind - no letters, numbers, words, labels, or typography
+- NO dish names, prices, descriptions, menu headers, or signage
+- NO written content visible anywhere in the scene
+- NO text on plates, napkins, packaging, or in the background
+- NO menu cards, chalkboards, price tags, or labels of any kind
+- Generate ONLY the photorealistic food photography scene
+- Keep composition completely clean for text overlay in post-processing
 
-  const prompt = `You are a specialized AI system that creates photorealistic food scenes.
-${geminiTextPreservation}
+**TRIPLE CHECK**: Before finalizing, verify there is ZERO text visible anywhere in the image.
+`;
+    negativePrompts = `### NEGATIVE PROMPTS (What to Avoid) - CRITICAL
+**ABSOLUTELY FORBIDDEN - Remove if present:**
+- Any text, letters, numbers, words, labels, or written characters
+- Menu cards, price displays, signage, or chalkboards with text
+- Text overlays, captions, watermarks, or typography of any kind
+- Letter-like shapes, text artifacts, or accidental text patterns
+- Packaging with visible text or branded labels with words
+- Restaurant signs, menu boards, or any written information
+**IF YOU SEE ANY TEXT IN YOUR GENERATED IMAGE - REMOVE IT COMPLETELY**`;
+  }
+
+  const prompt = `### PRIMARY OBJECTIVE
+Create a photorealistic, magazine-quality food photography scene featuring ${selectedItems.length} dishes with professional styling, lighting, and composition.
+${textRenderingConstraint}
+${negativePrompts}
 ## MENU THEME
 ${menuTheme}
 

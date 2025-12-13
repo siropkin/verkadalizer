@@ -2,8 +2,8 @@
 // AI PROVIDERS - Provider registry and factory
 // ============================================================================
 
-import { parseMenuWithOpenAI, generateMenuImageWithOpenAI, postProcessImageWithOpenAI } from './openai-provider.js';
-import { parseMenuWithGemini, generateMenuImageWithGemini, postProcessImageWithGemini } from './gemini-provider.js';
+import { parseMenuWithOpenAI, generateMenuImageWithOpenAI, postProcessImageWithOpenAI, postProcessImageWithMerge } from './openai-provider.js';
+import { parseMenuWithGemini, generateMenuImageWithGemini, postProcessImageWithGemini, postProcessImageSimple } from './gemini-provider.js';
 import { PROGRESS_STEPS } from './progress-steps.js';
 
 // Re-export progress steps as part of the AI provider API contract
@@ -123,19 +123,30 @@ export function getImagePostProcessor(providerType = 'openai') {
 }
 
 /**
- * Post-process and merge images using the specified provider
+ * Post-process and merge images using translation-based routing
  * @param {Object} params - Parameters
  * @param {string} params.originalImageUrl - URL of original menu image
  * @param {string} params.aiImageData - Base64 data URL of AI generated image
  * @param {string} params.providerType - Provider type (default: 'openai')
- * @returns {Promise<string>} Base64 string of merged image
+ * @param {string} params.translationLanguage - Translation language ID (default: 'none')
+ * @returns {Promise<string>} Base64 string of processed image
  */
 export async function postProcessImageWithAI({
   originalImageUrl,
   aiImageData,
-  providerType = 'openai'
+  providerType = 'openai',
+  translationLanguage = 'none'
 }) {
-  const postProcessor = getImagePostProcessor(providerType);
+  // Determine postprocessing mode based on translation setting
+  const isTranslationEnabled = translationLanguage && translationLanguage !== 'none';
 
-  return postProcessor(originalImageUrl, aiImageData);
+  if (isTranslationEnabled) {
+    // Translation mode: Use simple pipeline (AI rendered text)
+    console.log(`🌍 [AI-PROVIDERS] Translation mode enabled (${translationLanguage}) - using simple pipeline`);
+    return postProcessImageSimple(originalImageUrl, aiImageData, providerType.toUpperCase());
+  } else {
+    // No translation: Use merge pipeline (overlay original text)
+    console.log(`📝 [AI-PROVIDERS] No translation - using merge pipeline`);
+    return postProcessImageWithMerge(originalImageUrl, aiImageData, providerType.toUpperCase());
+  }
 }

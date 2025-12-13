@@ -2,7 +2,7 @@
 // IMPORTS - External modules
 // ============================================================================
 
-import { DIETARY_PREFERENCES, IMAGE_STYLES, buildImageGenerationPrompt } from './ai/prompts.js';
+import { DIETARY_PREFERENCES, IMAGE_STYLES, TRANSLATION_LANGUAGES, buildImageGenerationPrompt } from './ai/prompts.js';
 import { parseMenuWithAI, generateImageWithAI, postProcessImageWithAI, AI_PROVIDERS } from './ai/providers/ai-providers.js';
 import { PROGRESS_STEPS } from './ai/providers/progress-steps.js';
 import { fetchImageAsBlob } from './lib/image-processing.js';
@@ -86,6 +86,7 @@ const ACTIONS = {
   GET_DIETARY_PREFERENCES: 'getDietaryPreferences',
   GET_IMAGE_STYLES: 'getImageStyles',
   GET_AI_PROVIDERS: 'getAiProviders',
+  GET_TRANSLATION_LANGUAGES: 'getTranslationLanguages',
   GENERATE_REQUEST_ID: 'generateRequestId',
   PROCESS_IMAGE: 'processImage',
   CANCEL_REQUEST: 'cancelRequest',
@@ -163,9 +164,10 @@ async function processImageRequest({ imageUrl, requestId, signal }) {
     // STAGE 1: Parse the menu with AI to get intelligent dish selection
     updateProgress(requestId, PROGRESS_STEPS.STARTING);
     console.log('⚡ [IMAGE GENERATION] Stage 1: Parsing menu with AI...');
-    const stored = await chrome.storage.local.get(['dietaryPreference', 'imageStyle']);
+    const stored = await chrome.storage.local.get(['dietaryPreference', 'imageStyle', 'menuLanguage']);
     const dietaryPreference = stored.dietaryPreference || 'regular';
     const imageStyle = stored.imageStyle || 'verkada-classic';
+    const menuLanguage = stored.menuLanguage || 'none';
 
     let parsedMenuData;
     let dynamicPrompt;
@@ -205,7 +207,7 @@ async function processImageRequest({ imageUrl, requestId, signal }) {
       // STAGE 2: Build dynamic prompt from parsed data
       updateProgress(requestId, PROGRESS_STEPS.BUILDING_PROMPT);
       console.log('⚡ [IMAGE GENERATION] Stage 2: Building dynamic prompt...');
-      dynamicPrompt = buildImageGenerationPrompt(parsedMenuData, imageStyle, dietaryPreference, settings.aiProvider);
+      dynamicPrompt = buildImageGenerationPrompt(parsedMenuData, imageStyle, dietaryPreference, settings.aiProvider, menuLanguage);
       console.log('✅ [IMAGE GENERATION] Stage 2 complete - Prompt generated');
     } catch (parseError) {
       console.error('❌ [IMAGE GENERATION] Menu parsing failed:', parseError.message);
@@ -250,7 +252,8 @@ async function processImageRequest({ imageUrl, requestId, signal }) {
     const b64 = await postProcessImageWithAI({
       originalImageUrl: imageUrl,
       aiImageData: aiImageDataUrl,
-      providerType: settings.aiProvider
+      providerType: settings.aiProvider,
+      translationLanguage: menuLanguage
     });
 
     updateProgress(requestId, PROGRESS_STEPS.IMAGE_GENERATED);
@@ -304,6 +307,17 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
       description: IMAGE_STYLES[key].description,
     }));
     sendResponse({ success: true, styles });
+    return true;
+  }
+
+  if (request && request.action === ACTIONS.GET_TRANSLATION_LANGUAGES) {
+    const languages = Object.keys(TRANSLATION_LANGUAGES).map(key => ({
+      id: TRANSLATION_LANGUAGES[key].id,
+      name: TRANSLATION_LANGUAGES[key].displayName || TRANSLATION_LANGUAGES[key].name,
+      emoji: TRANSLATION_LANGUAGES[key].emoji,
+      description: TRANSLATION_LANGUAGES[key].description,
+    }));
+    sendResponse({ success: true, languages });
     return true;
   }
 
