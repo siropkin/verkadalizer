@@ -205,7 +205,7 @@ async function processImageRequest({ imageUrl, requestId, signal }) {
       // STAGE 2: Build dynamic prompt from parsed data
       updateProgress(requestId, PROGRESS_STEPS.BUILDING_PROMPT);
       console.log('⚡ [IMAGE GENERATION] Stage 2: Building dynamic prompt...');
-      dynamicPrompt = buildImageGenerationPrompt(parsedMenuData, imageStyle, dietaryPreference);
+      dynamicPrompt = buildImageGenerationPrompt(parsedMenuData, imageStyle, dietaryPreference, settings.aiProvider);
       console.log('✅ [IMAGE GENERATION] Stage 2 complete - Prompt generated');
     } catch (parseError) {
       console.error('❌ [IMAGE GENERATION] Menu parsing failed:', parseError.message);

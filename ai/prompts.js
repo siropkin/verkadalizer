@@ -416,9 +416,10 @@ Return ONLY valid JSON, no additional text. Make sure the JSON is properly forma
  * @param {Object} parsedMenuData - Parsed menu data from Stage 1
  * @param {string} imageStyle - Image style ID (default: 'verkada-classic')
  * @param {string} dietaryPreference - Dietary preference ID (default: 'regular')
+ * @param {string} providerType - AI provider type ('openai' or 'gemini')
  * @returns {string} Image generation prompt
  */
-export function buildImageGenerationPrompt(parsedMenuData, imageStyle = 'verkada-classic', dietaryPreference = 'regular') {
+export function buildImageGenerationPrompt(parsedMenuData, imageStyle = 'verkada-classic', dietaryPreference = 'regular', providerType = 'openai') {
   const { menuTheme, selectedItems } = parsedMenuData;
 
   console.log('🎨 [PROMPT BUILDER] Building dynamic image generation prompt...');
@@ -441,8 +442,22 @@ export function buildImageGenerationPrompt(parsedMenuData, imageStyle = 'verkada
 
   console.log('🍽️ [PROMPT BUILDER] Dish descriptions created');
 
-  const prompt = `You are a specialized AI system that creates photorealistic food scenes.
+  // Gemini-specific text preservation instructions
+  const geminiTextPreservation = providerType === 'gemini' ? `
 
+## CRITICAL TEXT PRESERVATION REQUIREMENT
+You MUST preserve ALL original menu text EXACTLY as it appears in the input image:
+- Keep all dish names, descriptions, prices, and menu labels visible and legible
+- Maintain original text positioning and layout
+- Do NOT regenerate, restyle, or replace any text
+- Text should remain sharp and legible in the final image
+- This is a photo enhancement - preserve authenticity of the original menu
+
+You are generating a beautiful background and food styling AROUND the existing text, not replacing it.
+` : '';
+
+  const prompt = `You are a specialized AI system that creates photorealistic food scenes.
+${geminiTextPreservation}
 ## MENU THEME
 ${menuTheme}
 
