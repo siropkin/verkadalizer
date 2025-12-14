@@ -2,8 +2,8 @@
 // AI PROVIDERS - Provider registry and factory
 // ============================================================================
 
-import { parseMenuWithOpenAI, generateMenuImageWithOpenAI, postProcessImageWithOpenAI, postProcessImageWithMerge } from './openai-provider.js';
-import { parseMenuWithGemini, generateMenuImageWithGemini, postProcessImageWithGemini, postProcessImageSimple } from './gemini-provider.js';
+import { parseMenuWithOpenAI, generateMenuImageWithOpenAI, translateMenuImageWithOpenAI } from './openai-provider.js';
+import { parseMenuWithGemini, generateMenuImageWithGemini, translateMenuImageWithGemini } from './gemini-provider.js';
 import { PROGRESS_STEPS } from './progress-steps.js';
 
 // Re-export progress steps as part of the AI provider API contract
@@ -34,11 +34,11 @@ const IMAGE_GENERATOR_PROVIDERS = {
 };
 
 /**
- * Provider types for image post-processing
+ * Provider types for menu translation (image-to-image translation)
  */
-const IMAGE_POST_PROCESSOR_PROVIDERS = {
-  'openai': postProcessImageWithOpenAI,
-  'gemini': postProcessImageWithGemini,
+const MENU_TRANSLATOR_PROVIDERS = {
+  'openai': translateMenuImageWithOpenAI,
+  'gemini': translateMenuImageWithGemini,
 };
 
 /**
@@ -118,35 +118,27 @@ export async function generateImageWithAI({
  * @param {string} providerType - Provider type (e.g., 'openai', 'gemini')
  * @returns {Function} Image post-processor function
  */
-export function getImagePostProcessor(providerType = 'openai') {
-  return IMAGE_POST_PROCESSOR_PROVIDERS[providerType] || IMAGE_POST_PROCESSOR_PROVIDERS['openai'];
+export function getMenuTranslator(providerType = 'openai') {
+  return MENU_TRANSLATOR_PROVIDERS[providerType] || MENU_TRANSLATOR_PROVIDERS['openai'];
 }
 
 /**
- * Post-process and merge images using translation-based routing
+ * Translate menu image with AI using the specified provider (image-to-image).
  * @param {Object} params - Parameters
- * @param {string} params.originalImageUrl - URL of original menu image
- * @param {string} params.aiImageData - Base64 data URL of AI generated image
+ * @param {string} params.prompt - Translation prompt
+ * @param {Blob} params.imageBlob - Original menu image blob
+ * @param {string} params.apiKey - API key
+ * @param {AbortSignal} params.signal - Abort signal
  * @param {string} params.providerType - Provider type (default: 'openai')
- * @param {string} params.translationLanguage - Translation language ID (default: 'none')
- * @returns {Promise<string>} Base64 string of processed image
+ * @returns {Promise<string>} Base64 encoded translated menu image
  */
-export async function postProcessImageWithAI({
-  originalImageUrl,
-  aiImageData,
-  providerType = 'openai',
-  translationLanguage = 'none'
+export async function translateMenuImageWithAI({
+  prompt,
+  imageBlob,
+  apiKey,
+  signal,
+  providerType = 'openai'
 }) {
-  // Determine postprocessing mode based on translation setting
-  const isTranslationEnabled = translationLanguage && translationLanguage !== 'none';
-
-  if (isTranslationEnabled) {
-    // Translation mode: Use simple pipeline (AI rendered text)
-    console.log(`🌍 [AI-PROVIDERS] Translation mode enabled (${translationLanguage}) - using simple pipeline`);
-    return postProcessImageSimple(originalImageUrl, aiImageData, providerType.toUpperCase());
-  } else {
-    // No translation: Use merge pipeline (overlay original text)
-    console.log(`📝 [AI-PROVIDERS] No translation - using merge pipeline`);
-    return postProcessImageWithMerge(originalImageUrl, aiImageData, providerType.toUpperCase());
-  }
+  const translator = getMenuTranslator(providerType);
+  return translator({ prompt, imageBlob, apiKey, signal });
 }

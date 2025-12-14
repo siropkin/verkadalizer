@@ -2,10 +2,12 @@
 // IMPORTS - External modules
 // ============================================================================
 
-import { DIETARY_PREFERENCES, IMAGE_STYLES, TRANSLATION_LANGUAGES, buildImageGenerationPrompt } from './ai/prompts.js';
-import { parseMenuWithAI, generateImageWithAI, postProcessImageWithAI, AI_PROVIDERS } from './ai/providers/ai-providers.js';
+import { DIETARY_PREFERENCES, IMAGE_STYLES, TRANSLATION_LANGUAGES } from './ai/prompts.js';
+import { buildMenuFoodGenerationPrompt } from './ai/prompts/menu-food-generation.js';
+import { buildMenuTranslationPrompt } from './ai/prompts/menu-translation.js';
+import { parseMenuWithAI, generateImageWithAI, translateMenuImageWithAI, AI_PROVIDERS } from './ai/providers/ai-providers.js';
 import { PROGRESS_STEPS } from './ai/providers/progress-steps.js';
-import { fetchImageAsBlob } from './lib/image-processing.js';
+import { fetchImageAsBlob, mergeMenuLayerWithBackground } from './lib/image-processing.js';
 import { loadSettings, generateRequestIdFromImage, saveGeneratedImageToStorage, loadSavedImageFromStorage, cleanupOldSavedImages } from './lib/storage.js';
 import { assertSetting, throwIfAborted } from './lib/utils.js';
 
@@ -207,7 +209,7 @@ async function processImageRequest({ imageUrl, requestId, signal }) {
       // STAGE 2: Build dynamic prompt from parsed data
       updateProgress(requestId, PROGRESS_STEPS.BUILDING_PROMPT);
       console.log('⚡ [IMAGE GENERATION] Stage 2: Building dynamic prompt...');
-      dynamicPrompt = buildImageGenerationPrompt(parsedMenuData, imageStyle, dietaryPreference, settings.aiProvider, menuLanguage);
+      dynamicPrompt = buildMenuFoodGenerationPrompt(parsedMenuData, imageStyle, dietaryPreference, settings.aiProvider);
       console.log('✅ [IMAGE GENERATION] Stage 2 complete - Prompt generated');
     } catch (parseError) {
       console.error('❌ [IMAGE GENERATION] Menu parsing failed:', parseError.message);
@@ -231,10 +233,15 @@ async function processImageRequest({ imageUrl, requestId, signal }) {
 
     throwIfAborted(signal);
 
-    updateProgress(requestId, PROGRESS_STEPS.GENERATING_IMAGE);
+    const isTranslationEnabled = menuLanguage && menuLanguage !== 'none';
+    updateProgress(requestId, PROGRESS_STEPS.GENERATING_IMAGE, {
+      translationEnabled: isTranslationEnabled,
+      translationLanguage: menuLanguage || 'none'
+    });
     console.log('🤖 [IMAGE GENERATION] Calling image generation API...');
 
-    const generatedB64 = await generateImageWithAI({
+    // Run food generation and (optional) menu translation in parallel
+    const foodPromise = generateImageWithAI({
       prompt: finalPrompt,
       imageBlob,
       apiKey: settings.apiKey,
@@ -242,19 +249,39 @@ async function processImageRequest({ imageUrl, requestId, signal }) {
       providerType: settings.aiProvider
     });
 
+    const translationPromise = isTranslationEnabled
+      ? translateMenuImageWithAI({
+        prompt: buildMenuTranslationPrompt(menuLanguage),
+        imageBlob,
+        apiKey: settings.apiKey,
+        signal,
+        providerType: settings.aiProvider
+      }).catch((err) => {
+        console.warn('⚠️ [IMAGE GENERATION] Menu translation failed; falling back to original menu layer:', err?.message || err);
+        return null;
+      })
+      : Promise.resolve(null);
+
+    const [generatedB64, translatedMenuB64] = await Promise.all([foodPromise, translationPromise]);
+
     console.log('✅ [IMAGE GENERATION] Image generated successfully!');
 
-    // STAGE 3: Post-process and merge images (provider-specific)
+    // STAGE 3: Post-process and merge images (background-level)
     updateProgress(requestId, PROGRESS_STEPS.FINALIZING_IMAGE);
     console.log('⚡ [IMAGE GENERATION] Stage 3: Post-processing and merging images...');
 
-    const aiImageDataUrl = `data:image/png;base64,${generatedB64}`;
-    const b64 = await postProcessImageWithAI({
-      originalImageUrl: imageUrl,
-      aiImageData: aiImageDataUrl,
-      providerType: settings.aiProvider,
-      translationLanguage: menuLanguage
+    updateProgress(requestId, PROGRESS_STEPS.MERGING_IMAGES, {
+      translationEnabled: isTranslationEnabled,
+      translationLanguage: menuLanguage || 'none'
     });
+
+    const backgroundDataUrl = `data:image/png;base64,${generatedB64}`;
+    const menuLayerSrc = (isTranslationEnabled && translatedMenuB64)
+      ? `data:image/png;base64,${translatedMenuB64}`
+      : imageUrl;
+
+    // Merge food background with ORIGINAL menu layer (no translation) OR TRANSLATED menu layer
+    const b64 = await mergeMenuLayerWithBackground(imageUrl, menuLayerSrc, backgroundDataUrl);
 
     updateProgress(requestId, PROGRESS_STEPS.IMAGE_GENERATED);
     console.log('✅ [IMAGE GENERATION] Post-processing complete!');

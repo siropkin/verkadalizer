@@ -9,7 +9,7 @@ import {
   getImageDimensions,
   calculateAspectRatio,
   findClosestAspectRatio,
-} from './image-utils.js';
+} from '../../lib/image/utils.js';
 import { PROGRESS_STEPS } from './progress-steps.js';
 
 // ============================================================================
@@ -370,71 +370,17 @@ export async function generateMenuImageWithGemini({
   }
 }
 
-// ============================================================================
-// POST-PROCESSING PIPELINE - Gemini-specific simple pipeline
-// ============================================================================
-
 /**
- * Simple post-processing for Gemini that preserves original text natively
- * Minimal pipeline since Gemini keeps text in the generated image
+ * Translate menu image with Gemini 3 Pro Image (layout-preserving translation)
+ * Dedicated entrypoint for parallel translation + food generation.
  *
- * @param {string} originalImageUrl - URL of original menu image (used for dimension reference)
- * @param {string} aiImageData - Base64 data URL of AI generated image
- * @param {string} providerName - Provider name for logging
- * @returns {Promise<string>} Base64 string of AI-generated image
+ * @param {Object} params - Parameters
+ * @param {string} params.prompt - Translation prompt
+ * @param {Blob} params.imageBlob - Original menu image blob (reference)
+ * @param {string} params.apiKey - Gemini API key
+ * @param {AbortSignal} params.signal - Abort signal
+ * @returns {Promise<string>} Base64 encoded translated menu image
  */
-export async function postProcessImageSimple(originalImageUrl, aiImageData, providerName = 'GEMINI') {
-  console.log(`🎨 [${providerName}] Starting simple post-processing (no merge)...`);
-
-  try {
-    // Step 1: Load original image (for dimension reference only)
-    console.log(`⬇️ [${providerName}] Loading original image for dimensions...`);
-    const originalBlob = await fetchImageAsBlob(originalImageUrl);
-    const originalBitmap = await createImageBitmap(originalBlob);
-
-    const originalWidth = originalBitmap.width;
-    const originalHeight = originalBitmap.height;
-    console.log(`📐 [${providerName}] Original dimensions: ${originalWidth}×${originalHeight}`);
-
-    // Step 2: Load AI-generated image
-    console.log(`⬇️ [${providerName}] Loading AI-generated image...`);
-    const generatedBlob = await fetch(aiImageData).then(r => r.blob());
-    const generatedBitmap = await createImageBitmap(generatedBlob);
-
-    console.log(`📐 [${providerName}] Generated dimensions: ${generatedBitmap.width}×${generatedBitmap.height}`);
-
-    // Step 3: Scale generated image to fit original dimensions
-    console.log(`📏 [${providerName}] Scaling AI image to fit original dimensions...`);
-    const finalCanvas = new OffscreenCanvas(originalWidth, originalHeight);
-    const finalCtx = finalCanvas.getContext('2d');
-
-    // Use high-quality image smoothing for scaling
-    finalCtx.imageSmoothingEnabled = true;
-    finalCtx.imageSmoothingQuality = 'high';
-
-    // Scale the generated image to exactly fit original dimensions
-    finalCtx.drawImage(generatedBitmap, 0, 0, originalWidth, originalHeight);
-
-    // Step 4: Convert to base64 and return
-    console.log(`💾 [${providerName}] Converting to base64...`);
-    const blob = await finalCanvas.convertToBlob({ type: 'image/png' });
-    const base64Result = await blobToBase64(blob);
-
-    console.log(`✅ [${providerName}] Simple post-processing complete!`);
-    return base64Result;
-  } catch (error) {
-    console.error(`❌ [${providerName}] Post-processing error:`, error);
-    throw new Error(`Failed to post-process image: ${error.message}`);
-  }
-}
-
-/**
- * Post-process AI generated image with simple pipeline (Gemini-specific)
- * Uses simple processing since Gemini preserves original text natively
- * @param {string} originalImageUrl - URL of original menu image
- * @param {string} aiImageData - Base64 data URL of AI generated image
- * @returns {Promise<string>} Base64 string of processed image
- */
-export async function postProcessImageWithGemini(originalImageUrl, aiImageData) {
-  return postProcessImageSimple(originalImageUrl, aiImageData, 'GEMINI');
+export async function translateMenuImageWithGemini({ prompt, imageBlob, apiKey, signal }) {
+  return generateMenuImageWithGemini({ prompt, imageBlob, apiKey, signal });
 }

@@ -112,9 +112,14 @@ const STEP_CONFIG = {
   },
   [PROGRESS_STEPS.GENERATING_IMAGE]: {
     progress: 60,
-    statusText: 'Generating food visualization...',
+    statusText: 'Generating visualization...',
     timeEstimate: '60-90 seconds',
-    detailText: () => getRandomFoodFact(),
+    detailText: (extra) => {
+      if (extra?.translationEnabled) {
+        return `Generating food background + translating menu to ${extra?.translationLanguage || 'selected language'}`;
+      }
+      return getRandomFoodFact();
+    },
   },
   [PROGRESS_STEPS.FINALIZING_IMAGE]: {
     progress: 85,
@@ -129,7 +134,12 @@ const STEP_CONFIG = {
   [PROGRESS_STEPS.MERGING_IMAGES]: {
     progress: 90,
     statusText: 'Merging images...',
-    detailText: 'Creating final visualization',
+    detailText: (extra) => {
+      if (extra?.translationEnabled) {
+        return 'Compositing translated menu text over food background';
+      }
+      return 'Compositing original menu text over food background';
+    },
   },
   [PROGRESS_STEPS.COMPLETE]: {
     progress: 100,
@@ -635,7 +645,7 @@ async function startImageProcessing(img) {
     });
 
     if (aiResponse && aiResponse.success) {
-      // Image is already merged (post-processing happens in the provider)
+      // Image is already merged (post-processing happens in the background service worker)
       const imageData = `data:image/png;base64,${aiResponse.b64}`;
 
       updateSpinnerProgress(img, PROGRESS_STEPS.COMPLETE);

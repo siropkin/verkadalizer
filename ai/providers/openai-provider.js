@@ -8,11 +8,7 @@ import {
   fetchImageAsBlob,
   getImageDimensions,
   calculateAspectRatio,
-  upscaleImage,
-  downscaleImage,
-  makeBackgroundTransparent,
-  resizeAiImage,
-} from './image-utils.js';
+} from '../../lib/image/utils.js';
 import { PROGRESS_STEPS } from './progress-steps.js';
 
 // ============================================================================
@@ -257,97 +253,18 @@ export async function generateMenuImageWithOpenAI({ prompt, imageBlob, apiKey, s
   }
 }
 
-// ============================================================================
-// POST-PROCESSING PIPELINE - OpenAI-specific merge pipeline
-// ============================================================================
-
 /**
- * Post-process and merge original menu image with AI generated background
- * Full 7-step pipeline for OpenAI since it cannot preserve original text accurately
+ * Translate menu image with OpenAI GPT-Image-1 (layout-preserving translation)
+ * This is a dedicated entrypoint so the pipeline can run translation in parallel with food generation.
  *
- * @param {string} originalImageUrl - URL of original menu image
- * @param {string} aiImageData - Base64 data URL of AI generated image
- * @param {string} providerName - Provider name for logging
- * @returns {Promise<string>} Base64 string of merged image
+ * @param {Object} params - Parameters
+ * @param {string} params.prompt - Translation prompt
+ * @param {Blob} params.imageBlob - Original menu image blob (reference)
+ * @param {string} params.apiKey - OpenAI API key
+ * @param {AbortSignal} params.signal - Abort signal
+ * @returns {Promise<string>} Base64 encoded translated menu image
  */
-export async function postProcessImageWithMerge(originalImageUrl, aiImageData, providerName = 'OPENAI') {
-  console.log(`🎨 [${providerName}] Starting post-processing pipeline...`);
-
-  try {
-    // Load original image
-    console.log(`⬇️ [${providerName}] Loading original image...`);
-    const originalBlob = await fetchImageAsBlob(originalImageUrl);
-    const originalBitmap = await createImageBitmap(originalBlob);
-
-    // Load generated image from base64 data
-    console.log(`⬇️ [${providerName}] Loading AI-generated image...`);
-    const generatedBlob = await fetch(aiImageData).then(r => r.blob());
-    const generatedBitmap = await createImageBitmap(generatedBlob);
-
-    // Store original dimensions for final output
-    const originalWidth = originalBitmap.width;
-    const originalHeight = originalBitmap.height;
-    console.log(`📐 [${providerName}] Original dimensions: ${originalWidth}×${originalHeight}`);
-
-    // Step 1: Upscale original image 2x for better quality processing
-    console.log(`⬆️ [${providerName}] Upscaling original image 2x...`);
-    const upscaledOriginal = await upscaleImage(originalBitmap, 2);
-
-    // Step 2: Remove dividers from upscaled image (currently disabled)
-    // const originalWithoutDividers = await removeDividersFromImage(upscaledOriginal);
-    const originalWithoutDividers = upscaledOriginal;
-
-    // Step 3: Make white background transparent (with darkened text)
-    console.log(`🎭 [${providerName}] Removing white background and enhancing text...`);
-    const originalWithTransparentBg = await makeBackgroundTransparent(originalWithoutDividers);
-
-    // Step 4: Resize AI generated image to match upscaled dimensions
-    console.log(`📏 [${providerName}] Resizing AI image to match upscaled dimensions...`);
-    const resizedAiImage = await resizeAiImage(generatedBitmap, upscaledOriginal.width, upscaledOriginal.height);
-
-    // Step 5: Merge the images at upscaled resolution
-    console.log(`🔗 [${providerName}] Merging original and AI images...`);
-    const mergeCanvas = new OffscreenCanvas(upscaledOriginal.width, upscaledOriginal.height);
-    const mergeCtx = mergeCanvas.getContext('2d');
-
-    mergeCtx.imageSmoothingEnabled = true;
-    mergeCtx.imageSmoothingQuality = 'high';
-
-    // Draw AI background image first
-    mergeCtx.drawImage(resizedAiImage, 0, 0, mergeCanvas.width, mergeCanvas.height);
-
-    // Overlay the original image with transparent background
-    mergeCtx.drawImage(originalWithTransparentBg, 0, 0);
-
-    // Step 6: Convert merged result to bitmap and downscale to original dimensions
-    console.log(`⬇️ [${providerName}] Downscaling to original dimensions...`);
-    const mergedBlob = await mergeCanvas.convertToBlob({ type: 'image/png' });
-    const mergedBitmap = await createImageBitmap(mergedBlob);
-    const finalBitmap = await downscaleImage(mergedBitmap, originalWidth, originalHeight);
-
-    // Step 7: Convert final result to base64
-    console.log(`💾 [${providerName}] Converting to base64...`);
-    const finalCanvas = new OffscreenCanvas(originalWidth, originalHeight);
-    const finalCtx = finalCanvas.getContext('2d');
-    finalCtx.drawImage(finalBitmap, 0, 0);
-    const blob = await finalCanvas.convertToBlob({ type: 'image/png' });
-    const base64Result = await blobToBase64(blob);
-
-    console.log(`✅ [${providerName}] Post-processing complete!`);
-    return base64Result;
-  } catch (error) {
-    console.error(`❌ [${providerName}] Post-processing error:`, error);
-    throw new Error(`Failed to post-process image: ${error.message}`);
-  }
-}
-
-/**
- * Post-process and merge original menu image with AI generated background (OpenAI-specific)
- * Uses full merge pipeline since OpenAI cannot preserve original text accurately
- * @param {string} originalImageUrl - URL of original menu image
- * @param {string} aiImageData - Base64 data URL of AI generated image
- * @returns {Promise<string>} Base64 string of merged image
- */
-export async function postProcessImageWithOpenAI(originalImageUrl, aiImageData) {
-  return postProcessImageWithMerge(originalImageUrl, aiImageData, 'OPENAI');
+export async function translateMenuImageWithOpenAI({ prompt, imageBlob, apiKey, signal }) {
+  // Same endpoint/model as generation; prompt differs (text-only translation image).
+  return generateMenuImageWithOpenAI({ prompt, imageBlob, apiKey, signal });
 }
