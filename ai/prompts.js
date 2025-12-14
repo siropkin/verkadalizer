@@ -316,7 +316,7 @@ export const TRANSLATION_LANGUAGES = {
     id: 'none',
     name: 'No Translation',
     displayName: 'No Translation (Default)',
-    emoji: '',
+    emoji: '🏳️',
     code: null,
     description: 'Keep original menu text - overlay on AI background',
   },
@@ -547,19 +547,60 @@ export function buildImageGenerationPrompt(parsedMenuData, imageStyle = 'verkada
     // Translation mode: AI renders translated text ON the food scene
     textRenderingConstraint = `
 ### TEXT RENDERING CONSTRAINT - TRANSLATION MODE
-**CRITICAL**: Include translated menu text rendered directly in the generated image:
+**CRITICAL - LAYOUT PRESERVATION WITH TRANSLATION**: You must generate this image as a **menu translation with preserved layout**.
+
+This is a two-part task:
+1. **Generate the food photography scene** (bottom 2/3 of image) with all ${selectedItems.length} dishes
+2. **Translate and render menu text** (overlaid on the image) while preserving the original menu's visual structure
+
+**Translation Requirements**:
 - Translate ALL menu text to **${translationConfig.name}** (language code: ${translationConfig.code})
 - Translate: dish names, descriptions, prices, section headers, menu labels
-- **PRESERVE EXACT LAYOUT**: Maintain the same text positioning and layout as the original menu
-- **MATCH MENU STYLE**: Use fonts and typography that match the original menu aesthetic
-- Render translated text OVER the food photography background
-- Text should be clearly legible and professionally formatted
+- Maintain accurate translations - do not transliterate, fully translate the meaning
+
+**LAYOUT PRESERVATION - CRITICAL**:
+- **Semantic Layout Matching**: Analyze the original menu's text positioning and replicate the EXACT spatial structure
+- **Position Mapping**: If original has text in top-left, translated text must be in top-left at same relative position
+- **Hierarchy Preservation**: Match text size hierarchy (headers larger, descriptions smaller, prices distinct)
+- **Alignment Consistency**: If original uses center-aligned titles, use center-aligned. If left-aligned lists, use left-aligned.
+- **Spacing Rules**: Maintain similar whitespace, margins, and line spacing as original menu
+- **Reading Order**: Preserve top-to-bottom, left-to-right reading flow matching original layout
+
+**Typography Instructions** (2025 Best Practices):
+- **DO NOT try to match exact fonts by name** - instead use DESCRIPTIVE font characteristics:
+  * For menu titles: "clean, bold, sans-serif font with professional weight"
+  * For dish names: "modern, medium-weight sans-serif, clearly legible"
+  * For descriptions: "light, readable sans-serif with comfortable letter spacing"
+  * For prices: "clean, numeric-friendly sans-serif font"
+- **Font Style Matching**: Observe if original is modern/elegant/casual/bold and apply similar STYLE characteristics
+- **Text Color**: Match the color scheme - if original has dark text on light background, maintain that contrast
+- **Text Effects**: If original has shadows, outlines, or other effects, apply similar treatment
+
+**Text Rendering Quality**:
+- All text must be **crystal-clear and legible** - no blurry, distorted, or broken characters
+- Use **high-fidelity text rendering** - characters should be sharp and professionally typeset
+- **Kerning and spacing**: Proper letter spacing and word spacing for readability
+- **Multi-line handling**: If text wraps, maintain consistent line height and alignment
+- **Special characters**: Render accents, diacritics, and language-specific characters correctly
+
+**Composition Integration**:
+- Text should integrate naturally with the food photography background
+- Maintain clear contrast between text and background for readability
+- Text overlay should not obscure the beauty of the food photography
+- Balance text density with visual breathing room
 `;
-    negativePrompts = `### NEGATIVE PROMPTS (What to Avoid)
+    negativePrompts = `### NEGATIVE PROMPTS (What to Avoid) - CRITICAL FOR TRANSLATION MODE
+**ABSOLUTELY FORBIDDEN**:
 - Do NOT create text-only translations without food photography
-- Do NOT generate only text or menu cards without the food scene
-- Avoid losing the food photography elements
-- Do NOT create abstract or minimalist text-only designs`;
+- Do NOT generate only menu cards or text layouts without the food scene
+- Do NOT lose or minimize the food photography elements
+- Do NOT create abstract or minimalist text-only designs
+- Do NOT randomize text positions - maintain original layout structure
+- Do NOT use placeholder or Lorem Ipsum text
+- Do NOT create blurry, distorted, or illegible text
+- Do NOT mix languages - only use ${translationConfig.name}
+- Do NOT ignore the spatial positioning of original menu text
+- Do NOT create new layout designs - preserve the original structure`;
   } else {
     // No translation: AI generates clean background (text added in post-processing)
     textRenderingConstraint = `
@@ -586,20 +627,45 @@ export function buildImageGenerationPrompt(parsedMenuData, imageStyle = 'verkada
 **IF YOU SEE ANY TEXT IN YOUR GENERATED IMAGE - REMOVE IT COMPLETELY**`;
   }
 
-  const prompt = `### PRIMARY OBJECTIVE
-Create a photorealistic, magazine-quality food photography scene featuring ${selectedItems.length} dishes with professional styling, lighting, and composition.
+  const prompt = `## PRIMARY OBJECTIVE
+Generate a photorealistic, studio-grade professional food photography scene featuring exactly ${selectedItems.length} dishes.
+
 ${textRenderingConstraint}
 ${negativePrompts}
-## MENU THEME
+
+## MENU THEME CONTEXT
 ${menuTheme}
 
 ## DISHES TO VISUALIZE
 ${dishDescriptions}
 
-## VISUAL STYLE: ${imageStyleConfig.name}
-${imageStyleConfig.atmosphere}
+## VISUAL STYLE & ATMOSPHERE
+${imageStyleConfig.name}: ${imageStyleConfig.atmosphere}
 
-**CRITICAL COMPOSITION LAYOUT**:
+## CAMERA DIRECTION (Cinematographer-Style - CRITICAL FOR GEMINI 3 PRO IMAGE)
+**Shot Composition:**
+- **Camera Angle**: High-angle overhead shot at 50-60 degrees from horizontal, positioned as if photographer standing and looking down at dining table
+- **Lens**: 50mm prime lens at f/2.8 aperture for natural compression and selective focus
+- **Focus Point**: Sharp focus on central/front dishes, gradual bokeh falloff toward background dishes
+- **Depth of Field**: Shallow depth (f/2.8) - foreground dishes crystal sharp, background dishes naturally blurred
+- **Framing**: Full table spread composition showing spatial depth from back to front
+- **Perspective**: Strong linear perspective - back dishes smaller/higher in frame, front dishes larger/lower
+
+**Lighting Setup:**
+${imageStyleConfig.lighting}
+- **Key Light**: ${imageStyleConfig.lighting.includes('natural') ? 'Soft window light from 10 o\'clock position' : 'Primary light source positioned at 45-degree angle'}
+- **Fill Light**: Gentle ambient bounce light to soften shadows without eliminating depth
+- **Rim/Back Light**: Subtle backlighting on dish edges for separation and dimension
+- **Light Quality**: Diffused, soft shadows creating depth without harshness
+- **Color Temperature**: ${imageStyleConfig.lighting.includes('warm') ? 'Warm 3200K for appetizing glow' : imageStyleConfig.lighting.includes('neon') ? 'Multi-color LED neon (cyan/magenta/purple)' : 'Neutral 5500K daylight'}
+
+**Color Grading:**
+${imageStyleConfig.colorPalette}
+- **Tone Curve**: ${imageStyleConfig.lighting.includes('cyberpunk') ? 'High contrast with crushed blacks and vibrant highlights' : 'Natural S-curve with lifted shadows and gentle highlight rolloff'}
+- **Saturation**: Vibrant but natural - not oversaturated or artificial looking
+- **White Balance**: Consistent across all dishes, matching lighting color temperature
+
+## COMPOSITION LAYOUT (CRITICAL)
 - **TOP 1/3 of image**: Soft, clean background space (for menu text overlay)
   * This area MUST be kept completely clear and simple
   ${imageStyleConfig.background}
@@ -694,36 +760,90 @@ ${selectedItems.length > 10 ? `
 - Think "family-style restaurant spread" or "buffet showcase"
 ` : ''}
 
-## PHOTOREALISM REQUIREMENTS - CRITICAL
-**Make food look REAL, not CGI or artificial. Apply these techniques:**
+## PHOTOREALISM REQUIREMENTS - GEMINI 3 PRO IMAGE (NANO BANANA PRO) 2025
+**CRITICAL**: This MUST be indistinguishable from professional food photography shot with real camera equipment. NOT CGI, NOT 3D render, NOT artificial.
 
-1. **Surface Textures** (VERY IMPORTANT):
-   - Show realistic food textures: crispy skin on chicken, flaky fish, visible grain in bread
-   - Include natural imperfections: slight charring, uneven browning, organic shapes
-   - Avoid overly smooth or perfect surfaces that look computer-generated
+**Execute This Like a Professional Food Photographer Would:**
 
-2. **Natural Lighting Effects**:
-   - Add subtle highlights and reflections on moist/oily surfaces (sauces, glazes)
-   - Show gentle shadows within dishes (between layers, under garnishes)
-   - Avoid flat, even lighting that looks artificial
+**Camera Setup (Directive - Execute These Settings):**
+- Shoot with: Canon EOS R5 with RF 50mm f/1.2L lens
+- Set aperture to: f/2.8 (for shallow depth, food sharp, background bokeh)
+- ISO: 400 (clean image, minimal noise)
+- Shutter speed: 1/125s (handheld stability)
+- White balance: 5500K daylight (natural, appetizing tones)
+- Focus mode: Single-point AF on central dish
+- Shoot in: Manual mode with RAW capture quality
 
-3. **Organic Presentation**:
-   - Food should look like it was ACTUALLY PLATED by a real chef
-   - Garnishes placed naturally, not perfectly symmetrical
-   - Sauce drizzles and dollops should have organic, imperfect patterns
-   - Herbs and toppings scattered naturally, not arranged in perfect patterns
+**Food Styling Directive (Execute Like Professional Food Stylist):**
 
-4. **Real-World Details**:
-   - Show subtle steam rising from hot dishes (soup, waffles)
-   - Include small imperfections: herb fragments, sauce splatter on rim, crumbs
-   - Visible moisture/sheen on fresh ingredients (avocado, vegetables)
-   - Natural color variations within ingredients (not uniform colors)
+**Texture Detail - Macro-Level Focus:**
+- Crispy fried items: Show individual crackles, golden-brown color gradients, slight oil sheen
+- Grilled proteins: Visible char marks (not perfect lines - organic patterns), caramelized edges
+- Fresh vegetables: Water droplets, natural color variations, visible imperfections (small spots, irregular shapes)
+- Sauces: Real viscosity behavior - drizzles follow gravity, dots have surface tension, pools reflect light
+- Breads: Irregular air pockets in cross-section, flour dusting with natural scatter, crusty texture with cracks
+- Cheese: Realistic melt patterns (stretching if hot, crumbling if aged), oil separation on surface
+- Garnishes: Microgreens with tiny leaves, herb sprigs with natural wilting, visible leaf veins
 
-5. **Photography Style**:
-   - Capture food as it would look in real life, not idealized CGI
-   - Slight depth of field blur in background (natural lens behavior)
-   - Realistic color grading - avoid oversaturation
-   - Natural shadows and highlights from actual lighting conditions
+**Natural Imperfections (Realism Markers):**
+- Grill marks: Irregular char patterns, not perfectly parallel
+- Browning: Uneven caramelization with darker and lighter spots
+- Plating: Small sauce splatter on rim edge, stray herb leaf, tiny bread crumb
+- Vegetables: Natural size variations, slight bruising, irregular shapes
+- Proteins: Natural marbling in meat, visible grain structure, uneven cooking levels
+- Surfaces: Realistic bumps, ridges, organic textures (NO AI-smooth surfaces)
+
+**Lighting Execution (Critical for Photorealism):**
+- Cast realistic shadows: Soft-edged shadows between layers, under garnishes (show 3D depth)
+- Specular highlights: Bright reflections on wet surfaces (sauce pools, oil glazes, fresh vegetables)
+- Rim light: Subtle hair light on food edges for separation from background
+- Subsurface scattering: Translucent items (tomato slices, citrus, thin vegetables) glow slightly when backlit
+- Shadow depth: Gentle gradient from shadow to highlight (not harsh cutoff)
+- NO flat/even lighting: Must have dimension, depth, and visual interest
+
+**Moisture and Freshness (Visual Cues):**
+- Hot dishes: Subtle steam wisps rising (not overdone - realistic amount)
+- Fresh vegetables: Tiny water droplets, slight sheen/moisture
+- Sauces: Glossy surface with light reflections, realistic viscosity
+- Grilled items: Light oil sheen, slight smoke traces
+- Cold items: Condensation appropriate for temperature
+- Herbs: Fresh appearance - vibrant color, natural moisture, not dry or plastic
+
+**Plating Style (Human Touch - Not AI Perfect):**
+- Sauce drizzle: Organic flow patterns following gravity, small splatter on rim
+- Garnish scatter: Random placement - herbs dropped naturally, not arranged
+- Stacking: Real-world physics - items settled naturally, slight lean/tilt
+- Height variation: Natural 3D composition, not flat
+- Negative space: Breathing room on plate, not overly crowded or perfectly centered
+- Edge clarity: Some ingredients near rim, not all centered
+
+**Post-Production Color Grade (Apply These Settings):**
+- Lift blacks slightly (no crushed pure black - keep shadow detail)
+- Gentle highlight rolloff (prevent blown-out whites)
+- S-curve tone: Lifted shadows, controlled highlights
+- Warmth: +5 to +10 warmth for appetizing glow
+- Saturation: +10 to +15 vibrance (natural, not oversaturated)
+- Tint: Slight magenta/warm shift for food appeal
+- Vignette: Subtle natural lens vignette at edges (draws eye to center)
+
+**Lens Rendering (Replicate Real Glass Optics):**
+- Bokeh: Circular, smooth out-of-focus areas (f/1.2-f/2.8 lens characteristic)
+- Focus transition: Gradual falloff from sharp to blur (not abrupt AI blur)
+- Chromatic aberration: Tiny color fringing at high-contrast edges (optional, subtle)
+- Lens compression: 50mm compression - natural perspective, not wide-angle distortion
+- Edge softness: Slight softness at image edges (natural lens behavior)
+
+**Quality Control - Image Must Pass These Tests:**
+1. ✓ Could a Canon R5 with 50mm f/1.2 lens capture this image?
+2. ✓ Do all textures show macro-level realistic detail?
+3. ✓ Are there visible natural imperfections (not CGI-perfect)?
+4. ✓ Does lighting create authentic dimensionality?
+5. ✓ Would this pass as real food photography in Bon Appétit or Food & Wine magazine?
+6. ✓ Is the color grading warm, appetizing, and professionally treated?
+7. ✓ Does the bokeh and depth of field match real f/2.8 lens rendering?
+
+**Reference Mental Model:**
+Think: "Close-up shot of artisan sourdough bread on wooden board, flour dusted across surface, golden crispy crust with cracked details, warm directional side lighting, moody dark background, crumbs scattered naturally, ultra-sharp food textures, cinematic kitchen atmosphere, shot on Canon R5, 50mm f/1.2, shallow depth of field."
 
 ## CRITICAL REQUIREMENTS
 - EXACTLY ${selectedItems.length} dishes MUST be visible - NO MORE, NO LESS

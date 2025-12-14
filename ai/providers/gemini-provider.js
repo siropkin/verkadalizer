@@ -126,9 +126,28 @@ export async function parseMenuWithGemini({ imageUrl, dietaryPreference, apiKey,
         }
       ],
       generationConfig: {
-        temperature: 0.7,
+        temperature: 0.4,  // 2025 best practice: Lower temp for structured parsing
         responseMimeType: 'application/json'
-      }
+      },
+      // 2025 best practice: Safety settings for better output quality
+      safetySettings: [
+        {
+          category: 'HARM_CATEGORY_HATE_SPEECH',
+          threshold: 'BLOCK_ONLY_HIGH'
+        },
+        {
+          category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+          threshold: 'BLOCK_ONLY_HIGH'
+        },
+        {
+          category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+          threshold: 'BLOCK_ONLY_HIGH'
+        },
+        {
+          category: 'HARM_CATEGORY_HARASSMENT',
+          threshold: 'BLOCK_ONLY_HIGH'
+        }
+      ]
     };
 
     const response = await fetch(
@@ -230,7 +249,7 @@ export async function generateMenuImageWithGemini({
     // Convert image blob to base64
     const imageBase64 = await blobToBase64(imageBlob);
 
-    // Build request body for Gemini 3 Pro Image
+    // Build request body for Gemini 3 Pro Image with 2025 optimizations
     const requestBody = {
       contents: [
         {
@@ -250,8 +269,30 @@ export async function generateMenuImageWithGemini({
         imageConfig: {
           image_size: resolution,
           aspect_ratio: aspectRatio
+        },
+        // 2025 best practice: Lower temperature (0.6-0.7) for photorealistic output
+        // Higher temps create artistic/abstract results, lower temps create precise/realistic
+        temperature: 0.65
+      },
+      // 2025 best practice: Safety settings for professional food photography
+      safetySettings: [
+        {
+          category: 'HARM_CATEGORY_HATE_SPEECH',
+          threshold: 'BLOCK_ONLY_HIGH'
+        },
+        {
+          category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+          threshold: 'BLOCK_ONLY_HIGH'
+        },
+        {
+          category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+          threshold: 'BLOCK_ONLY_HIGH'
+        },
+        {
+          category: 'HARM_CATEGORY_HARASSMENT',
+          threshold: 'BLOCK_ONLY_HIGH'
         }
-      }
+      ]
     };
 
     const response = await fetch(
