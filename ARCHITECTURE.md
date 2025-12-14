@@ -161,9 +161,9 @@ const uiData = stepToProgressData(step, extra);
 
 ## Image Processing Pipeline
 
-### Three-Stage Processing Architecture
+### Three-Stage Processing Architecture with Optional Translation
 
-The extension uses a sophisticated three-stage AI processing pipeline:
+The extension uses a sophisticated three-stage AI processing pipeline with optional menu translation:
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -229,6 +229,121 @@ IMAGE_STYLES = {
 - ✅ Curated combinations ensure cohesive results
 - ✅ Smart caching includes style in request ID
 - ✅ Automatic migration for existing users
+
+---
+
+## Menu Translation System
+
+### Translation Architecture
+
+The menu translation system allows users to translate menu text into 12 languages while preserving the original layout and typography.
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  Translation Configuration (ai/prompts.js)               │
+│  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  │
+│  • TRANSLATION_LANGUAGES constants                      │
+│  • 12 supported languages + "No Translation" default   │
+│  • Language metadata (id, name, emoji, code)            │
+└─────────────────────────────────────────────────────────┘
+                        ↓
+┌─────────────────────────────────────────────────────────┐
+│  Translation Prompt Builder                              │
+│  (ai/prompts/menu-translation.js)                       │
+│  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  │
+│  • buildMenuTranslationPrompt(language)                 │
+│  • Generates AI prompt for layout-preserving translation│
+│  • Enforces typography and spacing preservation         │
+└─────────────────────────────────────────────────────────┘
+                        ↓
+┌─────────────────────────────────────────────────────────┐
+│  AI Translation Processing                               │
+│  (ai/providers/ai-providers.js)                         │
+│  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  │
+│  • translateMenuImageWithAI()                           │
+│  • Routes to provider-specific translation              │
+│  • Returns translated menu image with preserved layout  │
+└─────────────────────────────────────────────────────────┘
+                        ↓
+┌─────────────────────────────────────────────────────────┐
+│  Integration with Image Generation                       │
+│  (background.js)                                         │
+│  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  │
+│  • Translation mode vs No translation mode              │
+│  • Dynamic prompt generation based on mode              │
+│  • Post-processing and compositing                      │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Supported Languages
+
+The extension supports 12 languages:
+- 🇺🇸 English (US)
+- 🇫🇷 French
+- 🇪🇸 Spanish
+- 🇯🇵 Japanese
+- 🇰🇷 Korean
+- 🇵🇹 Portuguese
+- 🇷🇺 Russian
+- 🇨🇳 Chinese (Simplified)
+- 🇩🇪 German
+- 🇳🇱 Dutch
+- 🇩🇰 Danish
+- 🏳️ No Translation (default)
+
+### Translation Modes
+
+**Mode 1: No Translation (Default)**
+- Original menu text preserved
+- AI generates clean food photography background
+- Original text overlaid in post-processing
+- Text-free background suitable for compositing
+
+**Mode 2: Translation Enabled**
+- AI translates all menu text to selected language
+- Preserves original spatial structure and hierarchy
+- Maintains layout positioning (top-left, center, etc.)
+- Keeps alignment and spacing consistent
+- High-quality typography with clear text rendering
+
+### Layout Preservation Features
+
+**Spatial Structure:**
+- Semantic layout matching - replicates exact positioning
+- Position mapping - maintains relative placement
+- Hierarchy preservation - headers, descriptions, prices
+- Alignment consistency - center/left/right matching
+
+**Typography:**
+- Descriptive font characteristics (not font names)
+- Style matching (modern/elegant/casual)
+- Text color and contrast preservation
+- Proper kerning and spacing
+
+**Text Quality:**
+- Crystal-clear, legible text rendering
+- Sharp, professionally typeset characters
+- Correct special characters and diacritics
+- Multi-line handling with consistent line height
+
+### Implementation Files
+
+| File | Responsibility | Key Exports |
+|------|---------------|-------------|
+| `ai/prompts.js` | Translation language configs | `TRANSLATION_LANGUAGES` |
+| `ai/prompts/menu-translation.js` | Translation prompt builder | `buildMenuTranslationPrompt()` |
+| `ai/providers/openai-provider.js` | OpenAI translation handler | `translateMenuImageWithOpenAI()` |
+| `ai/providers/gemini-provider.js` | Gemini translation handler | `translateMenuImageWithGemini()` |
+| `ai/providers/ai-providers.js` | Provider routing | `translateMenuImageWithAI()` |
+| `background.js` | Translation orchestration | Request handling |
+
+### Benefits
+
+✅ **Multilingual Support**: 12 languages for global accessibility
+✅ **Layout Preservation**: Original menu structure maintained
+✅ **High Quality**: Professional typography and text rendering
+✅ **Flexible**: Works with all AI providers (OpenAI, Gemini)
+✅ **User Choice**: Optional - defaults to no translation
 
 ---
 

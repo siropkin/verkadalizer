@@ -47,6 +47,30 @@ Choose from 4 unified image styles that combine plate design with visual aesthet
 **Universal Styles:**
 - 📷 **Verkada Rustic (Filmic)** - Blue and white Verkada plates with deep, moody, realistic film photography
 
+### Menu Translation
+
+Translate menu text into multiple languages while preserving the original layout and typography:
+
+- 🏳️ **No Translation (Default)** - Keep original menu text overlaid on AI-generated background
+- 🇺🇸 **English (US)** - Translate menu to US English
+- 🇫🇷 **French** - Translate menu to French
+- 🇪🇸 **Spanish** - Translate menu to Spanish
+- 🇯🇵 **Japanese** - Translate menu to Japanese
+- 🇰🇷 **Korean** - Translate menu to Korean
+- 🇵🇹 **Portuguese** - Translate menu to Portuguese
+- 🇷🇺 **Russian** - Translate menu to Russian
+- 🇨🇳 **Chinese** - Translate menu to Simplified Chinese
+- 🇩🇪 **German** - Translate menu to German
+- 🇳🇱 **Dutch** - Translate menu to Dutch
+- 🇩🇰 **Danish** - Translate menu to Danish
+
+**Translation Features:**
+- Preserves original menu layout and spatial structure
+- Maintains text hierarchy (headers, descriptions, prices)
+- Keeps alignment and spacing consistent with original
+- High-quality typography with clear, legible text
+- Full semantic translation (not transliteration)
+
 ### User Experience
 
 - **Real-Time Progress Tracking**: Animated progress bar with percentage and status updates
@@ -75,6 +99,7 @@ Click the extension icon to access settings:
   - **Gemini API Key**: Required when using Google Gemini provider
 - **Dietary Preference**: Select your dietary preference from 8 options (affects dish selection in Stage 1)
 - **Image Style**: Choose from 4 unified styles that combine plate design and photography aesthetics
+- **Translation Language**: Translate menu text into 12 languages while preserving original layout (default: No Translation)
 
 ## How It Works
 
@@ -107,10 +132,15 @@ Using the parsed menu data and selected image style:
   - Style-specific lighting, background, surface, color palette, atmosphere, and camera settings
   - Composition layout (top 1/3 clear for text, bottom 2/3 for food)
   - Photorealism requirements (textures, lighting, organic presentation)
+  - **Optional Translation**: If translation is enabled, AI translates menu text while preserving original layout/typography
 - Sends to your selected AI provider for image creation:
   - **OpenAI**: GPT-Image-1 for high-quality photorealistic images
   - **Google Gemini**: Gemini 3 Pro Image for professional 2K resolution with native text rendering and "thinking mode" for optimal composition
 - Receives professional-quality food photography visualization in your chosen unified style
+- **Translation Processing** (if enabled):
+  - AI translates all menu text to selected language (12 languages supported)
+  - Preserves spatial structure, hierarchy, alignment, and spacing of original menu
+  - Maintains high-quality typography with clear, legible text rendering
 
 ### 4. Display & Interaction
 
@@ -127,9 +157,10 @@ Using the parsed menu data and selected image style:
 - **Host Permissions**: Verkada Menu pages, OpenAI API, Google Gemini API, Google User Content
 - **Components**:
   - `content.js` - UI injection, image detection, progress tracking
-  - `background.js` - AI orchestration, two-stage processing pipeline, request management
-  - `popup.js/html` - Settings interface with AI provider selection
+  - `background.js` - AI orchestration, two-stage processing pipeline, request management, translation handling
+  - `popup.js/html` - Settings interface with AI provider and translation language selection
   - `ai/providers/` - Modular AI provider implementations (OpenAI, Gemini)
+  - `ai/prompts/` - Menu parsing and translation prompt generators
 
 ### AI Integration
 
