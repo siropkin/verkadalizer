@@ -37,17 +37,15 @@ Choose from 8 dietary preference options that guide AI dish selection:
 
 ### Image Styles
 
-Choose from 6 unified image styles that combine plate design with visual aesthetics:
+Choose from 4 unified image styles that combine plate design with visual aesthetics:
 
 **Verkada Styles:**
-- 🍽️ **Verkada Classic (Default)** - Blue and white Verkada plates with modern clean photography
+- 🍽️ **Verkada Classic (Default)** - Blue and white Verkada plates with moody, realistic film photography
 - ⚡ **Verkada Cyberpunk** - Blue and white Verkada plates with futuristic neon lighting
 - 🌺 **Verkada Grandmillennial** - Blue and white Verkada plates with bold maximalist styling
 
 **Universal Styles:**
-- 🌃 **Neon Tokyo Night Market** - Traditional Asian ceramics under futuristic neon lights
-- 🌺 **Grandma's Maximalist Garden Tea Party** - Colorful whimsical plates with bold maximalist patterns
-- 📷 **Rustic Film Photography Cabin** - Handcrafted stoneware with warm vintage film aesthetic
+- 📷 **Verkada Rustic (Filmic)** - Blue and white Verkada plates with deep, moody, realistic film photography
 
 ### User Experience
 
@@ -76,7 +74,7 @@ Click the extension icon to access settings:
   - **OpenAI API Key**: Required when using OpenAI provider
   - **Gemini API Key**: Required when using Google Gemini provider
 - **Dietary Preference**: Select your dietary preference from 8 options (affects dish selection in Stage 1)
-- **Image Style**: Choose from 6 unified styles that combine plate design and photography aesthetics
+- **Image Style**: Choose from 4 unified styles that combine plate design and photography aesthetics
 
 ## How It Works
 
@@ -104,7 +102,7 @@ When you click the generate button:
 Using the parsed menu data and selected image style:
 
 - Builds a detailed image generation prompt with:
-  - Unified image style combining plate design and visual aesthetics (e.g., Verkada Classic, Neon Tokyo, etc.)
+  - Unified image style combining plate design and visual aesthetics (e.g., Verkada Classic, Verkada Rustic, etc.)
   - Style-specific plate types matched to dish categories (ceramic, stoneware, wooden boards, porcelain)
   - Style-specific lighting, background, surface, color palette, atmosphere, and camera settings
   - Composition layout (top 1/3 clear for text, bottom 2/3 for food)

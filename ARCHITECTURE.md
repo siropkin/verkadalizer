@@ -222,8 +222,7 @@ IMAGE_STYLES = {
 
 **Available Styles:**
 - Verkada Classic, Verkada Cyberpunk, Verkada Grandmillennial
-- Neon Tokyo Night Market, Grandma's Maximalist Garden Tea Party
-- Rustic Film Photography Cabin
+- Verkada Rustic (Filmic)
 
 **Benefits:**
 - ✅ Simplified UX (1 dropdown instead of 2)

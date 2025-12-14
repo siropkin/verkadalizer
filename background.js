@@ -54,9 +54,11 @@ async function migrateStorageToUnifiedStyle() {
       newImageStyle = 'verkada-classic';
     }
   } else if (oldPlateStyle === 'asian' && oldVisualStyle === 'cyberpunk') {
-    newImageStyle = 'neon-tokyo';
+    // Style removed - map to closest supported Verkada style
+    newImageStyle = 'verkada-cyberpunk';
   } else if (oldPlateStyle === 'colorful' && oldVisualStyle === 'maximalist') {
-    newImageStyle = 'grandmas-garden';
+    // Style removed - map to closest supported Verkada style
+    newImageStyle = 'verkada-grandmillennial';
   } else if (oldPlateStyle === 'rustic' && oldVisualStyle === 'vintage-film') {
     newImageStyle = 'rustic-film';
   } else {

@@ -70,7 +70,7 @@ export const IMAGE_STYLES = {
     name: 'Verkada Classic',
     displayName: 'Verkada Classic (Default)',
     emoji: '🍽️',
-    description: 'Blue and white Verkada plates with modern clean photography',
+    description: 'Blue and white Verkada plates with moody, realistic film photography',
 
     // Plate configuration
     plates: {
@@ -85,22 +85,66 @@ export const IMAGE_STYLES = {
     },
     materialDescription: 'Classic ceramic plates in clean blue and white finishes',
 
-    // Visual style modifiers
-    lighting: `**Lighting**: Soft, diffused natural light
-- Single soft light source positioned at 10-2 o'clock angle
-- Creates gentle shadows for depth but keeps everything bright and appetizing
-- Window-light quality, not harsh or artificial`,
-    background: `- Soft gradient background in warm tones: beige-to-cream, OR soft sage green, OR warm off-white
-  * Minimal, clean, Instagram-worthy aesthetic
-  * Background fades naturally into the surface below`,
-    surface: `- Natural surface visible: light marble with subtle veining and natural variations, OR white concrete with organic texture, OR natural light wood with visible grain and character`,
-    colorPalette: `- Colors should be vibrant and natural, making food look fresh and appetizing`,
-    atmosphere: `Modern, clean, contemporary food photography aesthetic.`,
-    camera: `- Sharp focus on the food with beautiful bokeh in background
-- Subtle natural lens vignetting at edges
-- Natural color grading with realistic tone curve
-- Gentle bokeh with professional lens quality
-- Restaurant-quality, magazine-worthy presentation`
+    // Visual style modifiers (Rustic Film-inspired mood, but keeping Verkada plates)
+    lighting: `**Lighting**: Moody natural window light (low-key, filmic)
+- Single directional window light from 10–11 o'clock angle, diffused with a sheer curtain
+- Deeper, softer shadows for depth (NOT flat/bright), while preserving detail in highlights
+- Warm late-afternoon feel (cozy, realistic, not “studio bright”)
+- No harsh artificial light, no flash look`,
+    background: `- Warm cream-to-tan gradient background with subtle vignette at edges
+  * Nostalgic, cinematic cookbook vibe (realistic, slightly underexposed)
+  * Background fades naturally into the surface below
+  * Keep it simple/clean for text overlay, but with filmic depth (not pure white)`,
+    surface: `- Natural tactile surface with character: worn walnut or oak table, OR aged butcher block, OR dark stone with subtle texture and imperfections (avoid bright white marble)`,
+    colorPalette: `- Filmic color grade (Kodak Gold / Portra-inspired): warm highlights, rich midtones, and gently muted saturation
+- Preserve natural food color (realistic, not neon) with deep, soft blacks and smooth highlight rolloff
+- Slight warmth overall; avoid clinical/cool whites`,
+    atmosphere: `Photorealistic 35mm film food photography: deep, moody, cozy, and extremely realistic — like a real restaurant/cabin table scene shot on film.`,
+    camera: `- Natural film grain texture (subtle, consistent)
+- Soft vignette at edges (lens-like, not heavy)
+- Gentle halation/bloom on specular highlights (very subtle, realistic)
+- Warm tone curve with filmic contrast (deep shadows but not crushed)
+- Professional analog-lens rendering with realistic bokeh and micro-contrast`
+  },
+
+  'rustic-film': {
+    id: 'rustic-film',
+    name: 'Verkada Rustic Film',
+    displayName: 'Verkada Rustic (Filmic)',
+    emoji: '📷',
+    description: 'Verkada blue & white plates with deep, moody, realistic film photography',
+
+    // Verkada plates (keep the classic blue/white plate set)
+    plates: {
+      'soup': 'Medium Deep Blue Plate (9-inch, 4-inch depth)',
+      'salad': 'Large Flat White Plate (12-inch)',
+      'main': 'Large Flat White Plate (12-inch)',
+      'pasta': 'Large Deep Blue Plate (12-inch, 2-inch depth)',
+      'sandwich': 'Large Flat White Plate (12-inch)',
+      'pizza': 'Large Flat White Plate (12-inch)',
+      'dessert': 'Large Flat White Plate (12-inch)',
+      'side': 'Medium Deep Blue Plate (9-inch, 4-inch depth)',
+    },
+    materialDescription: 'Classic ceramic plates in clean blue and white finishes',
+
+    // Vintage film visual style
+    lighting: `**Lighting**: Natural golden hour sunlight
+- Soft, warm light with honey-golden tones
+- Gentle shadows creating cozy atmosphere
+- Window light quality from afternoon sun
+- Nostalgic, warm illumination`,
+    background: `- Warm cream with subtle vignetting at edges
+  * 1970s cookbook aesthetic with nostalgic charm
+  * Cozy grandma's kitchen atmosphere`,
+    surface: `- Light wood with honey tones and visible grain, OR vintage tablecloth with subtle texture, OR worn butcher block with character`,
+    colorPalette: `- Kodak Gold film color palette: warm oranges, muted greens, creamy yellows
+- Slightly faded colors like old photographs from the 1970s
+- Warm, nostalgic tones throughout`,
+    atmosphere: `Vintage 35mm film photography aesthetic - shot on Kodak Gold 200. Nostalgic, warm, homey atmosphere like old cookbooks from the 1970s.`,
+    camera: `- Natural film grain texture throughout
+- Soft vignetting at edges
+- Warm tone curve with characteristic film lens rendering
+- Gentle bokeh with analog lens quality`
   },
 
   'verkada-cyberpunk': {
@@ -184,127 +228,6 @@ export const IMAGE_STYLES = {
 - Natural color grading preserving ornate textures
 - Rich, bold rendering showing patterns and textures with depth`
   },
-
-  'neon-tokyo': {
-    id: 'neon-tokyo',
-    name: 'Neon Tokyo Night Market',
-    emoji: '🌃',
-    description: 'Traditional Asian ceramics under futuristic neon lights',
-
-    // Asian plates
-    plates: {
-      'soup': 'Medium Deep Blue-White Porcelain Bowl (9-inch, 4-inch depth, hand-painted floral patterns)',
-      'salad': 'Large Flat White Porcelain Plate with Blue Rim (12-inch, delicate painted border)',
-      'main': 'Large Flat Cream Porcelain Plate (12-inch, subtle bamboo pattern)',
-      'pasta': 'Large Deep Ramen Bowl (12-inch, 3-inch depth, white with blue waves pattern)',
-      'sandwich': 'Rectangular Sushi Plate (14x6-inch, white with geometric patterns)',
-      'pizza': 'Large Round Platter (13-inch, cream with painted cherry blossoms)',
-      'dessert': 'Small Square Plate (7x7-inch, white porcelain with red accents)',
-      'side': 'Small Rice Bowl (6-inch, 3-inch depth, white with blue geometric pattern)',
-    },
-    materialDescription: 'Traditional Asian-inspired porcelain with hand-painted details: blue and white patterns, floral motifs, bamboo, waves, cherry blossoms, and geometric designs. Mix of round, rectangular, and square shapes.',
-
-    // Cyberpunk visual style
-    lighting: `**Lighting**: Futuristic multi-colored LED lighting
-- Dramatic neon lights in electric cyan, hot magenta, and deep purple
-- Colored backlighting creating bold rim lights on food
-- High contrast with glowing neon accents
-- Sci-fi atmosphere with dramatic colored shadows`,
-    background: `- Dark background (near black) with glowing neon strips or holographic elements
-  * Blade Runner meets molecular gastronomy aesthetic
-  * Add subtle digital/holographic UI elements or neon signs`,
-    surface: `- Glossy black acrylic surface with visible neon reflections and wet texture, OR metallic chrome surface with realistic colored light streaks and weathered imperfections, OR dark glass with textured depth and cyberpunk neon glow`,
-    colorPalette: `- Electric, vivid colors: neon cyan, hot magenta, acid green, electric purple
-- Deep blacks contrasting with vibrant neons
-- Futuristic, high-tech color palette`,
-    atmosphere: `Cyberpunk neon aesthetic - futuristic restaurant from 2077. High-tech molecular gastronomy meets dramatic neon lighting and sci-fi vibes.`,
-    camera: `- High contrast with chromatic aberration on edges
-- Dramatic lens flares from neon lights with realistic bloom
-- Sharp focus with natural depth of field
-- Slight digital grain for cinematic night photography
-- Professional sci-fi cinematography with realistic lens characteristics`
-  },
-
-  'grandmas-garden': {
-    id: 'grandmas-garden',
-    name: "Grandma's Maximalist Garden Tea Party",
-    emoji: '🌺',
-    description: 'Colorful whimsical plates with bold maximalist patterns',
-
-    // Colorful plates
-    plates: {
-      'soup': 'Medium Deep Turquoise Bowl (9-inch, 4-inch depth, glossy ceramic)',
-      'salad': 'Large Flat Coral Pink Plate (12-inch, glossy ceramic)',
-      'main': 'Large Flat Sunny Yellow Plate (12-inch, glossy ceramic)',
-      'pasta': 'Large Deep Mint Green Bowl (12-inch, 2-inch depth, glossy ceramic)',
-      'sandwich': 'Large Flat Sky Blue Plate (12-inch, glossy ceramic)',
-      'pizza': 'Large Flat Lavender Plate (13-inch, glossy ceramic)',
-      'dessert': 'Small Flat Peach Plate (8-inch, glossy ceramic)',
-      'side': 'Small Deep Seafoam Bowl (7-inch, 3-inch depth)',
-    },
-    materialDescription: 'Vibrant, cheerful ceramic plates in mixed pastel and bright colors: turquoise, coral pink, sunny yellow, mint green, sky blue, lavender, peach, and seafoam. Each dish should be on a different colored plate for a playful, eclectic cafe vibe.',
-
-    // Maximalist visual style
-    lighting: `**Lighting**: Bright, even lighting with decorative flair
-- Well-lit scene showing all details and patterns
-- Warm ambient light bringing out rich jewel tones
-- No dramatic shadows - everything visible and ornate
-- Grand, luxurious illumination`,
-    background: `- Bold floral wallpaper OR rich jewel-tone damask patterns
-  * English tea room meets maximalist Instagram aesthetic
-  * Layer decorative elements: add fresh flowers, vintage decorations`,
-    surface: `- Ornate vintage plates with gold trim and visible wear, layered over patterned tablecloth with tactile fabric texture
-- Decorative elements with character: antique lace doilies with detailed weave, vintage silverware with patina, scattered fresh flowers with realistic petals
-- More is more - bold patterns and rich textures with tangible depth and imperfections`,
-    colorPalette: `- Rich jewel tones: emerald green, sapphire blue, ruby red, gold accents everywhere
-- Saturated, vibrant colors with ornate patterns
-- Eclectic grandmillennial aesthetic with bold choices`,
-    atmosphere: `Hyper-maximalist grandmillennial aesthetic - more is more! Ornate, bold, eclectic with layers of patterns and decorative vintage elements. English tea room meets maximalist Instagram.`,
-    camera: `- Saturated, vibrant colors with natural richness
-- Everything in sharp focus with professional lens clarity to show all ornate details
-- Subtle lens vignetting to draw eye to center
-- Natural color grading preserving jewel tones and ornate textures
-- Rich, bold rendering showing patterns and textures with depth and dimension`
-  },
-
-  'rustic-film': {
-    id: 'rustic-film',
-    name: 'Rustic Film Photography Cabin',
-    emoji: '📷',
-    description: 'Handcrafted stoneware with warm vintage film aesthetic',
-
-    // Rustic plates
-    plates: {
-      'soup': 'Medium Deep Stoneware Bowl (9-inch, 4-inch depth, matte charcoal glaze)',
-      'salad': 'Large Flat Stoneware Plate (12-inch, rough earthy texture, warm beige)',
-      'main': 'Large Flat Stoneware Plate (12-inch, rough earthy texture, warm beige)',
-      'pasta': 'Large Deep Stoneware Bowl (12-inch, 2-inch depth, rustic brown glaze)',
-      'sandwich': 'Rectangular Wooden Board (14x8-inch, natural wood grain)',
-      'pizza': 'Round Wooden Pizza Board (14-inch, natural wood with charred edges)',
-      'dessert': 'Small Artisan Stoneware Plate (9-inch, speckled glaze)',
-      'side': 'Small Rustic Bowl (7-inch, 3-inch depth, earthy tones)',
-    },
-    materialDescription: 'Handcrafted stoneware with visible artisan marks, rough textures, earthy glazes in charcoal, beige, and brown tones. Mix with natural wooden boards for sandwiches and pizza.',
-
-    // Vintage film visual style
-    lighting: `**Lighting**: Natural golden hour sunlight
-- Soft, warm light with honey-golden tones
-- Gentle shadows creating cozy atmosphere
-- Window light quality from afternoon sun
-- Nostalgic, warm illumination`,
-    background: `- Warm cream with subtle vignetting at edges
-  * 1970s cookbook aesthetic with nostalgic charm
-  * Cozy grandma's kitchen atmosphere`,
-    surface: `- Light wood with honey tones and visible grain, OR vintage tablecloth with subtle texture, OR worn butcher block with character`,
-    colorPalette: `- Kodak Gold film color palette: warm oranges, muted greens, creamy yellows
-- Slightly faded colors like old photographs from the 1970s
-- Warm, nostalgic tones throughout`,
-    atmosphere: `Vintage 35mm film photography aesthetic - shot on Kodak Gold 200. Nostalgic, warm, homey atmosphere like old cookbooks from the 1970s.`,
-    camera: `- Natural film grain texture throughout
-- Soft vignetting at edges
-- Warm tone curve with characteristic film lens rendering
-- Gentle bokeh with analog lens quality`
-  }
 };
 
 /**

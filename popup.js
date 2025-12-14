@@ -75,6 +75,12 @@ function populateImageStyles(styleInput, styles) {
   }
 }
 
+function setSelectValueWithFallback(selectEl, desiredValue, fallbackValue) {
+  if (!selectEl) return;
+  const exists = Array.from(selectEl.options).some(opt => opt.value === desiredValue);
+  selectEl.value = exists ? desiredValue : fallbackValue;
+}
+
 function populateTranslationLanguages(languageInput, languages) {
   languageInput.innerHTML = '';
   for (const lang of languages) {
@@ -129,7 +135,7 @@ async function loadSettingsIntoUi(aiProviderInput, openaiApiKeyInput, geminiApiK
 
   const selectedImageStyle = stored.imageStyle || 'verkada-classic';
   if (selectedImageStyle) {
-    imageStyleInput.value = selectedImageStyle;
+    setSelectValueWithFallback(imageStyleInput, selectedImageStyle, 'verkada-classic');
   }
 
   const selectedMenuLanguage = stored.menuLanguage || 'none';
