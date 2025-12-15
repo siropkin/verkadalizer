@@ -14,6 +14,15 @@ import { PROGRESS_STEPS } from './progress-steps.js';
 import { parseJsonFromModelText, readErrorMessage } from './provider-utils.js';
 
 // ============================================================================
+// MODEL CONFIGURATION
+// ============================================================================
+
+const MODELS = {
+  parse: 'gemini-2.5-flash',           // Menu parsing (vision + JSON) - Flash for speed
+  image: 'gemini-3-pro-image-preview', // Image generation
+};
+
+// ============================================================================
 // GEMINI PROVIDER API - Public functions
 // ============================================================================
 
@@ -105,10 +114,9 @@ export async function parseMenuWithGemini({ imageUrl, dietaryPreference, apiKey,
     const promptLength = parsingPrompt.length;
     console.log(`📝 [GEMINI] Prompt built, length: ${promptLength} chars`);
 
-    // Gemini 3 Pro configuration
-    const modelName = 'gemini-3-pro-preview';
+    const modelName = MODELS.parse;
 
-    // Call Gemini 3 Pro (vision model) to parse the menu
+    // Call Gemini Flash (vision model) to parse the menu
     updateProgress(PROGRESS_STEPS.READING_MENU_WITH_AI);
     console.log(`🤖 [GEMINI] Calling ${modelName} for menu analysis...`);
 
@@ -127,7 +135,7 @@ export async function parseMenuWithGemini({ imageUrl, dietaryPreference, apiKey,
         }
       ],
       generationConfig: {
-        temperature: 0.4,  // 2025 best practice: Lower temp for structured parsing
+        temperature: 0.3,  // Lower temp for deterministic structured parsing
         responseMimeType: 'application/json'
       },
       // 2025 best practice: Safety settings for better output quality
@@ -221,7 +229,7 @@ export async function generateMenuImageWithGemini({
   apiKey,
   signal
 }) {
-  const modelName = 'gemini-3-pro-image-preview';
+  const modelName = MODELS.image;
   console.log(`🎨 [GEMINI] Starting image generation with ${modelName}...`);
   console.log('📝 [GEMINI] Prompt length:', prompt.length, 'chars');
 
@@ -261,8 +269,8 @@ export async function generateMenuImageWithGemini({
       generationConfig: {
         responseModalities: ['TEXT', 'IMAGE'],
         imageConfig: {
-          image_size: resolution,
-          aspect_ratio: aspectRatio
+          imageSize: resolution,
+          aspectRatio: aspectRatio
         },
         // 2025 best practice: Lower temperature (0.6-0.7) for photorealistic output
         // Higher temps create artistic/abstract results, lower temps create precise/realistic

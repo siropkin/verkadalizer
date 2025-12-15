@@ -40,11 +40,13 @@ Choose from 8 dietary preference options that guide AI dish selection:
 Choose from 4 unified image styles that combine plate design with visual aesthetics:
 
 **Verkada Styles:**
+
 - 🍽️ **Verkada Classic (Default)** - Blue and white Verkada plates with moody, realistic film photography
 - ⚡ **Verkada Cyberpunk** - Blue and white Verkada plates with futuristic neon lighting
 - 🌺 **Verkada Grandmillennial** - Blue and white Verkada plates with bold maximalist styling
 
 **Universal Styles:**
+
 - 📷 **Verkada Rustic (Filmic)** - Blue and white Verkada plates with deep, moody, realistic film photography
 
 ### Menu Translation
@@ -65,6 +67,7 @@ Translate menu text into multiple languages while preserving the original layout
 - 🇩🇰 **Danish** - Translate menu to Danish
 
 **Translation Features:**
+
 - Preserves original menu layout and spatial structure
 - Maintains text hierarchy (headers, descriptions, prices)
 - Keeps alignment and spacing consistent with original

@@ -13,6 +13,15 @@ import { PROGRESS_STEPS } from './progress-steps.js';
 import { parseJsonFromModelText, readErrorMessage } from './provider-utils.js';
 
 // ============================================================================
+// MODEL CONFIGURATION
+// ============================================================================
+
+const MODELS = {
+  parse: 'gpt-4o',           // Menu parsing (vision + JSON)
+  image: 'gpt-image-1',      // Image generation/editing
+};
+
+// ============================================================================
 // OPENAI PROVIDER API - Public functions
 // ============================================================================
 
@@ -92,8 +101,7 @@ export async function parseMenuWithOpenAI({ imageUrl, dietaryPreference, apiKey,
     const promptLength = parsingPrompt.length;
     console.log(`📝 [OPENAI] Prompt built, length: ${promptLength} chars`);
 
-    // OpenAI GPT-4o configuration
-    const modelName = 'gpt-4o';
+    const modelName = MODELS.parse;
 
     // Call GPT-4o (vision model) to parse the menu
     updateProgress(PROGRESS_STEPS.READING_MENU_WITH_AI);
@@ -118,7 +126,10 @@ export async function parseMenuWithOpenAI({ imageUrl, dietaryPreference, apiKey,
           ]
         }
       ],
-      temperature: 0.7
+      // Lower temperature for deterministic structured output
+      temperature: 0.3,
+      // Enforce JSON output format for reliable parsing
+      response_format: { type: 'json_object' }
     };
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -184,7 +195,7 @@ export async function parseMenuWithOpenAI({ imageUrl, dietaryPreference, apiKey,
  * @returns {Promise<string>} Base64 encoded image
  */
 export async function generateMenuImageWithOpenAI({ prompt, imageBlob, apiKey, signal }) {
-  const modelName = 'gpt-image-1';
+  const modelName = MODELS.image;
   console.log(`🎨 [OPENAI] Starting image generation with ${modelName}...`);
   console.log('📝 [OPENAI] Prompt length:', prompt.length, 'chars');
 
