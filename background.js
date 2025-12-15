@@ -5,7 +5,7 @@
 import { DIETARY_PREFERENCES, IMAGE_STYLES, TRANSLATION_LANGUAGES } from './ai/prompts.js';
 import { buildMenuFoodGenerationPrompt } from './ai/prompts/menu-food-generation.js';
 import { buildMenuTranslationPrompt } from './ai/prompts/menu-translation.js';
-import { parseMenuWithAI, generateImageWithAI, translateMenuImageWithAI, AI_PROVIDERS } from './ai/providers/ai-providers.js';
+import { parseMenuWithAI, generateImageWithAI, translateMenuImageWithAI, PROVIDERS } from './ai/providers/ai-providers.js';
 import { PROGRESS_STEPS } from './ai/providers/progress-steps.js';
 import { fetchImageAsBlob, mergeMenuLayerWithBackground } from './lib/image-processing.js';
 import { ACTIONS } from './lib/messages/actions.js';
@@ -26,76 +26,6 @@ import { assertSetting, throwIfAborted } from './lib/utils.js';
  * @property {number|null} timeoutId
  * @property {ProgressState} progress
  */
-
-// ============================================================================
-// MIGRATION - Storage migration for unified image styles
-// ============================================================================
-
-/**
- * Migrate old storage format to new unified IMAGE_STYLE format
- * Called on extension startup/update
- */
-async function migrateStorageToUnifiedStyle() {
-  const stored = await chrome.storage.local.get(['plateStyle', 'visualStyle', 'imageStyle']);
-
-  // If new format already exists, no migration needed
-  if (stored.imageStyle) {
-    console.log('✅ [MIGRATION] Already using new unified imageStyle format');
-    return;
-  }
-
-  // If no old settings exist, set default
-  if (!stored.plateStyle && !stored.visualStyle) {
-    console.log('✅ [MIGRATION] No previous settings - setting default');
-    await chrome.storage.local.set({ imageStyle: 'verkada-classic' });
-    return;
-  }
-
-  const oldPlateStyle = stored.plateStyle || 'verkada';
-  const oldVisualStyle = stored.visualStyle || 'modern';
-
-  console.log('🔄 [MIGRATION] Migrating from old format:', { oldPlateStyle, oldVisualStyle });
-
-  // Migration mapping
-  let newImageStyle = 'verkada-classic'; // default fallback
-
-  if (oldPlateStyle === 'verkada') {
-    if (oldVisualStyle === 'modern') {
-      newImageStyle = 'verkada-classic';
-    } else if (oldVisualStyle === 'cyberpunk') {
-      newImageStyle = 'verkada-cyberpunk';
-    } else if (oldVisualStyle === 'maximalist') {
-      newImageStyle = 'verkada-grandmillennial';
-    } else {
-      newImageStyle = 'verkada-classic';
-    }
-  } else if (oldPlateStyle === 'asian' && oldVisualStyle === 'cyberpunk') {
-    // Style removed - map to closest supported Verkada style
-    newImageStyle = 'verkada-cyberpunk';
-  } else if (oldPlateStyle === 'colorful' && oldVisualStyle === 'maximalist') {
-    // Style removed - map to closest supported Verkada style
-    newImageStyle = 'verkada-grandmillennial';
-  } else if (oldPlateStyle === 'rustic' && oldVisualStyle === 'vintage-film') {
-    newImageStyle = 'rustic-film';
-  } else {
-    newImageStyle = 'verkada-classic';
-  }
-
-  console.log('✅ [MIGRATION] Setting new imageStyle:', newImageStyle);
-
-  await chrome.storage.local.set({ imageStyle: newImageStyle });
-  await chrome.storage.local.remove(['plateStyle', 'visualStyle']);
-
-  console.log('✅ [MIGRATION] Migration complete');
-}
-
-// Run migration on extension install/update
-chrome.runtime.onInstalled.addListener(() => {
-  migrateStorageToUnifiedStyle();
-});
-
-// Also run on service worker startup
-migrateStorageToUnifiedStyle();
 
 // ============================================================================
 // CONSTANTS - Configuration and Static Data
@@ -310,9 +240,9 @@ async function processImageRequest({ imageUrl, requestId, signal }) {
  */
 chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
   if (request && request.action === ACTIONS.GET_AI_PROVIDERS) {
-    const providers = Object.keys(AI_PROVIDERS).map(key => ({
-      id: AI_PROVIDERS[key].id,
-      name: AI_PROVIDERS[key].name,
+    const providers = Object.values(PROVIDERS).map((provider) => ({
+      id: provider.meta.id,
+      name: provider.meta.name,
     }));
     sendResponse({ success: true, providers });
     return true;

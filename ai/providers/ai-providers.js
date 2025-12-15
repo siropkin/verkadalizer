@@ -30,13 +30,6 @@ export const PROVIDERS = {
 };
 
 /**
- * Available AI providers metadata (backwards-compatible export).
- */
-export const AI_PROVIDERS = Object.fromEntries(
-  Object.entries(PROVIDERS).map(([key, provider]) => [key, provider.meta])
-);
-
-/**
  * Get provider implementation for a given provider type.
  * @param {string} providerType - Provider type (e.g., 'openai', 'gemini')
  * @returns {{meta: {id: string, name: string}, parseMenu: Function, generateImage: Function, translateMenuImage: Function}}

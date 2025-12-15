@@ -77,12 +77,6 @@ function populateImageStyles(styleInput, styles) {
   }
 }
 
-function setSelectValueWithFallback(selectEl, desiredValue, fallbackValue) {
-  if (!selectEl) return;
-  const exists = Array.from(selectEl.options).some(opt => opt.value === desiredValue);
-  selectEl.value = exists ? desiredValue : fallbackValue;
-}
-
 function populateTranslationLanguages(languageInput, languages) {
   languageInput.innerHTML = '';
   for (const lang of languages) {
@@ -137,7 +131,14 @@ async function loadSettingsIntoUi(aiProviderInput, openaiApiKeyInput, geminiApiK
 
   const selectedImageStyle = stored.imageStyle || 'verkada-classic';
   if (selectedImageStyle) {
-    setSelectValueWithFallback(imageStyleInput, selectedImageStyle, 'verkada-classic');
+    const exists = Array.from(imageStyleInput.options).some(opt => opt.value === selectedImageStyle);
+    if (exists) {
+      imageStyleInput.value = selectedImageStyle;
+    } else {
+      // Stored value is no longer supported; default and persist cleanup
+      imageStyleInput.value = 'verkada-classic';
+      await chrome.storage.local.set({ imageStyle: 'verkada-classic' });
+    }
   }
 
   const selectedMenuLanguage = stored.menuLanguage || 'none';
