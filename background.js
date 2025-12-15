@@ -209,12 +209,15 @@ async function processImageRequest({ imageUrl, requestId, signal }) {
     });
 
     const backgroundDataUrl = `data:image/png;base64,${generatedB64}`;
-    const menuLayerSrc = (isTranslationEnabled && translatedMenuB64)
+    const hasTranslatedLayer = isTranslationEnabled && !!translatedMenuB64;
+    const menuLayerSrc = hasTranslatedLayer
       ? `data:image/png;base64,${translatedMenuB64}`
       : imageUrl;
 
     // Merge food background with ORIGINAL menu layer (no translation) OR TRANSLATED menu layer
-    const b64 = await mergeMenuLayerWithBackground(imageUrl, menuLayerSrc, backgroundDataUrl);
+    // Use 'contain' for AI-generated layers (preserves aspect, no crop), 'stretch' for originals
+    const resizeMode = hasTranslatedLayer ? 'contain' : 'stretch';
+    const b64 = await mergeMenuLayerWithBackground(imageUrl, menuLayerSrc, backgroundDataUrl, { resizeMode });
 
     updateProgress(requestId, PROGRESS_STEPS.IMAGE_GENERATED);
     console.log('✅ [IMAGE GENERATION] Post-processing complete!');
