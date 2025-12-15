@@ -12,6 +12,7 @@ import {
 } from '../../lib/image/utils.js';
 import { PROGRESS_STEPS } from './progress-steps.js';
 import { parseJsonFromModelText, readErrorMessage } from './provider-utils.js';
+import { logInfo, logWarn, logError } from '../../lib/logger.js';
 
 // ============================================================================
 // MODEL CONFIGURATION
@@ -70,8 +71,7 @@ function selectGeminiConfig(width, height) {
     resolution = '1K';
   }
 
-  console.log(`📐 [GEMINI] Input: ${width}×${height} (ratio: ${ratio.decimal.toFixed(3)}, pixels: ${totalPixels.toLocaleString()})`);
-  console.log(`🎯 [GEMINI] Selected config: ${aspectRatio} @ ${resolution}`);
+  logInfo('provider', 'gemini', `Image config: ${width}x${height} -> ${aspectRatio} @ ${resolution}`);
 
   return { aspectRatio, resolution };
 }
@@ -86,8 +86,7 @@ function selectGeminiConfig(width, height) {
  * @returns {Promise<Object>} Parsed menu data
  */
 export async function parseMenuWithGemini({ imageUrl, dietaryPreference, apiKey, updateProgress }) {
-  console.log('🍽️ [GEMINI] Starting menu analysis...');
-  console.log('📸 [GEMINI] Image URL:', imageUrl);
+  logInfo('provider', 'gemini', 'Starting menu parsing');
 
   try {
     updateProgress(PROGRESS_STEPS.PARSING_MENU_START);
@@ -98,27 +97,21 @@ export async function parseMenuWithGemini({ imageUrl, dietaryPreference, apiKey,
 
     // Fetch the menu image and convert to base64
     updateProgress(PROGRESS_STEPS.FETCHING_MENU_IMAGE);
-    console.log('⬇️ [GEMINI] Fetching menu image...');
     const imageBlob = await fetchImageAsBlob(imageUrl);
     const imageBase64 = await blobToBase64(imageBlob);
-    const imageSizeKB = Math.round(imageBase64.length / 1024);
-    console.log(`✅ [GEMINI] Image fetched, size: ${imageSizeKB} KB`);
 
     // Get dietary preference context
     const preference = DIETARY_PREFERENCES[dietaryPreference] || DIETARY_PREFERENCES['regular'];
-    console.log('📋 [GEMINI] Dietary preference:', preference.name);
 
     // Build the menu parsing prompt
     updateProgress(PROGRESS_STEPS.PREPARING_AI_ANALYSIS, { preferenceName: preference.name });
     const parsingPrompt = buildMenuParsingPrompt(preference);
-    const promptLength = parsingPrompt.length;
-    console.log(`📝 [GEMINI] Prompt built, length: ${promptLength} chars`);
 
     const modelName = MODELS.parse;
 
     // Call Gemini Flash (vision model) to parse the menu
     updateProgress(PROGRESS_STEPS.READING_MENU_WITH_AI);
-    console.log(`🤖 [GEMINI] Calling ${modelName} for menu analysis...`);
+    logInfo('provider', 'gemini', `Calling ${modelName} for menu parsing`);
 
     const requestBody = {
       contents: [
@@ -178,30 +171,23 @@ export async function parseMenuWithGemini({ imageUrl, dietaryPreference, apiKey,
     updateProgress(PROGRESS_STEPS.PROCESSING_AI_RESPONSE);
 
     const data = await response.json();
-    console.log('📦 [GEMINI] Raw API response:', JSON.stringify(data, null, 2));
 
     const aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!aiResponse) {
       throw new Error('No response content from AI');
     }
 
-    console.log('💬 [GEMINI] AI Response:\n', aiResponse);
-
     // Parse the JSON response from AI
     updateProgress(PROGRESS_STEPS.EXTRACTING_DISHES);
     let parsedData;
     try {
       parsedData = parseJsonFromModelText(aiResponse);
-      console.log('✅ [GEMINI] Successfully parsed JSON response');
     } catch (parseError) {
-      console.error('❌ [GEMINI] Failed to parse JSON:', parseError);
+      logError('provider', 'gemini', 'Failed to parse JSON response', parseError.message);
       throw new Error(`Failed to parse Gemini response as JSON: ${parseError.message}`);
     }
 
-    console.log('🎯 [GEMINI] Parsed Data:', JSON.stringify(parsedData, null, 2));
-    console.log('🍽️ [GEMINI] Selected Items:', parsedData.selectedItems?.length || 0);
-    console.log('🎨 [GEMINI] Menu Theme:', parsedData.menuTheme);
-    console.log('✨ [GEMINI] Menu analysis complete!');
+    logInfo('provider', 'gemini', `Menu parsed: ${parsedData.selectedItems?.length || 0} items`);
 
     // Show selected dishes to the user
     const selectedDishes = parsedData.selectedItems?.map(item => item.name) || [];
@@ -209,7 +195,7 @@ export async function parseMenuWithGemini({ imageUrl, dietaryPreference, apiKey,
 
     return parsedData;
   } catch (error) {
-    console.error('❌ [GEMINI] Error:', error);
+    logError('provider', 'gemini', 'Menu parsing failed', error.message);
     throw error;
   }
 }
@@ -230,8 +216,7 @@ export async function generateMenuImageWithGemini({
   signal
 }) {
   const modelName = MODELS.image;
-  console.log(`🎨 [GEMINI] Starting image generation with ${modelName}...`);
-  console.log('📝 [GEMINI] Prompt length:', prompt.length, 'chars');
+  logInfo('provider', 'gemini', `Starting image generation with ${modelName}`);
 
   try {
     if (!apiKey) {
@@ -244,9 +229,6 @@ export async function generateMenuImageWithGemini({
       dimensions.width,
       dimensions.height
     );
-
-    console.log(`🎯 [GEMINI] Configuration: ${resolution} resolution, ${aspectRatio} aspect ratio`);
-    console.log(`🤖 [GEMINI] Calling ${modelName} for image generation...`);
 
     // Convert image blob to base64
     const imageBase64 = await blobToBase64(imageBlob);
@@ -314,56 +296,31 @@ export async function generateMenuImageWithGemini({
       throw new Error(`Gemini API error: ${errorMessage}`);
     }
 
-    console.log('📦 [GEMINI] Extracting image data...');
     const data = await response.json();
-    console.log('📦 [GEMINI] Raw API response:', JSON.stringify(data, null, 2));
 
     const parts = data?.candidates?.[0]?.content?.parts || [];
 
-    // Extract text response if present (Gemini 3 includes text explanation)
-    let textResponse = null;
+    // Extract image data
     let b64 = null;
-    let thoughtSignature = null;
 
     for (const part of parts) {
-      // Extract text (Gemini 3 Pro Image provides reasoning/explanation)
-      if (part.text) {
-        textResponse = part.text;
-        console.log('💬 [GEMINI] AI explanation:', textResponse);
-      }
-
       // Extract image data - try both formats
       if (part.inlineData && part.inlineData.data) {
         b64 = part.inlineData.data;
-        thoughtSignature = part.thought_signature;
-        console.log('✅ [GEMINI] Found image data in inlineData format');
       } else if (part.inline_data && part.inline_data.data) {
         b64 = part.inline_data.data;
-        thoughtSignature = part.thought_signature;
-        console.log('✅ [GEMINI] Found image data in inline_data format');
       }
     }
 
     if (!b64) {
-      console.error('❌ [GEMINI] No image data found in response parts');
-      console.error('📦 [GEMINI] Parts structure:', JSON.stringify(parts, null, 2));
+      logError('provider', 'gemini', 'No image data in response');
       throw new Error('No image data returned from Gemini');
     }
 
-    console.log('✅ [GEMINI] Image generated with Gemini 3 Pro Image!');
-    if (textResponse) {
-      const maxPreviewLength = 200;
-      const preview = textResponse.length > maxPreviewLength
-        ? textResponse.substring(0, maxPreviewLength) + '...'
-        : textResponse;
-      console.log(`📝 [GEMINI] Model provided explanation: ${preview}`);
-    }
-    if (thoughtSignature) {
-      console.log('🧠 [GEMINI] Thought signature available for multi-turn refinement');
-    }
+    logInfo('provider', 'gemini', 'Image generation complete');
     return b64;
   } catch (error) {
-    console.error('❌ [GEMINI] Error:', error);
+    logError('provider', 'gemini', 'Image generation failed', error.message);
     throw error;
   }
 }

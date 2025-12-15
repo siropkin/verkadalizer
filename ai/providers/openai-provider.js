@@ -11,6 +11,7 @@ import {
 } from '../../lib/image/utils.js';
 import { PROGRESS_STEPS } from './progress-steps.js';
 import { parseJsonFromModelText, readErrorMessage } from './provider-utils.js';
+import { logInfo, logWarn, logError } from '../../lib/logger.js';
 
 // ============================================================================
 // MODEL CONFIGURATION
@@ -56,9 +57,7 @@ function selectOpenAISize(width, height) {
     }
   }
 
-  const totalPixels = width * height;
-  console.log(`📐 [OPENAI] Input: ${width}×${height} (ratio: ${ratio.decimal.toFixed(3)}, pixels: ${totalPixels.toLocaleString()})`);
-  console.log(`🎯 [OPENAI] Selected size: ${closestSize.name} (ratio: ${closestSize.ratio.toFixed(3)})`);
+  logInfo('provider', 'openai', `Image config: ${width}x${height} -> ${closestSize.name}`);
 
   return closestSize.name;
 }
@@ -73,8 +72,7 @@ function selectOpenAISize(width, height) {
  * @returns {Promise<Object>} Parsed menu data
  */
 export async function parseMenuWithOpenAI({ imageUrl, dietaryPreference, apiKey, updateProgress }) {
-  console.log('🍽️ [OPENAI] Starting menu analysis...');
-  console.log('📸 [OPENAI] Image URL:', imageUrl);
+  logInfo('provider', 'openai', 'Starting menu parsing');
 
   try {
     updateProgress(PROGRESS_STEPS.PARSING_MENU_START);
@@ -85,27 +83,21 @@ export async function parseMenuWithOpenAI({ imageUrl, dietaryPreference, apiKey,
 
     // Fetch the menu image and convert to base64
     updateProgress(PROGRESS_STEPS.FETCHING_MENU_IMAGE);
-    console.log('⬇️ [OPENAI] Fetching menu image...');
     const imageBlob = await fetchImageAsBlob(imageUrl);
     const imageBase64 = await blobToBase64(imageBlob);
-    const imageSizeKB = Math.round(imageBase64.length / 1024);
-    console.log(`✅ [OPENAI] Image fetched, size: ${imageSizeKB} KB`);
 
     // Get dietary preference context
     const preference = DIETARY_PREFERENCES[dietaryPreference] || DIETARY_PREFERENCES['regular'];
-    console.log('📋 [OPENAI] Dietary preference:', preference.name);
 
     // Build the menu parsing prompt
     updateProgress(PROGRESS_STEPS.PREPARING_AI_ANALYSIS, { preferenceName: preference.name });
     const parsingPrompt = buildMenuParsingPrompt(preference);
-    const promptLength = parsingPrompt.length;
-    console.log(`📝 [OPENAI] Prompt built, length: ${promptLength} chars`);
 
     const modelName = MODELS.parse;
 
     // Call GPT-4o (vision model) to parse the menu
     updateProgress(PROGRESS_STEPS.READING_MENU_WITH_AI);
-    console.log(`🤖 [OPENAI] Calling ${modelName} for menu analysis...`);
+    logInfo('provider', 'openai', `Calling ${modelName} for menu parsing`);
     const requestBody = {
       model: modelName,
       messages: [
@@ -149,30 +141,23 @@ export async function parseMenuWithOpenAI({ imageUrl, dietaryPreference, apiKey,
     updateProgress(PROGRESS_STEPS.PROCESSING_AI_RESPONSE);
 
     const data = await response.json();
-    console.log('📦 [OPENAI] Raw API response:', JSON.stringify(data, null, 2));
 
     const aiResponse = data.choices[0]?.message?.content;
     if (!aiResponse) {
       throw new Error('No response content from AI');
     }
 
-    console.log('💬 [OPENAI] AI Response:\n', aiResponse);
-
     // Parse the JSON response from AI
     updateProgress(PROGRESS_STEPS.EXTRACTING_DISHES);
     let parsedData;
     try {
       parsedData = parseJsonFromModelText(aiResponse);
-      console.log('✅ [OPENAI] Successfully parsed JSON response');
     } catch (parseError) {
-      console.error('❌ [OPENAI] Failed to parse JSON:', parseError);
+      logError('provider', 'openai', 'Failed to parse JSON response', parseError.message);
       throw new Error(`Failed to parse AI response as JSON: ${parseError.message}`);
     }
 
-    console.log('🎯 [OPENAI] Parsed Data:', JSON.stringify(parsedData, null, 2));
-    console.log('🍽️ [OPENAI] Selected Items:', parsedData.selectedItems?.length || 0);
-    console.log('🎨 [OPENAI] Menu Theme:', parsedData.menuTheme);
-    console.log('✨ [OPENAI] Menu analysis complete!');
+    logInfo('provider', 'openai', `Menu parsed: ${parsedData.selectedItems?.length || 0} items`);
 
     // Show selected dishes to the user
     const selectedDishes = parsedData.selectedItems?.map(item => item.name) || [];
@@ -180,7 +165,7 @@ export async function parseMenuWithOpenAI({ imageUrl, dietaryPreference, apiKey,
 
     return parsedData;
   } catch (error) {
-    console.error('❌ [OPENAI] Error:', error);
+    logError('provider', 'openai', 'Menu parsing failed', error.message);
     throw error;
   }
 }
@@ -196,8 +181,7 @@ export async function parseMenuWithOpenAI({ imageUrl, dietaryPreference, apiKey,
  */
 export async function generateMenuImageWithOpenAI({ prompt, imageBlob, apiKey, signal }) {
   const modelName = MODELS.image;
-  console.log(`🎨 [OPENAI] Starting image generation with ${modelName}...`);
-  console.log('📝 [OPENAI] Prompt length:', prompt.length, 'chars');
+  logInfo('provider', 'openai', `Starting image generation with ${modelName}`);
 
   try {
     if (!apiKey) {
@@ -207,9 +191,6 @@ export async function generateMenuImageWithOpenAI({ prompt, imageBlob, apiKey, s
     // Get image dimensions and select optimal size
     const dimensions = await getImageDimensions(imageBlob);
     const size = selectOpenAISize(dimensions.width, dimensions.height);
-
-    console.log(`🎯 [OPENAI] Configuration: ${size}`);
-    console.log(`🤖 [OPENAI] Calling ${modelName} for image generation...`);
 
     // Build request for GPT-Image-1
     const formData = new FormData();
@@ -235,21 +216,18 @@ export async function generateMenuImageWithOpenAI({ prompt, imageBlob, apiKey, s
       throw new Error(`OpenAI API error: ${errorMessage}`);
     }
 
-    console.log('📦 [OPENAI] Extracting image data...');
     const data = await response.json();
-    console.log('📦 [OPENAI] Raw API response:', JSON.stringify(data, null, 2));
 
     const b64 = data?.data?.[0]?.b64_json;
     if (!b64) {
-      console.error('❌ [OPENAI] No image data found in response');
-      console.error('📦 [OPENAI] Response structure:', JSON.stringify(data, null, 2));
+      logError('provider', 'openai', 'No image data in response');
       throw new Error('No image data returned from OpenAI');
     }
 
-    console.log('✅ [OPENAI] Image generated with GPT-Image-1!');
+    logInfo('provider', 'openai', 'Image generation complete');
     return b64;
   } catch (error) {
-    console.error('❌ [OPENAI] Error:', error);
+    logError('provider', 'openai', 'Image generation failed', error.message);
     throw error;
   }
 }

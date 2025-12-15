@@ -12,6 +12,7 @@ import { ACTIONS } from './lib/messages/actions.js';
 import { stepToProgressData } from './lib/progress-steps.js';
 import { loadSettings, generateRequestIdFromImage, saveGeneratedImageToStorage, loadSavedImageFromStorage, cleanupOldSavedImages } from './lib/storage.js';
 import { assertSetting, throwIfAborted } from './lib/utils.js';
+import { logInfo, logWarn, logError } from './lib/logger.js';
 
 /**
  * @typedef {Object} ProgressState
@@ -93,12 +94,11 @@ async function processImageRequest({ imageUrl, requestId, signal }) {
     assertSetting(settings.aiProvider, 'AI Provider not configured');
     assertSetting(settings.apiKey, 'API key not configured');
 
-    console.log('🚀 [IMAGE GENERATION] Starting three-stage pipeline...');
-    console.log('📸 [IMAGE GENERATION] Image URL:', imageUrl);
+    logInfo('background', 'pipeline', 'Starting three-stage pipeline');
 
     // STAGE 1: Parse the menu with AI to get intelligent dish selection
     updateProgress(requestId, PROGRESS_STEPS.STARTING);
-    console.log('⚡ [IMAGE GENERATION] Stage 1: Parsing menu with AI...');
+    logInfo('background', 'pipeline', 'Stage 1: Parsing menu with AI');
     const stored = await chrome.storage.local.get(['dietaryPreference', 'imageStyle', 'menuLanguage']);
     const dietaryPreference = stored.dietaryPreference || 'regular';
     const imageStyle = stored.imageStyle || 'verkada-classic';
@@ -121,48 +121,39 @@ async function processImageRequest({ imageUrl, requestId, signal }) {
         updateProgress: wrappedUpdateProgress,
         providerType: settings.aiProvider || 'openai'
       });
-      console.log('✅ [IMAGE GENERATION] Stage 1 complete - Menu parsed successfully');
-      console.log('🎯 [IMAGE GENERATION] Selected items:', parsedMenuData.selectedItems?.length || 0);
-      console.log('🎨 [IMAGE GENERATION] Menu theme:', parsedMenuData.menuTheme);
+      logInfo('background', 'pipeline', `Stage 1 complete: ${parsedMenuData.selectedItems?.length || 0} items selected`);
 
       // Validate that we have at least some items
       if (!parsedMenuData.selectedItems || parsedMenuData.selectedItems.length < 3) {
-        console.warn('⚠️ [IMAGE GENERATION] AI returned too few items:', parsedMenuData.selectedItems?.length || 0);
+        logWarn('background', 'pipeline', `AI returned too few items: ${parsedMenuData.selectedItems?.length || 0}`);
         throw new Error(`AI returned insufficient items (${parsedMenuData.selectedItems?.length || 0}). Need at least 3 dishes.`);
       }
 
       if (parsedMenuData.selectedItems.length > 12) {
-        console.warn('⚠️ [IMAGE GENERATION] AI returned too many items:', parsedMenuData.selectedItems.length, '(max 12)');
-        console.warn('⚠️ [IMAGE GENERATION] Trimming to first 12 items for optimal visualization');
+        logWarn('background', 'pipeline', `AI returned ${parsedMenuData.selectedItems.length} items, trimming to 12`);
         parsedMenuData.selectedItems = parsedMenuData.selectedItems.slice(0, 12);
       }
 
-      console.log('✅ [IMAGE GENERATION] Validation passed - proceeding with', parsedMenuData.selectedItems.length, 'dishes');
-
       // STAGE 2: Build dynamic prompt from parsed data
       updateProgress(requestId, PROGRESS_STEPS.BUILDING_PROMPT);
-      console.log('⚡ [IMAGE GENERATION] Stage 2: Building dynamic prompt...');
+      logInfo('background', 'pipeline', 'Stage 2: Building dynamic prompt');
       dynamicPrompt = buildMenuFoodGenerationPrompt(parsedMenuData, imageStyle, dietaryPreference, settings.aiProvider);
-      console.log('✅ [IMAGE GENERATION] Stage 2 complete - Prompt generated');
+      logInfo('background', 'pipeline', 'Stage 2 complete');
     } catch (parseError) {
-      console.error('❌ [IMAGE GENERATION] Menu parsing failed:', parseError.message);
+      logError('background', 'pipeline', 'Menu parsing failed', parseError.message);
       throw new Error(`Failed to parse menu: ${parseError.message}`);
     }
 
     // Use the dynamically generated prompt instead of static one
     const finalPrompt = dynamicPrompt;
 
-    console.log('📝 [IMAGE GENERATION] Using prompt (first 200 chars):', finalPrompt.substring(0, 200) + '...');
-
     // Timeout is now handled by the provider internally
 
     updateProgress(requestId, PROGRESS_STEPS.PREPARING_IMAGE_GENERATION);
-    console.log('⬇️ [IMAGE GENERATION] Fetching image for processing...');
     const imageBlob = await fetchImageAsBlob(imageUrl, signal);
     if (!imageBlob || imageBlob.size === 0) {
       throw new Error('Fetched image is empty');
     }
-    console.log('✅ [IMAGE GENERATION] Image fetched, size:', Math.round(imageBlob.size / 1024), 'KB');
 
     throwIfAborted(signal);
 
@@ -171,7 +162,7 @@ async function processImageRequest({ imageUrl, requestId, signal }) {
       translationEnabled: isTranslationEnabled,
       translationLanguage: menuLanguage || 'none'
     });
-    console.log('🤖 [IMAGE GENERATION] Calling image generation API...');
+    logInfo('background', 'pipeline', 'Calling image generation API');
 
     // Run food generation and (optional) menu translation in parallel
     const foodPromise = generateImageWithAI({
@@ -190,18 +181,18 @@ async function processImageRequest({ imageUrl, requestId, signal }) {
         signal,
         providerType: settings.aiProvider
       }).catch((err) => {
-        console.warn('⚠️ [IMAGE GENERATION] Menu translation failed; falling back to original menu layer:', err?.message || err);
+        logWarn('background', 'pipeline', 'Menu translation failed, using original layer', err?.message || err);
         return null;
       })
       : Promise.resolve(null);
 
     const [generatedB64, translatedMenuB64] = await Promise.all([foodPromise, translationPromise]);
 
-    console.log('✅ [IMAGE GENERATION] Image generated successfully!');
+    logInfo('background', 'pipeline', 'Image generated');
 
     // STAGE 3: Post-process and merge images (background-level)
     updateProgress(requestId, PROGRESS_STEPS.FINALIZING_IMAGE);
-    console.log('⚡ [IMAGE GENERATION] Stage 3: Post-processing and merging images...');
+    logInfo('background', 'pipeline', 'Stage 3: Post-processing and merging');
 
     updateProgress(requestId, PROGRESS_STEPS.MERGING_IMAGES, {
       translationEnabled: isTranslationEnabled,
@@ -220,16 +211,15 @@ async function processImageRequest({ imageUrl, requestId, signal }) {
     const b64 = await mergeMenuLayerWithBackground(imageUrl, menuLayerSrc, backgroundDataUrl, { resizeMode });
 
     updateProgress(requestId, PROGRESS_STEPS.IMAGE_GENERATED);
-    console.log('✅ [IMAGE GENERATION] Post-processing complete!');
-    console.log('🎉 [IMAGE GENERATION] Three-stage pipeline complete!');
+    logInfo('background', 'pipeline', 'Pipeline complete');
 
     return { success: true, b64 };
   } catch (error) {
     if (error && (error.name === 'AbortError' || /aborted|abort/i.test(error.message))) {
-      console.log('🛑 [IMAGE GENERATION] Request canceled');
+      logInfo('background', 'pipeline', 'Request canceled');
       return { success: false, canceled: true, error: 'Request canceled' };
     }
-    console.error('❌ [IMAGE GENERATION] Error processing image:', error);
+    logError('background', 'pipeline', 'Error processing image', error?.message || error);
     return { success: false, error: error?.message || 'Unknown error' };
   }
 }

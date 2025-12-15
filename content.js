@@ -372,7 +372,7 @@ async function saveGeneratedImage(requestId, generatedSrc) {
       throw new Error(response.error);
     }
   } catch (error) {
-    console.warn('Failed to save generated image:', error);
+    console.warn('[VK][content][storage] Failed to save generated image:', error.message);
   }
 }
 
@@ -385,7 +385,7 @@ async function cleanupOldSavedImages() {
       throw new Error(response.error);
     }
   } catch (error) {
-    console.warn('Failed to cleanup old saved images:', error);
+    console.warn('[VK][content][storage] Failed to cleanup old saved images:', error.message);
   }
 }
 
@@ -400,7 +400,7 @@ async function loadSavedImage(requestId) {
     }
     return null;
   } catch (error) {
-    console.warn('Failed to load saved image:', error);
+    console.warn('[VK][content][storage] Failed to load saved image:', error.message);
     return null;
   }
 }
@@ -453,7 +453,7 @@ async function startImageProcessing(img) {
         updateSpinnerProgress(img, progressResponse.progressData);
       }
     } catch (error) {
-      console.warn('Failed to get progress:', error);
+      console.warn('[VK][content][progress] Failed to get progress:', error.message);
     }
   }, 500); // Poll every 500ms for smooth updates
 
@@ -480,7 +480,7 @@ async function startImageProcessing(img) {
       }
     }
   } catch (error) {
-    console.error('Error processing image:', error);
+    console.error('[VK][content][processing] Error processing image:', error.message);
     // For errors, just show raw error message (not a step)
     const spinner = img.parentElement.querySelector('.menu-image-spinner-overlay');
     if (spinner) {

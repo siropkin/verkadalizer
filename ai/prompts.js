@@ -438,15 +438,8 @@ Return ONLY valid JSON, no additional text. Make sure the JSON is properly forma
 export function buildImageGenerationPrompt(parsedMenuData, imageStyle = 'verkada-classic', dietaryPreference = 'regular', providerType = 'openai', translationLanguage = 'none') {
   const { menuTheme, selectedItems } = parsedMenuData;
 
-  console.log('🎨 [PROMPT BUILDER] Building dynamic image generation prompt...');
-  console.log('📋 [PROMPT BUILDER] Menu Theme:', menuTheme);
-  console.log('🍽️ [PROMPT BUILDER] Selected Items:', selectedItems.length);
-  console.log('🎨 [PROMPT BUILDER] Image Style:', imageStyle);
-  console.log('🥗 [PROMPT BUILDER] Dietary Preference:', dietaryPreference);
-
   // Get unified image style configuration
   const imageStyleConfig = IMAGE_STYLES[imageStyle] || IMAGE_STYLES['verkada-classic'];
-  console.log('🎨 [PROMPT BUILDER] Image style config:', JSON.stringify(imageStyleConfig, null, 2));
 
   // Build the dish descriptions with plate assignments
   const dishDescriptions = selectedItems.map((item, index) => {
@@ -455,8 +448,6 @@ export function buildImageGenerationPrompt(parsedMenuData, imageStyle = 'verkada
    - Plate: ${plateType}
    - Visual Notes: ${item.visualAppeal}`;
   }).join('\n\n');
-
-  console.log('🍽️ [PROMPT BUILDER] Dish descriptions created');
 
   // Translation-based text handling instructions
   const translationConfig = TRANSLATION_LANGUAGES[translationLanguage] || TRANSLATION_LANGUAGES['none'];
@@ -801,9 +792,6 @@ A single, high-resolution PHOTOREALISTIC image (not CGI or 3D render) with the f
 - **Bottom 2/3**: All ${selectedItems.length} dishes in ${imageStyleConfig.name} presentation with generous spacing and natural perspective depth
 
 The image should look like a professional food photograph taken with a real camera, showing real food that actually exists.`;
-
-  console.log('✅ [PROMPT BUILDER] Dynamic prompt built, length:', prompt.length, 'chars');
-  console.log('📝 [PROMPT BUILDER] Full prompt:\n', prompt);
 
   return prompt;
 }

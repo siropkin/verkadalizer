@@ -23,13 +23,6 @@ export function buildMenuFoodGenerationPrompt(
 ) {
   const { menuTheme, selectedItems } = parsedMenuData;
 
-  console.log('🎨 [PROMPT BUILDER] Building FOOD (no-text) image generation prompt...');
-  console.log('📋 [PROMPT BUILDER] Provider:', providerType);
-  console.log('📋 [PROMPT BUILDER] Menu Theme:', menuTheme);
-  console.log('🍽️ [PROMPT BUILDER] Selected Items:', selectedItems.length);
-  console.log('🎨 [PROMPT BUILDER] Image Style:', imageStyle);
-  console.log('🥗 [PROMPT BUILDER] Dietary Preference:', dietaryPreference);
-
   const imageStyleConfig = IMAGE_STYLES[imageStyle] || IMAGE_STYLES['verkada-classic'];
 
   const dishDescriptions = selectedItems.map((item, index) => {
@@ -160,7 +153,6 @@ A single, high-resolution PHOTOREALISTIC image (not CGI or 3D render) with the f
 
 The image should look like a professional food photograph taken with a real camera, showing real food that actually exists.`;
 
-  console.log('✅ [PROMPT BUILDER] Food prompt built, length:', prompt.length, 'chars');
   return prompt;
 }
 
