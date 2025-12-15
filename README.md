@@ -117,7 +117,10 @@ When you click the generate button:
 
 - Extracts text from the menu image using OCR
 - Sends to your selected AI provider (GPT-4o or Gemini 3 Pro) with your dietary preference
-- AI analyzes and selects 6-8 appropriate dishes based on:
+- AI analyzes and selects an appropriate set of dishes based on:
+  - Target: ~5-8 dishes (optimal)
+  - Minimum: 3 dishes
+  - Maximum: up to ~12 dishes for large, diverse menus
   - Dietary constraints (e.g., vegan, gluten-free)
   - Visual appeal and variety
   - Menu theme and cuisine type

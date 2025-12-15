@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Verkadalizer",
-  "version": "3.5.0",
+  "version": "3.5.1",
   "description": "Transforms Verkada Menu images into AI-powered food visualizations using OpenAI or Google Gemini.",
   "author": "Ivan Seredkin",
   "homepage_url": "https://github.com/siropkin/verkadalizer",

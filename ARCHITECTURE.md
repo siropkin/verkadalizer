@@ -95,14 +95,14 @@ const progressData = response.progressData;
 | File                              | Responsibility                                      | Type           | Lines |
 | --------------------------------- | --------------------------------------------------- | -------------- | ----- |
 | `ai/providers/progress-steps.js`  | Define step constants (API contract)                | Business Logic | 38    |
-| `ai/providers/gemini-provider.js` | Emit steps during Gemini processing                 | Business Logic | 338   |
-| `ai/providers/openai-provider.js` | Emit steps during OpenAI processing                 | Business Logic | 257   |
+| `ai/providers/gemini-provider.js` | Emit steps during Gemini processing                 | Business Logic | 341   |
+| `ai/providers/openai-provider.js` | Emit steps during OpenAI processing                 | Business Logic | 249   |
 | `ai/providers/provider-utils.js`  | Shared JSON + error parsing helpers                 | Business Logic | -     |
 | `ai/providers/ai-providers.js`    | Provider registry + routing (`PROVIDERS`)           | Orchestration  | -     |
-| `background.js`                   | Store steps and serve UI-ready progressData         | Orchestration  | 325   |
+| `background.js`                   | Store steps and serve UI-ready progressData         | Orchestration  | 398   |
 | `lib/messages/actions.js`         | Canonical message action names (popup + background) | Contract       | -     |
 | `lib/messages/protocol.js`        | JSDoc message/provider contracts                    | Contract       | -     |
-| `content.js`                      | All client-side functionality (single file)         | Presentation   | 768   |
+| `content.js`                      | All client-side functionality (single file)         | Presentation   | 588   |
 
 ### Message Actions Contract
 
@@ -116,7 +116,7 @@ Message actions are centralized for the ESM contexts:
 **Content Script Approach:** Single consolidated file with clear section organization:
 
 - Content scripts have poor ES6 module support in Chrome
-- Single file (~768 lines) is simpler than fighting module limitations
+- Single file (~588 lines) is simpler than fighting module limitations
 - Well-organized with section comments for easy navigation
 - UI mapping lives in the background service worker (single source of truth)
 
@@ -371,7 +371,7 @@ Chrome extensions have complex limitations around ES6 modules in content scripts
 - Dynamic imports require `web_accessible_resources` which exposes internal code
 - Module loading adds complexity and potential security issues
 
-**Simple is better!** A single well-organized file (~768 lines) is easier to maintain than fighting Chrome's module limitations.
+**Simple is better!** A single well-organized file (~588 lines) is easier to maintain than fighting Chrome's module limitations.
 
 ### Content Script Organization
 
