@@ -1,3 +1,5 @@
+import { ACTIONS } from './lib/messages/actions.js';
+
 function showStatus(statusDiv, message, type) {
   statusDiv.textContent = message;
   statusDiv.className = `status ${type}`;
@@ -9,7 +11,7 @@ function showStatus(statusDiv, message, type) {
 
 async function loadDietaryPreferences() {
   return new Promise((resolve, reject) => {
-    chrome.runtime.sendMessage({ action: 'getDietaryPreferences' }, response => {
+    chrome.runtime.sendMessage({ action: ACTIONS.GET_DIETARY_PREFERENCES }, response => {
       if (response && response.success) {
         resolve(response.preferences);
       } else {
@@ -21,7 +23,7 @@ async function loadDietaryPreferences() {
 
 async function loadImageStyles() {
   return new Promise((resolve, reject) => {
-    chrome.runtime.sendMessage({ action: 'getImageStyles' }, response => {
+    chrome.runtime.sendMessage({ action: ACTIONS.GET_IMAGE_STYLES }, response => {
       if (response && response.success) {
         resolve(response.styles);
       } else {
@@ -33,7 +35,7 @@ async function loadImageStyles() {
 
 async function loadTranslationLanguages() {
   return new Promise((resolve, reject) => {
-    chrome.runtime.sendMessage({ action: 'getTranslationLanguages' }, response => {
+    chrome.runtime.sendMessage({ action: ACTIONS.GET_TRANSLATION_LANGUAGES }, response => {
       if (response && response.success) {
         resolve(response.languages);
       } else {
@@ -45,7 +47,7 @@ async function loadTranslationLanguages() {
 
 async function loadAiProviders() {
   return new Promise((resolve, reject) => {
-    chrome.runtime.sendMessage({ action: 'getAiProviders' }, response => {
+    chrome.runtime.sendMessage({ action: ACTIONS.GET_AI_PROVIDERS }, response => {
       if (response && response.success) {
         resolve(response.providers);
       } else {

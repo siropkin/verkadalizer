@@ -11,6 +11,7 @@ import {
   findClosestAspectRatio,
 } from '../../lib/image/utils.js';
 import { PROGRESS_STEPS } from './progress-steps.js';
+import { parseJsonFromModelText, readErrorMessage } from './provider-utils.js';
 
 // ============================================================================
 // GEMINI PROVIDER API - Public functions
@@ -162,11 +163,7 @@ export async function parseMenuWithGemini({ imageUrl, dietaryPreference, apiKey,
     );
 
     if (!response.ok) {
-      let errorMessage = response.statusText;
-      try {
-        const errorData = await response.json();
-        errorMessage = errorData.error?.message || errorMessage;
-      } catch (_) {}
+      const errorMessage = await readErrorMessage(response);
       throw new Error(`Gemini API error: ${errorMessage}`);
     }
 
@@ -186,10 +183,7 @@ export async function parseMenuWithGemini({ imageUrl, dietaryPreference, apiKey,
     updateProgress(PROGRESS_STEPS.EXTRACTING_DISHES);
     let parsedData;
     try {
-      // Extract JSON from markdown code blocks if present
-      const jsonMatch = aiResponse.match(/```json\s*([\s\S]*?)\s*```/) || aiResponse.match(/```\s*([\s\S]*?)\s*```/);
-      const jsonString = jsonMatch ? jsonMatch[1] : aiResponse;
-      parsedData = JSON.parse(jsonString.trim());
+      parsedData = parseJsonFromModelText(aiResponse);
       console.log('✅ [GEMINI] Successfully parsed JSON response');
     } catch (parseError) {
       console.error('❌ [GEMINI] Failed to parse JSON:', parseError);
@@ -308,11 +302,7 @@ export async function generateMenuImageWithGemini({
     );
 
     if (!response.ok) {
-      let errorMessage = response.statusText;
-      try {
-        const errorData = await response.json();
-        errorMessage = errorData.error?.message || errorMessage;
-      } catch (_) {}
+      const errorMessage = await readErrorMessage(response);
       throw new Error(`Gemini API error: ${errorMessage}`);
     }
 

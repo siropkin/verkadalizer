@@ -8,8 +8,23 @@ import { buildMenuTranslationPrompt } from './ai/prompts/menu-translation.js';
 import { parseMenuWithAI, generateImageWithAI, translateMenuImageWithAI, AI_PROVIDERS } from './ai/providers/ai-providers.js';
 import { PROGRESS_STEPS } from './ai/providers/progress-steps.js';
 import { fetchImageAsBlob, mergeMenuLayerWithBackground } from './lib/image-processing.js';
+import { ACTIONS } from './lib/messages/actions.js';
 import { loadSettings, generateRequestIdFromImage, saveGeneratedImageToStorage, loadSavedImageFromStorage, cleanupOldSavedImages } from './lib/storage.js';
 import { assertSetting, throwIfAborted } from './lib/utils.js';
+
+/**
+ * @typedef {Object} ProgressState
+ * @property {string} step - Progress step identifier (see `ai/providers/progress-steps.js`)
+ * @property {Object} extra - Optional extra payload for UI
+ * @property {number} timestamp - Epoch millis when progress was last updated
+ */
+
+/**
+ * @typedef {Object} InFlightRequest
+ * @property {AbortController} controller
+ * @property {number|null} timeoutId
+ * @property {ProgressState} progress
+ */
 
 // ============================================================================
 // MIGRATION - Storage migration for unified image styles
@@ -85,28 +100,13 @@ migrateStorageToUnifiedStyle();
 // CONSTANTS - Configuration and Static Data
 // ============================================================================
 
-// Action types for message handling
-const ACTIONS = {
-  GET_DIETARY_PREFERENCES: 'getDietaryPreferences',
-  GET_IMAGE_STYLES: 'getImageStyles',
-  GET_AI_PROVIDERS: 'getAiProviders',
-  GET_TRANSLATION_LANGUAGES: 'getTranslationLanguages',
-  GENERATE_REQUEST_ID: 'generateRequestId',
-  PROCESS_IMAGE: 'processImage',
-  CANCEL_REQUEST: 'cancelRequest',
-  SAVE_GENERATED_IMAGE: 'saveGeneratedImage',
-  LOAD_SAVED_IMAGE: 'loadSavedImage',
-  CLEANUP_OLD_IMAGES: 'cleanupOldImages',
-  GET_PROGRESS: 'getProgress',
-};
-
-
 // ============================================================================
 // STATE MANAGEMENT
 // ============================================================================
 
 // Tracks in-flight requests by requestId
-const inFlightRequests = new Map(); // requestId -> { controller, timeoutId, progress }
+/** @type {Map<string, InFlightRequest>} */
+const inFlightRequests = new Map();
 
 
 // ============================================================================

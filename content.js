@@ -8,23 +8,9 @@
 // PROGRESS STEPS & UI MAPPING
 // ============================================================================
 
-const PROGRESS_STEPS = {
-  STARTING: 'STARTING',
-  PARSING_MENU_START: 'PARSING_MENU_START',
-  FETCHING_MENU_IMAGE: 'FETCHING_MENU_IMAGE',
-  PREPARING_AI_ANALYSIS: 'PREPARING_AI_ANALYSIS',
-  READING_MENU_WITH_AI: 'READING_MENU_WITH_AI',
-  PROCESSING_AI_RESPONSE: 'PROCESSING_AI_RESPONSE',
-  EXTRACTING_DISHES: 'EXTRACTING_DISHES',
-  MENU_ANALYZED: 'MENU_ANALYZED',
-  BUILDING_PROMPT: 'BUILDING_PROMPT',
-  PREPARING_IMAGE_GENERATION: 'PREPARING_IMAGE_GENERATION',
-  GENERATING_IMAGE: 'GENERATING_IMAGE',
-  FINALIZING_IMAGE: 'FINALIZING_IMAGE',
-  IMAGE_GENERATED: 'IMAGE_GENERATED',
-  MERGING_IMAGES: 'MERGING_IMAGES',
-  COMPLETE: 'COMPLETE',
-};
+// NOTE: Progress step IDs are defined canonically in `ai/providers/progress-steps.js`.
+// This content script intentionally stays self-contained (no imports), so we key
+// UI config directly by the canonical string step IDs to reduce drift.
 
 const FOOD_FACTS = [
   'Honey never spoils - archaeologists found 3000-year-old honey in Egyptian tombs that was still edible! 🍯',
@@ -49,43 +35,43 @@ function getRandomFoodFact() {
 }
 
 const STEP_CONFIG = {
-  [PROGRESS_STEPS.STARTING]: {
+  STARTING: {
     progress: 5,
     statusText: 'Starting menu analysis...',
     detailText: () => getRandomFoodFact(),
   },
-  [PROGRESS_STEPS.PARSING_MENU_START]: {
+  PARSING_MENU_START: {
     progress: 5,
     statusText: 'Analyzing menu...',
     detailText: () => getRandomFoodFact(),
   },
-  [PROGRESS_STEPS.FETCHING_MENU_IMAGE]: {
+  FETCHING_MENU_IMAGE: {
     progress: 10,
     statusText: 'Loading menu image...',
     detailText: 'Fetching high-resolution image',
   },
-  [PROGRESS_STEPS.PREPARING_AI_ANALYSIS]: {
+  PREPARING_AI_ANALYSIS: {
     progress: 15,
     statusText: 'Preparing AI analysis...',
     detailText: (extra) => `Analyzing for ${extra?.preferenceName || 'dietary'} preferences`,
   },
-  [PROGRESS_STEPS.READING_MENU_WITH_AI]: {
+  READING_MENU_WITH_AI: {
     progress: 20,
     statusText: 'Reading menu with AI...',
     timeEstimate: '20-30 seconds',
     detailText: () => getRandomFoodFact(),
   },
-  [PROGRESS_STEPS.PROCESSING_AI_RESPONSE]: {
+  PROCESSING_AI_RESPONSE: {
     progress: 40,
     statusText: 'Processing AI response...',
     detailText: () => getRandomFoodFact(),
   },
-  [PROGRESS_STEPS.EXTRACTING_DISHES]: {
+  EXTRACTING_DISHES: {
     progress: 45,
     statusText: 'Extracting dishes...',
     detailText: 'Identifying the best menu items',
   },
-  [PROGRESS_STEPS.MENU_ANALYZED]: {
+  MENU_ANALYZED: {
     progress: 50,
     statusText: 'Menu analyzed!',
     detailText: (extra) => {
@@ -100,17 +86,17 @@ const STEP_CONFIG = {
       return 'Dishes selected successfully';
     },
   },
-  [PROGRESS_STEPS.BUILDING_PROMPT]: {
+  BUILDING_PROMPT: {
     progress: 52,
     statusText: 'Building visualization prompt...',
     detailText: 'Creating detailed food photography instructions',
   },
-  [PROGRESS_STEPS.PREPARING_IMAGE_GENERATION]: {
+  PREPARING_IMAGE_GENERATION: {
     progress: 55,
     statusText: 'Preparing for image generation...',
     detailText: () => getRandomFoodFact(),
   },
-  [PROGRESS_STEPS.GENERATING_IMAGE]: {
+  GENERATING_IMAGE: {
     progress: 60,
     statusText: 'Generating visualization...',
     timeEstimate: '60-90 seconds',
@@ -121,17 +107,17 @@ const STEP_CONFIG = {
       return getRandomFoodFact();
     },
   },
-  [PROGRESS_STEPS.FINALIZING_IMAGE]: {
+  FINALIZING_IMAGE: {
     progress: 85,
     statusText: 'Finalizing image...',
     detailText: 'Processing AI-generated visualization',
   },
-  [PROGRESS_STEPS.IMAGE_GENERATED]: {
+  IMAGE_GENERATED: {
     progress: 88,
     statusText: 'Image generated!',
     detailText: 'Preparing to merge with menu text',
   },
-  [PROGRESS_STEPS.MERGING_IMAGES]: {
+  MERGING_IMAGES: {
     progress: 90,
     statusText: 'Merging images...',
     detailText: (extra) => {
@@ -141,7 +127,7 @@ const STEP_CONFIG = {
       return 'Compositing original menu text over food background';
     },
   },
-  [PROGRESS_STEPS.COMPLETE]: {
+  COMPLETE: {
     progress: 100,
     statusText: 'Complete!',
     detailText: 'Your menu is ready',
@@ -648,7 +634,7 @@ async function startImageProcessing(img) {
       // Image is already merged (post-processing happens in the background service worker)
       const imageData = `data:image/png;base64,${aiResponse.b64}`;
 
-      updateSpinnerProgress(img, PROGRESS_STEPS.COMPLETE);
+      updateSpinnerProgress(img, 'COMPLETE');
       img.dataset.vkGeneratedSrc = imageData;
       img.src = imageData;
       img.dataset.vkView = 'generated';

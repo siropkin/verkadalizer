@@ -10,44 +10,48 @@ import { PROGRESS_STEPS } from './progress-steps.js';
 export { PROGRESS_STEPS };
 
 /**
- * Available AI providers metadata
+ * Provider registry. Each provider must implement the same interface.
+ *
+ * @type {Record<string, {meta: {id: string, name: string}, parseMenu: Function, generateImage: Function, translateMenuImage: Function}>}
  */
-export const AI_PROVIDERS = {
-  'openai': { id: 'openai', name: 'OpenAI' },
-  'gemini': { id: 'gemini', name: 'Google Gemini' },
+export const PROVIDERS = {
+  openai: {
+    meta: { id: 'openai', name: 'OpenAI' },
+    parseMenu: parseMenuWithOpenAI,
+    generateImage: generateMenuImageWithOpenAI,
+    translateMenuImage: translateMenuImageWithOpenAI,
+  },
+  gemini: {
+    meta: { id: 'gemini', name: 'Google Gemini' },
+    parseMenu: parseMenuWithGemini,
+    generateImage: generateMenuImageWithGemini,
+    translateMenuImage: translateMenuImageWithGemini,
+  },
 };
 
 /**
- * Provider types for menu parsing
+ * Available AI providers metadata (backwards-compatible export).
  */
-const MENU_PARSER_PROVIDERS = {
-  'openai': parseMenuWithOpenAI,
-  'gemini': parseMenuWithGemini,
-};
+export const AI_PROVIDERS = Object.fromEntries(
+  Object.entries(PROVIDERS).map(([key, provider]) => [key, provider.meta])
+);
 
 /**
- * Provider types for image generation
+ * Get provider implementation for a given provider type.
+ * @param {string} providerType - Provider type (e.g., 'openai', 'gemini')
+ * @returns {{meta: {id: string, name: string}, parseMenu: Function, generateImage: Function, translateMenuImage: Function}}
  */
-const IMAGE_GENERATOR_PROVIDERS = {
-  'openai': generateMenuImageWithOpenAI,
-  'gemini': generateMenuImageWithGemini,
-};
+export function getProvider(providerType = 'openai') {
+  return PROVIDERS[providerType] || PROVIDERS.openai;
+}
 
 /**
- * Provider types for menu translation (image-to-image translation)
- */
-const MENU_TRANSLATOR_PROVIDERS = {
-  'openai': translateMenuImageWithOpenAI,
-  'gemini': translateMenuImageWithGemini,
-};
-
-/**
- * Get the menu parser function for a given provider type
+ * Get the menu parser function for a given provider type.
  * @param {string} providerType - Provider type (e.g., 'openai', 'gemini')
  * @returns {Function} Menu parser function
  */
 export function getMenuParser(providerType = 'openai') {
-  return MENU_PARSER_PROVIDERS[providerType] || MENU_PARSER_PROVIDERS['openai'];
+  return getProvider(providerType).parseMenu;
 }
 
 /**
@@ -83,7 +87,7 @@ export async function parseMenuWithAI({
  * @returns {Function} Image generator function
  */
 export function getImageGenerator(providerType = 'openai') {
-  return IMAGE_GENERATOR_PROVIDERS[providerType] || IMAGE_GENERATOR_PROVIDERS['openai'];
+  return getProvider(providerType).generateImage;
 }
 
 /**
@@ -119,7 +123,7 @@ export async function generateImageWithAI({
  * @returns {Function} Image post-processor function
  */
 export function getMenuTranslator(providerType = 'openai') {
-  return MENU_TRANSLATOR_PROVIDERS[providerType] || MENU_TRANSLATOR_PROVIDERS['openai'];
+  return getProvider(providerType).translateMenuImage;
 }
 
 /**

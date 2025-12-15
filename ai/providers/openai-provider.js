@@ -10,6 +10,7 @@ import {
   calculateAspectRatio,
 } from '../../lib/image/utils.js';
 import { PROGRESS_STEPS } from './progress-steps.js';
+import { parseJsonFromModelText, readErrorMessage } from './provider-utils.js';
 
 // ============================================================================
 // OPENAI PROVIDER API - Public functions
@@ -130,11 +131,7 @@ export async function parseMenuWithOpenAI({ imageUrl, dietaryPreference, apiKey,
     });
 
     if (!response.ok) {
-      let errorMessage = response.statusText;
-      try {
-        const errorData = await response.json();
-        errorMessage = errorData.error?.message || errorMessage;
-      } catch (_) {}
+      const errorMessage = await readErrorMessage(response);
       throw new Error(`OpenAI API error: ${errorMessage}`);
     }
 
@@ -154,10 +151,7 @@ export async function parseMenuWithOpenAI({ imageUrl, dietaryPreference, apiKey,
     updateProgress(PROGRESS_STEPS.EXTRACTING_DISHES);
     let parsedData;
     try {
-      // Extract JSON from markdown code blocks if present
-      const jsonMatch = aiResponse.match(/```json\s*([\s\S]*?)\s*```/) || aiResponse.match(/```\s*([\s\S]*?)\s*```/);
-      const jsonString = jsonMatch ? jsonMatch[1] : aiResponse;
-      parsedData = JSON.parse(jsonString.trim());
+      parsedData = parseJsonFromModelText(aiResponse);
       console.log('✅ [OPENAI] Successfully parsed JSON response');
     } catch (parseError) {
       console.error('❌ [OPENAI] Failed to parse JSON:', parseError);
@@ -226,11 +220,7 @@ export async function generateMenuImageWithOpenAI({ prompt, imageBlob, apiKey, s
     });
 
     if (!response.ok) {
-      let errorMessage = response.statusText;
-      try {
-        const errorData = await response.json();
-        errorMessage = errorData.error?.message || errorMessage;
-      } catch (_) {}
+      const errorMessage = await readErrorMessage(response);
       throw new Error(`OpenAI API error: ${errorMessage}`);
     }
 

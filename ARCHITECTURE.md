@@ -47,8 +47,7 @@ The progress tracking system is designed with clean separation between **busines
 │  ┌─────────────────────────────────────────┐            │
 │  │ content.js (Single consolidated file)   │            │
 │  │ ─────────────────────────────────────── │            │
-│  │ • Inlined PROGRESS_STEPS (copy)          │            │
-│  │ • STEP_CONFIG (UI mapping)               │            │
+│  │ • STEP_CONFIG keyed by step ID strings   │            │
 │  │ • stepToProgressData() with caching      │            │
 │  │ • Food facts with emojis 🍯🥕🍎         │            │
 │  │ • Page detection & image queries         │            │
@@ -60,14 +59,6 @@ The progress tracking system is designed with clean separation between **busines
 │                                                           │
 │  Note: Single file due to Chrome content script         │
 │  module limitations. Well-organized with sections.      │
-│                                                           │
-│  ┌─────────────────────────────────────────┐            │
-│  │ lib/progress-steps.js (for other uses)  │            │
-│  │ ─────────────────────────────────────── │            │
-│  │ • Re-exports PROGRESS_STEPS              │            │
-│  │ • STEP_CONFIG (shared UI mapping)        │            │
-│  │ • Used by popup.html and other contexts │            │
-│  └─────────────────────────────────────────┘            │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -103,26 +94,40 @@ const progressData = stepToProgressData('MENU_ANALYZED', extra);
 
 ### File Responsibilities
 
-| File | Responsibility | Type | Lines |
-|------|---------------|------|-------|
-| `ai/providers/progress-steps.js` | Define step constants (API contract) | Business Logic | 38 |
-| `ai/providers/gemini-provider.js` | Emit steps during Gemini processing | Business Logic | 338 |
-| `ai/providers/openai-provider.js` | Emit steps during OpenAI processing | Business Logic | 257 |
-| `background.js` | Store and forward step data | Orchestration | 325 |
-| `lib/progress-steps.js` | Map steps to UI text/progress/facts | Presentation | 176 |
-| `content.js` | All client-side functionality (single file) | Presentation | 768 |
+| File                              | Responsibility                                      | Type           | Lines |
+| --------------------------------- | --------------------------------------------------- | -------------- | ----- |
+| `ai/providers/progress-steps.js`  | Define step constants (API contract)                | Business Logic | 38    |
+| `ai/providers/gemini-provider.js` | Emit steps during Gemini processing                 | Business Logic | 338   |
+| `ai/providers/openai-provider.js` | Emit steps during OpenAI processing                 | Business Logic | 257   |
+| `ai/providers/provider-utils.js`  | Shared JSON + error parsing helpers                 | Business Logic | -     |
+| `ai/providers/ai-providers.js`    | Provider registry + routing (`PROVIDERS`)           | Orchestration  | -     |
+| `background.js`                   | Store and forward step data                         | Orchestration  | 325   |
+| `lib/messages/actions.js`         | Canonical message action names (popup + background) | Contract       | -     |
+| `lib/messages/protocol.js`        | JSDoc message/provider contracts                    | Contract       | -     |
+| `content.js`                      | All client-side functionality (single file)         | Presentation   | 768   |
+
+### Message Actions Contract
+
+Message actions are centralized for the ESM contexts:
+
+- `lib/messages/actions.js` is the canonical source of `ACTIONS.*` for:
+  - `background.js` (service worker, ESM)
+  - `popup.js` (extension page, ESM)
+- `content.js` mirrors the same string values locally (it stays a classic content script for reliability).
 
 **Content Script Approach:** Single consolidated file with clear section organization:
+
 - Content scripts have poor ES6 module support in Chrome
 - Single file (~768 lines) is simpler than fighting module limitations
 - Well-organized with section comments for easy navigation
-- PROGRESS_STEPS inlined (kept in sync with ai/providers via comments)
+- UI mapping is keyed by the canonical step ID strings (from `ai/providers/progress-steps.js`)
 
 ### Future Backend Migration
 
 When moving to a backend API, the architecture naturally supports this:
 
 **Backend API:**
+
 ```javascript
 // Backend would define and return steps
 export const PROGRESS_STEPS = { ... };
@@ -137,12 +142,13 @@ app.get('/api/status/:requestId', (req, res) => {
 ```
 
 **Frontend (minimal changes):**
+
 ```javascript
 // Client still converts steps to UI
-import { PROGRESS_STEPS } from './api-client.js'; // From API
-import { stepToProgressData } from './lib/progress-steps.js'; // Local UI logic
+import { PROGRESS_STEPS } from "./api-client.js"; // From API
+import { stepToProgressData } from "./lib/progress-steps.js"; // Local UI logic
 
-const response = await fetch('/api/status/123');
+const response = await fetch("/api/status/123");
 const { step, extra } = await response.json();
 const uiData = stepToProgressData(step, extra);
 // Render...
@@ -188,7 +194,7 @@ The extension uses a sophisticated three-stage AI processing pipeline with optio
 │  Stage 3: Post-Processing                                │
 │  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  │
 │  • Shared post-processing pipeline                      │
-│  • (ai/providers/image-processing.js)                   │
+│  • (lib/image-processing.js)                            │
 │  • Upscales original image 2x                           │
 │  • Removes white background from original               │
 │  • Enhances text contrast                               │
@@ -202,6 +208,7 @@ The extension uses a sophisticated three-stage AI processing pipeline with optio
 Image styles combine plate design and visual aesthetics into cohesive presets:
 
 **Data Structure:**
+
 ```javascript
 IMAGE_STYLES = {
   'verkada-classic': {
@@ -221,10 +228,12 @@ IMAGE_STYLES = {
 ```
 
 **Available Styles:**
+
 - Verkada Classic, Verkada Cyberpunk, Verkada Grandmillennial
 - Verkada Rustic (Filmic)
 
 **Benefits:**
+
 - ✅ Simplified UX (1 dropdown instead of 2)
 - ✅ Curated combinations ensure cohesive results
 - ✅ Smart caching includes style in request ID
@@ -278,6 +287,7 @@ The menu translation system allows users to translate menu text into 12 language
 ### Supported Languages
 
 The extension supports 12 languages:
+
 - 🇺🇸 English (US)
 - 🇫🇷 French
 - 🇪🇸 Spanish
@@ -294,12 +304,14 @@ The extension supports 12 languages:
 ### Translation Modes
 
 **Mode 1: No Translation (Default)**
+
 - Original menu text preserved
 - AI generates clean food photography background
 - Original text overlaid in post-processing
 - Text-free background suitable for compositing
 
 **Mode 2: Translation Enabled**
+
 - AI translates all menu text to selected language
 - Preserves original spatial structure and hierarchy
 - Maintains layout positioning (top-left, center, etc.)
@@ -309,18 +321,21 @@ The extension supports 12 languages:
 ### Layout Preservation Features
 
 **Spatial Structure:**
+
 - Semantic layout matching - replicates exact positioning
 - Position mapping - maintains relative placement
 - Hierarchy preservation - headers, descriptions, prices
 - Alignment consistency - center/left/right matching
 
 **Typography:**
+
 - Descriptive font characteristics (not font names)
 - Style matching (modern/elegant/casual)
 - Text color and contrast preservation
 - Proper kerning and spacing
 
 **Text Quality:**
+
 - Crystal-clear, legible text rendering
 - Sharp, professionally typeset characters
 - Correct special characters and diacritics
@@ -328,14 +343,14 @@ The extension supports 12 languages:
 
 ### Implementation Files
 
-| File | Responsibility | Key Exports |
-|------|---------------|-------------|
-| `ai/prompts.js` | Translation language configs | `TRANSLATION_LANGUAGES` |
-| `ai/prompts/menu-translation.js` | Translation prompt builder | `buildMenuTranslationPrompt()` |
-| `ai/providers/openai-provider.js` | OpenAI translation handler | `translateMenuImageWithOpenAI()` |
-| `ai/providers/gemini-provider.js` | Gemini translation handler | `translateMenuImageWithGemini()` |
-| `ai/providers/ai-providers.js` | Provider routing | `translateMenuImageWithAI()` |
-| `background.js` | Translation orchestration | Request handling |
+| File                              | Responsibility               | Key Exports                      |
+| --------------------------------- | ---------------------------- | -------------------------------- |
+| `ai/prompts.js`                   | Translation language configs | `TRANSLATION_LANGUAGES`          |
+| `ai/prompts/menu-translation.js`  | Translation prompt builder   | `buildMenuTranslationPrompt()`   |
+| `ai/providers/openai-provider.js` | OpenAI translation handler   | `translateMenuImageWithOpenAI()` |
+| `ai/providers/gemini-provider.js` | Gemini translation handler   | `translateMenuImageWithGemini()` |
+| `ai/providers/ai-providers.js`    | Provider routing             | `translateMenuImageWithAI()`     |
+| `background.js`                   | Translation orchestration    | Request handling                 |
 
 ### Benefits
 
@@ -354,6 +369,7 @@ The content script is a single consolidated file that handles all client-side fu
 ### Why Single File?
 
 Chrome extensions have complex limitations around ES6 modules in content scripts:
+
 - `"type": "module"` is not fully supported
 - Dynamic imports require `web_accessible_resources` which exposes internal code
 - Module loading adds complexity and potential security issues
@@ -368,8 +384,8 @@ Chrome extensions have complex limitations around ES6 modules in content scripts
 // ============================================================================
 // PROGRESS STEPS & UI MAPPING
 // ============================================================================
-// - PROGRESS_STEPS constants (inlined from ai/providers)
-// - STEP_CONFIG with UI text, progress %, and food facts 🍯
+// - STEP_CONFIG keyed by canonical step ID strings
+// - UI text, progress %, and food facts 🍯
 // - stepToProgressData() with caching
 
 // ============================================================================
