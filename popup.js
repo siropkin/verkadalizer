@@ -1,4 +1,5 @@
 import { ACTIONS } from './lib/messages/actions.js';
+import { STORAGE_KEYS, LEGACY_KEYS } from './lib/storage-keys.js';
 
 function showStatus(statusDiv, message, type) {
   statusDiv.textContent = message;
@@ -110,26 +111,53 @@ async function loadSettingsIntoUi(aiProviderInput, openaiApiKeyInput, geminiApiK
   const translationLanguages = await loadTranslationLanguages();
   populateTranslationLanguages(menuLanguageInput, translationLanguages);
 
-  const stored = await chrome.storage.local.get(['aiProvider', 'openaiApiKey', 'geminiApiKey', 'dietaryPreference', 'imageStyle', 'menuLanguage']);
+  // Load settings using new namespaced keys with fallback to legacy
+  const allKeys = [
+    STORAGE_KEYS.SETTINGS.AI_PROVIDER,
+    STORAGE_KEYS.SETTINGS.DIETARY_PREFERENCE,
+    STORAGE_KEYS.SETTINGS.IMAGE_STYLE,
+    STORAGE_KEYS.SETTINGS.MENU_LANGUAGE,
+    STORAGE_KEYS.API_KEYS.OPENAI,
+    STORAGE_KEYS.API_KEYS.GEMINI,
+    // Legacy keys for backward compatibility
+    LEGACY_KEYS.AI_PROVIDER,
+    LEGACY_KEYS.DIETARY_PREFERENCE,
+    LEGACY_KEYS.IMAGE_STYLE,
+    LEGACY_KEYS.MENU_LANGUAGE,
+    LEGACY_KEYS.OPENAI_API_KEY,
+    LEGACY_KEYS.GEMINI_API_KEY,
+  ];
+  const stored = await chrome.storage.local.get(allKeys);
 
-  // Set AI provider
-  const selectedProvider = stored.aiProvider || 'openai';
+  // Set AI provider (prefer new key, fallback to legacy)
+  const selectedProvider = stored[STORAGE_KEYS.SETTINGS.AI_PROVIDER]
+    || stored[LEGACY_KEYS.AI_PROVIDER]
+    || 'openai';
   aiProviderInput.value = selectedProvider;
 
-  // Set API keys
-  if (stored.openaiApiKey) {
-    openaiApiKeyInput.value = stored.openaiApiKey;
+  // Set API keys (prefer new keys, fallback to legacy)
+  const openaiKey = stored[STORAGE_KEYS.API_KEYS.OPENAI]
+    || stored[LEGACY_KEYS.OPENAI_API_KEY];
+  const geminiKey = stored[STORAGE_KEYS.API_KEYS.GEMINI]
+    || stored[LEGACY_KEYS.GEMINI_API_KEY];
+
+  if (openaiKey) {
+    openaiApiKeyInput.value = openaiKey;
   }
-  if (stored.geminiApiKey) {
-    geminiApiKeyInput.value = stored.geminiApiKey;
+  if (geminiKey) {
+    geminiApiKeyInput.value = geminiKey;
   }
 
-  const selectedPreference = stored.dietaryPreference || 'regular';
+  const selectedPreference = stored[STORAGE_KEYS.SETTINGS.DIETARY_PREFERENCE]
+    || stored[LEGACY_KEYS.DIETARY_PREFERENCE]
+    || 'regular';
   if (selectedPreference) {
     dietaryPreferenceInput.value = selectedPreference;
   }
 
-  const selectedImageStyle = stored.imageStyle || 'verkada-classic';
+  const selectedImageStyle = stored[STORAGE_KEYS.SETTINGS.IMAGE_STYLE]
+    || stored[LEGACY_KEYS.IMAGE_STYLE]
+    || 'verkada-classic';
   if (selectedImageStyle) {
     const exists = Array.from(imageStyleInput.options).some(opt => opt.value === selectedImageStyle);
     if (exists) {
@@ -137,11 +165,16 @@ async function loadSettingsIntoUi(aiProviderInput, openaiApiKeyInput, geminiApiK
     } else {
       // Stored value is no longer supported; default and persist cleanup
       imageStyleInput.value = 'verkada-classic';
-      await chrome.storage.local.set({ imageStyle: 'verkada-classic' });
+      await chrome.storage.local.set({
+        [STORAGE_KEYS.SETTINGS.IMAGE_STYLE]: 'verkada-classic',
+        [LEGACY_KEYS.IMAGE_STYLE]: 'verkada-classic',
+      });
     }
   }
 
-  const selectedMenuLanguage = stored.menuLanguage || 'none';
+  const selectedMenuLanguage = stored[STORAGE_KEYS.SETTINGS.MENU_LANGUAGE]
+    || stored[LEGACY_KEYS.MENU_LANGUAGE]
+    || 'none';
   if (selectedMenuLanguage) {
     menuLanguageInput.value = selectedMenuLanguage;
   }
@@ -183,12 +216,12 @@ async function saveSettings(aiProviderInput, openaiApiKeyInput, geminiApiKeyInpu
 
   try {
     await chrome.storage.local.set({
-      aiProvider,
-      openaiApiKey,
-      geminiApiKey,
-      dietaryPreference,
-      imageStyle,
-      menuLanguage,
+      [STORAGE_KEYS.SETTINGS.AI_PROVIDER]: aiProvider,
+      [STORAGE_KEYS.SETTINGS.DIETARY_PREFERENCE]: dietaryPreference,
+      [STORAGE_KEYS.SETTINGS.IMAGE_STYLE]: imageStyle,
+      [STORAGE_KEYS.SETTINGS.MENU_LANGUAGE]: menuLanguage,
+      [STORAGE_KEYS.API_KEYS.OPENAI]: openaiApiKey,
+      [STORAGE_KEYS.API_KEYS.GEMINI]: geminiApiKey,
     });
     showStatus(statusDiv, 'Settings saved successfully!', 'success');
   } catch (error) {

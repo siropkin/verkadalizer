@@ -10,9 +10,10 @@ import { PROGRESS_STEPS } from './ai/providers/progress-steps.js';
 import { fetchImageAsBlob, mergeMenuLayerWithBackground } from './lib/image-processing.js';
 import { ACTIONS } from './lib/messages/actions.js';
 import { stepToProgressData } from './lib/progress-steps.js';
-import { loadSettings, generateRequestIdFromImage, saveGeneratedImageToStorage, loadSavedImageFromStorage, cleanupOldSavedImages } from './lib/storage.js';
+import { loadSettings, generateRequestIdFromImage, saveGeneratedImageToStorage, loadSavedImageFromStorage, cleanupOldSavedImages, initializeStorage } from './lib/storage.js';
 import { assertSetting, throwIfAborted } from './lib/utils.js';
 import { logInfo, logWarn, logError } from './lib/logger.js';
+import { STORAGE_KEYS, LEGACY_KEYS } from './lib/storage-keys.js';
 
 /**
  * @typedef {Object} ProgressState
@@ -99,10 +100,27 @@ async function processImageRequest({ imageUrl, requestId, signal }) {
     // STAGE 1: Parse the menu with AI to get intelligent dish selection
     updateProgress(requestId, PROGRESS_STEPS.STARTING);
     logInfo('background', 'pipeline', 'Stage 1: Parsing menu with AI');
-    const stored = await chrome.storage.local.get(['dietaryPreference', 'imageStyle', 'menuLanguage']);
-    const dietaryPreference = stored.dietaryPreference || 'regular';
-    const imageStyle = stored.imageStyle || 'verkada-classic';
-    const menuLanguage = stored.menuLanguage || 'none';
+
+    // Load settings using new namespaced keys with fallback to legacy
+    const settingsKeys = [
+      STORAGE_KEYS.SETTINGS.DIETARY_PREFERENCE,
+      STORAGE_KEYS.SETTINGS.IMAGE_STYLE,
+      STORAGE_KEYS.SETTINGS.MENU_LANGUAGE,
+      LEGACY_KEYS.DIETARY_PREFERENCE,
+      LEGACY_KEYS.IMAGE_STYLE,
+      LEGACY_KEYS.MENU_LANGUAGE,
+    ];
+    const stored = await chrome.storage.local.get(settingsKeys);
+
+    const dietaryPreference = stored[STORAGE_KEYS.SETTINGS.DIETARY_PREFERENCE]
+      || stored[LEGACY_KEYS.DIETARY_PREFERENCE]
+      || 'regular';
+    const imageStyle = stored[STORAGE_KEYS.SETTINGS.IMAGE_STYLE]
+      || stored[LEGACY_KEYS.IMAGE_STYLE]
+      || 'verkada-classic';
+    const menuLanguage = stored[STORAGE_KEYS.SETTINGS.MENU_LANGUAGE]
+      || stored[LEGACY_KEYS.MENU_LANGUAGE]
+      || 'none';
 
     let parsedMenuData;
     let dynamicPrompt;
@@ -359,4 +377,22 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
       .catch(error => sendResponse({ success: false, error: error.message }));
     return true;
   }
+
+});
+
+// ============================================================================
+// EXTENSION LIFECYCLE
+// ============================================================================
+
+// Initialize storage on extension install/update and on service worker startup
+chrome.runtime.onInstalled.addListener(async () => {
+  await initializeStorage();
+  logInfo('background', 'lifecycle', 'Storage initialized on install/update');
+});
+
+// Also initialize on service worker startup (handles browser restart)
+initializeStorage().then(() => {
+  logInfo('background', 'lifecycle', 'Storage initialized on startup');
+}).catch(error => {
+  logWarn('background', 'lifecycle', `Storage initialization failed: ${error.message}`);
 });
