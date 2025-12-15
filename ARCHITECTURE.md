@@ -34,11 +34,11 @@ The progress tracking system is designed with clean separation between **busines
 │  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  │
 │  • Orchestrates AI processing                           │
 │  • Stores progress: { step, extra, timestamp }          │
-│  • Forwards step data to clients                        │
-│  • No UI rendering logic                                │
+│  • Converts step -> UI via stepToProgressData()          │
+│  • Forwards progressData to clients                      │
 └─────────────────────────────────────────────────────────┘
                         ↓
-                (step + extra data)
+                  (progressData)
                         ↓
 ┌─────────────────────────────────────────────────────────┐
 │  Client Layer (content.js)                               │
@@ -47,9 +47,7 @@ The progress tracking system is designed with clean separation between **busines
 │  ┌─────────────────────────────────────────┐            │
 │  │ content.js (Single consolidated file)   │            │
 │  │ ─────────────────────────────────────── │            │
-│  │ • STEP_CONFIG keyed by step ID strings   │            │
-│  │ • stepToProgressData() with caching      │            │
-│  │ • Food facts with emojis 🍯🥕🍎         │            │
+│  │ • Step-specific detail text             │            │
 │  │ • Page detection & image queries         │            │
 │  │ • UI components (buttons, spinner)       │            │
 │  │ • Storage & request management           │            │
@@ -77,8 +75,8 @@ updateProgress(PROGRESS_STEPS.MENU_ANALYZED, {
   timestamp: 1234567890
 }
 
-// 3. Client retrieves and converts to UI
-const progressData = stepToProgressData('MENU_ANALYZED', extra);
+// 3. Client retrieves UI-ready progress data
+const progressData = response.progressData;
 // Returns:
 {
   progress: 50,
@@ -101,7 +99,7 @@ const progressData = stepToProgressData('MENU_ANALYZED', extra);
 | `ai/providers/openai-provider.js` | Emit steps during OpenAI processing                 | Business Logic | 257   |
 | `ai/providers/provider-utils.js`  | Shared JSON + error parsing helpers                 | Business Logic | -     |
 | `ai/providers/ai-providers.js`    | Provider registry + routing (`PROVIDERS`)           | Orchestration  | -     |
-| `background.js`                   | Store and forward step data                         | Orchestration  | 325   |
+| `background.js`                   | Store steps and serve UI-ready progressData         | Orchestration  | 325   |
 | `lib/messages/actions.js`         | Canonical message action names (popup + background) | Contract       | -     |
 | `lib/messages/protocol.js`        | JSDoc message/provider contracts                    | Contract       | -     |
 | `content.js`                      | All client-side functionality (single file)         | Presentation   | 768   |
@@ -120,7 +118,7 @@ Message actions are centralized for the ESM contexts:
 - Content scripts have poor ES6 module support in Chrome
 - Single file (~768 lines) is simpler than fighting module limitations
 - Well-organized with section comments for easy navigation
-- UI mapping is keyed by the canonical step ID strings (from `ai/providers/progress-steps.js`)
+- UI mapping lives in the background service worker (single source of truth)
 
 ### Future Backend Migration
 
@@ -144,14 +142,13 @@ app.get('/api/status/:requestId', (req, res) => {
 **Frontend (minimal changes):**
 
 ```javascript
-// Client still converts steps to UI
-import { PROGRESS_STEPS } from "./api-client.js"; // From API
-import { stepToProgressData } from "./lib/progress-steps.js"; // Local UI logic
+// Background converts steps to UI-ready progressData
+import { stepToProgressData } from "./lib/progress-steps.js"; // UI mapping (server-side)
 
 const response = await fetch("/api/status/123");
 const { step, extra } = await response.json();
-const uiData = stepToProgressData(step, extra);
-// Render...
+const progressData = stepToProgressData(step, extra);
+// Return `progressData` directly to the client to render...
 ```
 
 ### Key Benefits
@@ -384,8 +381,8 @@ Chrome extensions have complex limitations around ES6 modules in content scripts
 // ============================================================================
 // PROGRESS STEPS & UI MAPPING
 // ============================================================================
-// - STEP_CONFIG keyed by canonical step ID strings
-// - UI text, progress %, and food facts 🍯
+// - UI progress mapping happens in background and is delivered as `progressData`
+// - UI text, progress %, and step-specific detail text
 // - stepToProgressData() with caching
 
 // ============================================================================

@@ -74,7 +74,6 @@ Translate menu text into multiple languages while preserving the original layout
 ### User Experience
 
 - **Real-Time Progress Tracking**: Animated progress bar with percentage and status updates
-- **Fun Food Facts**: Educational food trivia displayed during processing to keep you entertained
 - **Visual Feedback**: Branded overlay with smooth animations and clear status messages
 - **Error Handling**: Comprehensive error recovery with user-friendly messages
 - **Image Preservation**: Maintains original dimensions and layout seamlessly
@@ -202,4 +201,3 @@ Using the parsed menu data and selected image style:
 - **AbortController Integration**: Cancellable requests with proper cleanup
 - **Progress State Machine**: Real-time updates via message passing
 - **Canvas Manipulation**: Intelligent image resizing and rendering
-- **Food Facts System**: 45+ curated food facts for user engagement during waits

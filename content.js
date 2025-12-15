@@ -9,171 +9,8 @@
 // ============================================================================
 
 // NOTE: Progress step IDs are defined canonically in `ai/providers/progress-steps.js`.
-// This content script intentionally stays self-contained (no imports), so we key
-// UI config directly by the canonical string step IDs to reduce drift.
-
-const FOOD_FACTS = [
-  'Honey never spoils - archaeologists found 3000-year-old honey in Egyptian tombs that was still edible! 🍯',
-  'Carrots were originally purple - orange carrots were developed in the Netherlands in the 17th century 🥕',
-  'Apples float because they are 25% air 🍎',
-  'Pistachios can spontaneously combust when stored in large quantities 🔥',
-  'Chocolate was once used as currency by the Aztecs 🍫',
-  'Peanuts aren\'t actually nuts - they\'re legumes! 🥜',
-  'A strawberry is not a berry, but a banana is 🍓🍌',
-  'Tomatoes have more genes than humans 🍅',
-  'White chocolate isn\'t actually chocolate 🤍',
-  'Avocados are berries, but strawberries aren\'t 🥑',
-  'The most expensive pizza in the world costs $12,000 💰',
-  'Ranch dressing is most popular in the United States but virtually unknown elsewhere 🇺🇸',
-  'Nutmeg is a hallucinogen in large quantities ⚠️',
-  'Ketchup was sold as medicine in the 1830s 💊',
-  'The popsicle was invented by an 11-year-old 🧊',
-];
-
-function getRandomFoodFact() {
-  return FOOD_FACTS[Math.floor(Math.random() * FOOD_FACTS.length)];
-}
-
-const STEP_CONFIG = {
-  STARTING: {
-    progress: 5,
-    statusText: 'Starting menu analysis...',
-    detailText: () => getRandomFoodFact(),
-  },
-  PARSING_MENU_START: {
-    progress: 5,
-    statusText: 'Analyzing menu...',
-    detailText: () => getRandomFoodFact(),
-  },
-  FETCHING_MENU_IMAGE: {
-    progress: 10,
-    statusText: 'Loading menu image...',
-    detailText: 'Fetching high-resolution image',
-  },
-  PREPARING_AI_ANALYSIS: {
-    progress: 15,
-    statusText: 'Preparing AI analysis...',
-    detailText: (extra) => `Analyzing for ${extra?.preferenceName || 'dietary'} preferences`,
-  },
-  READING_MENU_WITH_AI: {
-    progress: 20,
-    statusText: 'Reading menu with AI...',
-    timeEstimate: '20-30 seconds',
-    detailText: () => getRandomFoodFact(),
-  },
-  PROCESSING_AI_RESPONSE: {
-    progress: 40,
-    statusText: 'Processing AI response...',
-    detailText: () => getRandomFoodFact(),
-  },
-  EXTRACTING_DISHES: {
-    progress: 45,
-    statusText: 'Extracting dishes...',
-    detailText: 'Identifying the best menu items',
-  },
-  MENU_ANALYZED: {
-    progress: 50,
-    statusText: 'Menu analyzed!',
-    detailText: (extra) => {
-      if (extra?.selectedDishes) {
-        const maxDisplayItems = 3;
-        const dishes = extra.selectedDishes.slice(0, maxDisplayItems);
-        const remaining = extra.selectedDishes.length - maxDisplayItems;
-        return remaining > 0
-          ? `Selected: ${dishes.join(', ')}, and ${remaining} more`
-          : `Selected: ${dishes.join(', ')}`;
-      }
-      return 'Dishes selected successfully';
-    },
-  },
-  BUILDING_PROMPT: {
-    progress: 52,
-    statusText: 'Building visualization prompt...',
-    detailText: 'Creating detailed food photography instructions',
-  },
-  PREPARING_IMAGE_GENERATION: {
-    progress: 55,
-    statusText: 'Preparing for image generation...',
-    detailText: () => getRandomFoodFact(),
-  },
-  GENERATING_IMAGE: {
-    progress: 60,
-    statusText: 'Generating visualization...',
-    timeEstimate: '60-90 seconds',
-    detailText: (extra) => {
-      if (extra?.translationEnabled) {
-        return `Generating food background + translating menu to ${extra?.translationLanguage || 'selected language'}`;
-      }
-      return getRandomFoodFact();
-    },
-  },
-  FINALIZING_IMAGE: {
-    progress: 85,
-    statusText: 'Finalizing image...',
-    detailText: 'Processing AI-generated visualization',
-  },
-  IMAGE_GENERATED: {
-    progress: 88,
-    statusText: 'Image generated!',
-    detailText: 'Preparing to merge with menu text',
-  },
-  MERGING_IMAGES: {
-    progress: 90,
-    statusText: 'Merging images...',
-    detailText: (extra) => {
-      if (extra?.translationEnabled) {
-        return 'Compositing translated menu text over food background';
-      }
-      return 'Compositing original menu text over food background';
-    },
-  },
-  COMPLETE: {
-    progress: 100,
-    statusText: 'Complete!',
-    detailText: 'Your menu is ready',
-  },
-};
-
-// Cache for generated detail text per step (so food facts don't change on every poll)
-const stepDetailCache = {};
-
-function stepToProgressData(step, extra = {}) {
-  const config = STEP_CONFIG[step];
-
-  if (!config) {
-    console.warn(`Unknown progress step: ${step}`);
-    return {
-      progress: 0,
-      statusText: 'Processing...',
-      detailText: '',
-    };
-  }
-
-  // Generate detail text only once per step (cache it)
-  let detailText;
-  if (typeof config.detailText === 'function') {
-    // Create a cache key that includes extra data for dynamic messages
-    const cacheKey = step + JSON.stringify(extra);
-    if (!stepDetailCache[cacheKey]) {
-      stepDetailCache[cacheKey] = config.detailText(extra);
-    }
-    detailText = stepDetailCache[cacheKey];
-  } else {
-    detailText = config.detailText;
-  }
-
-  // Combine status text with time estimate if present
-  let statusText = config.statusText;
-  if (config.timeEstimate) {
-    statusText = `${config.statusText} (${config.timeEstimate})`;
-  }
-
-  return {
-    progress: config.progress,
-    statusText: statusText,
-    detailText: detailText,
-  };
-}
+// UI mapping (percentages + text) comes from the background service worker.
+// This content script only renders `progressData` it receives over messaging.
 
 // ============================================================================
 // PAGE DETECTION
@@ -463,12 +300,10 @@ function createSpinnerOverlay(img) {
   return spinner;
 }
 
-function updateSpinnerProgress(img, step, extra = {}) {
+function updateSpinnerProgress(img, progressData) {
   const spinner = img.parentElement.querySelector('.menu-image-spinner-overlay');
   if (!spinner) return;
-
-  // Convert step to UI-ready progress data
-  const progressData = stepToProgressData(step, extra);
+  if (!progressData) return;
 
   const progressBar = spinner.querySelector('.vk-progress-bar');
   const statusElement = spinner.querySelector('.vk-status-text');
@@ -481,7 +316,10 @@ function updateSpinnerProgress(img, step, extra = {}) {
     statusElement.textContent = progressData.statusText;
   }
   if (detailElement) {
-    detailElement.textContent = progressData.detailText;
+    const detailText = progressData.detailText || '';
+    const hasDetail = detailText.trim().length > 0;
+    detailElement.style.display = hasDetail ? 'block' : 'none';
+    detailElement.textContent = hasDetail ? detailText : '';
   }
 }
 
@@ -611,12 +449,8 @@ async function startImageProcessing(img) {
       });
 
       if (progressResponse && progressResponse.success) {
-        // Progress response now contains { step, extra }
-        updateSpinnerProgress(
-          img,
-          progressResponse.step,
-          progressResponse.extra || {}
-        );
+        // Progress response contains { progressData, step, extra }
+        updateSpinnerProgress(img, progressResponse.progressData);
       }
     } catch (error) {
       console.warn('Failed to get progress:', error);
@@ -634,7 +468,8 @@ async function startImageProcessing(img) {
       // Image is already merged (post-processing happens in the background service worker)
       const imageData = `data:image/png;base64,${aiResponse.b64}`;
 
-      updateSpinnerProgress(img, 'COMPLETE');
+      // Show a final progress payload (computed in background) if available.
+      updateSpinnerProgress(img, aiResponse.progressData);
       img.dataset.vkGeneratedSrc = imageData;
       img.src = imageData;
       img.dataset.vkView = 'generated';

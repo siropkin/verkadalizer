@@ -9,6 +9,7 @@ import { parseMenuWithAI, generateImageWithAI, translateMenuImageWithAI, AI_PROV
 import { PROGRESS_STEPS } from './ai/providers/progress-steps.js';
 import { fetchImageAsBlob, mergeMenuLayerWithBackground } from './lib/image-processing.js';
 import { ACTIONS } from './lib/messages/actions.js';
+import { stepToProgressData } from './lib/progress-steps.js';
 import { loadSettings, generateRequestIdFromImage, saveGeneratedImageToStorage, loadSavedImageFromStorage, cleanupOldSavedImages } from './lib/storage.js';
 import { assertSetting, throwIfAborted } from './lib/utils.js';
 
@@ -354,10 +355,12 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     const requestId = request.requestId;
     const entry = inFlightRequests.get(requestId);
     if (entry && entry.progress) {
+      const progressData = stepToProgressData(entry.progress.step, entry.progress.extra || {});
       sendResponse({
         success: true,
         step: entry.progress.step,
         extra: entry.progress.extra,
+        progressData,
         timestamp: entry.progress.timestamp
       });
     } else {
@@ -380,7 +383,14 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     });
 
     processImageRequest({ imageUrl: request.imageUrl, requestId, signal: controller.signal })
-      .then(result => sendResponse({ ...result, requestId }))
+      .then(result => {
+        // Provide a final UI payload for the content script so it doesn't need its own STEP_CONFIG.
+        // (The in-flight entry may be cleared immediately after responding.)
+        const finalProgressData = result && result.success
+          ? stepToProgressData(PROGRESS_STEPS.COMPLETE, {})
+          : undefined;
+        sendResponse({ ...result, requestId, progressData: finalProgressData });
+      })
       .catch(error => sendResponse({ success: false, error: error.message, requestId }))
       .finally(() => clearInFlight(requestId));
     return true; // keep the message channel open for async response
