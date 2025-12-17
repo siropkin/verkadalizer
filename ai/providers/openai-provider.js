@@ -19,7 +19,7 @@ import { logInfo, logWarn, logError } from '../../lib/logger.js';
 
 const MODELS = {
   parse: 'gpt-4o',           // Menu parsing (vision + JSON)
-  image: 'gpt-image-1',      // Image generation/editing
+  image: 'gpt-image-1.5',    // Image generation/editing (upgraded Dec 2025)
 };
 
 // ============================================================================
