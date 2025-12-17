@@ -7,4 +7,5 @@ export { DIETARY_PREFERENCES } from './prompts/dietary-preferences.js';
 export { IMAGE_STYLES } from './prompts/image-styles.js';
 export { TRANSLATION_LANGUAGES } from './prompts/translation-languages.js';
 export { assignPlateType } from './prompts/image-styles.js';
+export { normalizeImageStyleId, IMAGE_STYLE_ID_ALIASES } from './prompts/image-styles.js';
 export { buildMenuParsingPrompt } from './prompts/menu-parsing.js';

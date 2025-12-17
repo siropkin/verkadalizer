@@ -2,7 +2,7 @@
 
 <img src="images/verkadalizer.png" alt="Verkadalizer Chrome Extension"/>
 
-A Chrome extension that transforms food menu images on Verkada Menu pages into beautiful, appetizing visualizations using a sophisticated two-stage AI pipeline powered by OpenAI (GPT-4o + GPT-Image-1) or Google Gemini (Gemini 3 Pro + Gemini 3 Pro Image).
+A Chrome extension that transforms food menu images on Verkada Menu pages into beautiful, appetizing visualizations using a sophisticated two-stage AI pipeline powered by OpenAI (GPT-4o + GPT-Image-1.5) or Google Gemini (Gemini 3 Pro + Gemini 3 Pro Image).
 
 ## Features
 
@@ -14,7 +14,7 @@ A Chrome extension that transforms food menu images on Verkada Menu pages into b
     - **OpenAI**: GPT-4o vision model
     - **Google Gemini**: Gemini 3 Pro
   - **Stage 2**: AI generates a photorealistic visualization of the selected dishes
-    - **OpenAI**: GPT-Image-1 for high-quality image generation
+    - **OpenAI**: GPT-Image-1.5 for high-quality image generation
     - **Google Gemini**: Gemini 3 Pro Image for professional 2K/4K image generation with superior text rendering
 - **Smart Image Controls**: Interactive buttons for each menu image:
   - ✨🍕 **Generate** - Process the menu image with AI
@@ -37,7 +37,7 @@ Choose from 8 dietary preference options that guide AI dish selection:
 
 ### Image Styles
 
-Choose from 4 unified image styles that combine plate design with visual aesthetics:
+Choose from multiple unified image styles that combine the fixed corporate Verkada plate set with distinct photoreal rendering + composition presets:
 
 **Verkada Styles:**
 
@@ -45,9 +45,15 @@ Choose from 4 unified image styles that combine plate design with visual aesthet
 - ⚡ **Verkada Cyberpunk** - Blue and white Verkada plates with futuristic neon lighting
 - 🌺 **Verkada Grandmillennial** - Blue and white Verkada plates with bold maximalist styling
 
-**Universal Styles:**
+**Air-like / Non-table layouts:**
 
-- 📷 **Verkada Rustic (Filmic)** - Blue and white Verkada plates with deep, moody, realistic film photography
+- 🌬️ **Verkada Air (Floating)** - Floating plated dishes on a flat gradient hero background (no table)
+- 🌀 **Verkada Orbit (Floating Ring)** - Dishes floating in an orbital ring composition (no table)
+- 🗿 **Verkada Pedestals (Museum)** - Plated dishes on clear acrylic pedestals in a seamless studio
+- 🖨️ **Verkada Scan (Catalog)** - Ultra-clean orthographic “catalog scan” flat-lay (minimal shadows)
+- 🎭 **Verkada Spotlight (Stage)** - Single theatrical spotlight with deep falloff (bold, minimal)
+
+**Note:** Older versions used `Verkada Rustic (Filmic)` (`rustic-film`). It now normalizes to `verkada-spotlight`.
 
 ### Menu Translation
 
@@ -94,13 +100,13 @@ Translate menu text into multiple languages while preserving the original layout
 Click the extension icon to access settings:
 
 - **AI Provider**: Choose between OpenAI or Google Gemini
-  - **OpenAI**: Uses GPT-4o for menu analysis and GPT-Image-1 for image generation
+  - **OpenAI**: Uses GPT-4o for menu analysis and GPT-Image-1.5 for image generation
   - **Google Gemini**: Uses Gemini 3 Pro for menu analysis and Gemini 3 Pro Image for generation
 - **API Key**: Your personal API key for the selected provider (stored securely in local browser storage)
   - **OpenAI API Key**: Required when using OpenAI provider
   - **Gemini API Key**: Required when using Google Gemini provider
 - **Dietary Preference**: Select your dietary preference from 8 options (affects dish selection in Stage 1)
-- **Image Style**: Choose from 4 unified styles that combine plate design and photography aesthetics
+- **Image Style**: Choose a unified style preset (plates stay corporate Verkada; composition/rendering varies by style)
 - **Translation Language**: Translate menu text into 12 languages while preserving original layout (default: No Translation)
 
 ## How It Works
@@ -133,13 +139,13 @@ Using the parsed menu data and selected image style:
 
 - Builds a detailed image generation prompt with:
   - Unified image style combining plate design and visual aesthetics (e.g., Verkada Classic, Verkada Rustic, etc.)
-  - Style-specific plate types matched to dish categories (ceramic, stoneware, wooden boards, porcelain)
-  - Style-specific lighting, background, surface, color palette, atmosphere, and camera settings
-  - Composition layout (top 1/3 clear for text, bottom 2/3 for food)
+  - Fixed corporate Verkada plate set matched to dish categories (soup/salad/main/etc.)
+  - Style-driven lighting, background, surface, color palette, atmosphere, and camera direction
+  - Composition layout varies by style (e.g., left-third or top-left text-safe zone; tabletop vs floating vs studio)
   - Photorealism requirements (textures, lighting, organic presentation)
   - **Optional Translation**: If translation is enabled, AI translates menu text while preserving original layout/typography
 - Sends to your selected AI provider for image creation:
-  - **OpenAI**: GPT-Image-1 for high-quality photorealistic images
+  - **OpenAI**: GPT-Image-1.5 for high-quality photorealistic images
   - **Google Gemini**: Gemini 3 Pro Image for professional 2K resolution with native text rendering and "thinking mode" for optimal composition
 - Receives professional-quality food photography visualization in your chosen unified style
 - **Translation Processing** (if enabled):
@@ -172,7 +178,7 @@ Using the parsed menu data and selected image style:
 #### OpenAI Provider
 
 - **GPT-4o**: Vision-based menu text analysis and intelligent dish selection
-- **GPT-Image-1**: High-quality photorealistic image generation with advanced control
+- **GPT-Image-1.5**: High-quality photorealistic image generation with advanced control
 
 #### Google Gemini Provider
 

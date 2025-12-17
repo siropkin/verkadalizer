@@ -1,5 +1,6 @@
 import { ACTIONS } from './lib/messages/actions.js';
 import { STORAGE_KEYS, LEGACY_KEYS } from './lib/storage-keys.js';
+import { normalizeImageStyleId } from './ai/prompts.js';
 
 function showStatus(statusDiv, message, type) {
   statusDiv.textContent = message;
@@ -159,9 +160,17 @@ async function loadSettingsIntoUi(aiProviderInput, openaiApiKeyInput, geminiApiK
     || stored[LEGACY_KEYS.IMAGE_STYLE]
     || 'verkada-classic';
   if (selectedImageStyle) {
-    const exists = Array.from(imageStyleInput.options).some(opt => opt.value === selectedImageStyle);
+    const normalized = normalizeImageStyleId(selectedImageStyle);
+    const exists = Array.from(imageStyleInput.options).some(opt => opt.value === normalized);
     if (exists) {
-      imageStyleInput.value = selectedImageStyle;
+      imageStyleInput.value = normalized;
+      // Persist cleanup if we normalized an old/aliased value
+      if (normalized !== selectedImageStyle) {
+        await chrome.storage.local.set({
+          [STORAGE_KEYS.SETTINGS.IMAGE_STYLE]: normalized,
+          [LEGACY_KEYS.IMAGE_STYLE]: normalized,
+        });
+      }
     } else {
       // Stored value is no longer supported; default and persist cleanup
       imageStyleInput.value = 'verkada-classic';
@@ -201,7 +210,7 @@ async function saveSettings(aiProviderInput, openaiApiKeyInput, geminiApiKeyInpu
   const openaiApiKey = openaiApiKeyInput.value.trim();
   const geminiApiKey = geminiApiKeyInput.value.trim();
   const dietaryPreference = dietaryPreferenceInput.value.trim();
-  const imageStyle = imageStyleInput.value.trim();
+  const imageStyle = normalizeImageStyleId(imageStyleInput.value.trim());
   const menuLanguage = menuLanguageInput.value.trim();
 
   // Validate that the selected provider has an API key

@@ -2,7 +2,7 @@
 // MENU FOOD GENERATION PROMPT - Generate food/background only (NO MENU TEXT)
 // ============================================================================
 
-import { IMAGE_STYLES, assignPlateType } from '../prompts.js';
+import { IMAGE_STYLES, assignPlateType, normalizeImageStyleId } from '../prompts.js';
 import { dedent, joinSections } from '../../lib/utils.js';
 
 function buildDishDescriptions(selectedItems, imageStyle) {
@@ -40,7 +40,7 @@ function buildNoTextConstraintSection() {
   `;
 }
 
-function buildNegativePromptsSection() {
+function buildNegativePromptsSection(styleNegatives = '') {
   // Named section to make it obvious what is "rules" vs "avoid list".
   return dedent`
     ### NEGATIVE PROMPTS (What to Avoid) - CRITICAL
@@ -52,6 +52,79 @@ function buildNegativePromptsSection() {
     - Packaging with visible text or branded labels with words
     - Restaurant signs, menu boards, or any written information
     **IF YOU SEE ANY TEXT IN YOUR GENERATED IMAGE - REMOVE IT COMPLETELY**
+
+    ${styleNegatives ? `### STYLE-SPECIFIC NEGATIVES\n${styleNegatives}` : ''}
+  `;
+}
+
+function buildTextSafeZoneSection(textSafeZone = 'topThird') {
+  switch (textSafeZone) {
+    case 'topLeft':
+      return dedent`
+        **Text-safe zone (CRITICAL)**:
+        - Keep the TOP-LEFT quadrant clean and simple for later menu text overlay
+        - Fewer/smaller dishes in top-left; no high-contrast clutter behind text
+      `;
+    case 'leftThird':
+      return dedent`
+        **Text-safe zone (CRITICAL)**:
+        - Keep the LEFT THIRD clean and simple for later menu text overlay (landscape-friendly)
+        - No dishes in the left third; keep background/surface minimal there
+      `;
+    case 'topThird':
+    default:
+      return dedent`
+        **Text-safe zone (CRITICAL)**:
+        - Keep the TOP THIRD clean and simple for later menu text overlay
+        - No dishes in the top third; keep background minimal there
+      `;
+  }
+}
+
+function buildTabletopCompositionLayout(imageStyleConfig, itemCount) {
+  const zone = imageStyleConfig.textSafeZone || 'topThird';
+  const zoneBlock = buildTextSafeZoneSection(zone);
+
+  if (zone === 'leftThird') {
+    return dedent`
+      ## COMPOSITION LAYOUT (CRITICAL)
+      ${zoneBlock}
+
+      - **LEFT 1/3**: clean background / surface with minimal texture for readability
+        ${imageStyleConfig.background}
+
+      - **RIGHT 2/3**: food presentation area on the surface
+        * ALL ${itemCount} dishes should live in the right two-thirds
+        * GENEROUS spacing between dishes — avoid crowding
+        ${imageStyleConfig.surface}
+
+      **Spatial Distribution & Perspective**:
+      - Strong perspective depth: dishes further back appear smaller/higher
+      - Avoid overlap; keep plates readable and distinct
+    `;
+  }
+
+  // Default: top third safe zone (or top-left, which still benefits from a top zone)
+  return dedent`
+    ## COMPOSITION LAYOUT (CRITICAL)
+    ${zoneBlock}
+
+    - **TOP 1/3 of image**: Soft, clean background space (for menu text overlay)
+      * This area MUST be kept completely clear and simple
+      ${imageStyleConfig.background}
+      * ABSOLUTELY NO food elements in this upper third - leave space for text
+      * Background fades naturally into the surface below
+
+    - **BOTTOM 2/3 of image**: Food presentation area
+      * This is where ALL ${itemCount} dishes should be arranged
+      * Food occupies the lower two-thirds of the frame only
+      * GENEROUS spacing between dishes - avoid crowding
+      ${imageStyleConfig.surface}
+
+    **Spatial Distribution & Perspective**:
+    - TOP 1/3 = empty background wall/space (for menu text)
+    - BOTTOM 2/3 = surface with food dishes spread out
+    - Strong perspective: dishes further back appear smaller/higher in frame, front dishes larger/lower
   `;
 }
 
@@ -101,6 +174,8 @@ function buildFloatingCameraDirection(imageStyleConfig, lightingText) {
 function buildFloatingCompositionLayout(imageStyleConfig, itemCount) {
   return dedent`
     ## COMPOSITION LAYOUT (FLYING PLATED FOOD - CRITICAL)
+    ${buildTextSafeZoneSection(imageStyleConfig.textSafeZone || 'topLeft')}
+
     - **TOP-LEFT area**: Cleaner gradient space (for menu text overlay)
       * Fewer dishes in this zone, or smaller background dishes only
       * Keep readable space for text
@@ -190,16 +265,19 @@ export function buildMenuFoodGenerationPrompt(
 ) {
   const { menuTheme, selectedItems } = parsedMenuData;
 
-  const imageStyleConfig = IMAGE_STYLES[imageStyle] || IMAGE_STYLES['verkada-classic'];
+  const normalizedStyleId = normalizeImageStyleId(imageStyle);
+  const imageStyleConfig = IMAGE_STYLES[normalizedStyleId] || IMAGE_STYLES['verkada-classic'];
   const plateAssignments = buildPlateAssignments(imageStyleConfig);
-  const dishDescriptions = buildDishDescriptions(selectedItems, imageStyle);
+  const dishDescriptions = buildDishDescriptions(selectedItems, normalizedStyleId);
   const lightingText = imageStyleConfig.lighting;
 
-  // Branch on layout type: floating-collage vs traditional tabletop
-  const isFloatingCollage = imageStyleConfig.layout === 'floating-collage';
+  const layout = imageStyleConfig.layout || 'tabletop';
+  const styleNegatives = imageStyleConfig.styleNegatives || '';
 
-  if (isFloatingCollage) {
-    // FLYING FOOD COLLAGE LAYOUT (Verkada Air style)
+  // -----------------------------------------------------------------------
+  // Layout: FLOATING COLLAGE (Air)
+  // -----------------------------------------------------------------------
+  if (layout === 'floating-collage') {
     return joinSections([
       dedent`
         ## PRIMARY OBJECTIVE
@@ -211,7 +289,7 @@ export function buildMenuFoodGenerationPrompt(
         - Background is a FLAT, SMOOTH gradient — NO visual effects
       `,
       buildNoTextConstraintSection(),
-      buildNegativePromptsSection(),
+      buildNegativePromptsSection(styleNegatives),
       dedent`
         ## MENU THEME CONTEXT
         ${menuTheme}
@@ -221,9 +299,6 @@ export function buildMenuFoodGenerationPrompt(
         ${dishDescriptions}
 
         **IMPORTANT**: Each dish flies ON its plate/bowl through the air.
-        - Sandwiches: on a flying plate, tilted dynamically (or flying solo)
-        - Soups/bowls: in flying bowls, tilted at angle with liquid visible
-        - Salads: in flying bowls, food intact on the plate
         - All items: plates/bowls fly WITH the food, tilted at dynamic angles
         - Food stays INTACT on plates — NO loose flying ingredients or scattered debris
       `,
@@ -242,7 +317,6 @@ export function buildMenuFoodGenerationPrompt(
 
         **FLYING PLATED DISHES**:
         - Each dish flies ON its Verkada plate or bowl through the air
-        - Classic blue and white ceramic plates (same style as other Verkada menus)
         - Plates and bowls are TILTED at dynamic angles (15-45°)
         - Food stays INTACT and well-composed on each plate
         - NO loose flying ingredients, crumbs, or scattered debris
@@ -260,40 +334,272 @@ export function buildMenuFoodGenerationPrompt(
           * Just a FLAT, SMOOTH purple-to-cyan gradient
           * NO patterns, NO rays, NO glows, NO effects of any kind
         - Dramatic depth: LARGE dishes in front, SMALL dishes in back
-        - Final image should feel dynamic, premium, and appetizing
-      `,
-      dedent`
-        ## ANTI-DUPLICATION CHECK
-        Before generating, verify:
-        1. Are there exactly ${selectedItems.length} distinct food items in the scene?
-        2. Does each item match one from the list above?
-        3. Are there any duplicate items? (If yes, remove duplicates)
       `,
       buildFloatingCompositionVerification(selectedItems.length),
       buildFloatingOutputDeliverable(imageStyleConfig, selectedItems.length),
     ]);
   }
 
-  // TRADITIONAL TABLETOP LAYOUT (all other styles)
-  const keyLight = lightingText.includes('natural')
-    ? 'Soft window light from 10 o\'clock position'
-    : 'Primary light source positioned at 45-degree angle';
-  const colorTemperature = lightingText.includes('warm')
-    ? 'Warm 3200K for appetizing glow'
-    : lightingText.includes('neon')
-      ? 'Multi-color LED neon (cyan/magenta/purple)'
-      : 'Neutral 5500K daylight';
-  const toneCurve = lightingText.includes('cyberpunk')
-    ? 'High contrast with crushed blacks and vibrant highlights'
-    : 'Natural S-curve with lifted shadows and gentle highlight rolloff';
+  // -----------------------------------------------------------------------
+  // Layout: FLOATING ORBIT (Verkada Orbit)
+  // -----------------------------------------------------------------------
+  if (layout === 'floating-orbit') {
+    return joinSections([
+      dedent`
+        ## PRIMARY OBJECTIVE
+        Generate a photorealistic product-photography hero image with exactly ${selectedItems.length} plated dishes floating in a controlled ORBITAL RING.
+        - Dishes form a ring/arc around the center-right (not a random scatter)
+        - Strong depth layering: a few foreground plates larger, background plates smaller
+        - NO surface, NO horizon line — just a smooth studio gradient background
+      `,
+      buildNoTextConstraintSection(),
+      buildNegativePromptsSection(styleNegatives),
+      dedent`
+        ## MENU THEME CONTEXT
+        ${menuTheme}
+      `,
+      dedent`
+        ## DISHES TO VISUALIZE (FLOATING ON PLATES)
+        ${dishDescriptions}
+      `,
+      dedent`
+        ## VISUAL STYLE & ATMOSPHERE
+        ${imageStyleConfig.name}: ${imageStyleConfig.atmosphere}
+      `,
+      dedent`
+        ## CAMERA & LIGHTING (ORBIT LAYOUT)
+        ${imageStyleConfig.cameraDirection || ''}
 
+        **Lighting Setup:**
+        ${lightingText}
+
+        **Optics / Rendering:**
+        ${imageStyleConfig.camera || ''}
+
+        **Color Grading:**
+        ${imageStyleConfig.colorPalette}
+      `,
+      dedent`
+        ## COMPOSITION LAYOUT (ORBIT - CRITICAL)
+        ${buildTextSafeZoneSection(imageStyleConfig.textSafeZone || 'topLeft')}
+        - Arrange plates in a clean orbital ring/arc (like planets) around center-right
+        - Keep top-left cleaner for text overlay
+        - Plates rotate tangentially to the ring (subtle, not chaotic)
+        ${imageStyleConfig.background}
+      `,
+      dedent`
+        ## FOOD PRESENTATION: ${imageStyleConfig.name}
+        ${imageStyleConfig.materialDescription}
+
+        **Plate Assignments (Verkada Blue & White)**:
+        ${plateAssignments}
+      `,
+      dedent`
+        ## CRITICAL REQUIREMENTS
+        - EXACTLY ${selectedItems.length} plated dishes MUST be visible - NO MORE, NO LESS
+        - Each dish appears EXACTLY ONCE (no duplicates)
+        - No floating debris; food stays intact on plates
+        - Background is a smooth gradient only (no patterns/effects)
+      `,
+    ]);
+  }
+
+  // -----------------------------------------------------------------------
+  // Layout: STUDIO PEDESTALS (Verkada Pedestals)
+  // -----------------------------------------------------------------------
+  if (layout === 'studio-pedestals') {
+    return joinSections([
+      dedent`
+        ## PRIMARY OBJECTIVE
+        Generate a photorealistic studio product photograph with exactly ${selectedItems.length} plated dishes presented on CLEAR ACRYLIC PEDESTALS at varied heights.
+        - Seamless cyclorama background, clean and minimal
+        - Pedestals create a museum/product-display vibe (bold, unique)
+      `,
+      buildNoTextConstraintSection(),
+      buildNegativePromptsSection(styleNegatives),
+      dedent`
+        ## MENU THEME CONTEXT
+        ${menuTheme}
+      `,
+      dedent`
+        ## DISHES TO VISUALIZE (ON PEDESTALS)
+        ${dishDescriptions}
+      `,
+      dedent`
+        ## VISUAL STYLE & ATMOSPHERE
+        ${imageStyleConfig.name}: ${imageStyleConfig.atmosphere}
+      `,
+      dedent`
+        ## CAMERA & LIGHTING (PEDESTALS)
+        ${imageStyleConfig.cameraDirection || ''}
+
+        **Lighting Setup:**
+        ${lightingText}
+
+        **Optics / Rendering:**
+        ${imageStyleConfig.camera || ''}
+
+        **Color Grading:**
+        ${imageStyleConfig.colorPalette}
+      `,
+      dedent`
+        ## COMPOSITION LAYOUT (PEDESTALS - CRITICAL)
+        ${buildTextSafeZoneSection(imageStyleConfig.textSafeZone || 'leftThird')}
+        - Stagger pedestal heights (foreground higher/lower mix) to create depth
+        - Keep spacing generous; no overlap
+        ${imageStyleConfig.background}
+      `,
+      dedent`
+        ## FOOD PRESENTATION: ${imageStyleConfig.name}
+        ${imageStyleConfig.materialDescription}
+
+        **Plate Assignments (Verkada Blue & White)**:
+        ${plateAssignments}
+      `,
+      dedent`
+        ## CRITICAL REQUIREMENTS
+        - EXACTLY ${selectedItems.length} dishes MUST be visible - NO MORE, NO LESS
+        - Each dish appears EXACTLY ONCE (no duplicates)
+        - Plates remain Verkada blue/white; do not substitute plate designs
+        - Clean studio scene: no extra props, no signage, no text
+      `,
+    ]);
+  }
+
+  // -----------------------------------------------------------------------
+  // Layout: ORTHOGRAPHIC SCAN (Verkada Scan)
+  // -----------------------------------------------------------------------
+  if (layout === 'orthographic-scan') {
+    return joinSections([
+      dedent`
+        ## PRIMARY OBJECTIVE
+        Generate a photorealistic, ultra-clean ORTHOGRAPHIC flat-lay of exactly ${selectedItems.length} plated dishes, like a premium catalog scan.
+        - Even lightbox lighting, minimal shadows
+        - Top-down / orthographic feel (no perspective distortion)
+      `,
+      buildNoTextConstraintSection(),
+      buildNegativePromptsSection(styleNegatives),
+      dedent`
+        ## MENU THEME CONTEXT
+        ${menuTheme}
+      `,
+      dedent`
+        ## DISHES TO VISUALIZE (CATALOG FLAT-LAY)
+        ${dishDescriptions}
+      `,
+      dedent`
+        ## VISUAL STYLE & ATMOSPHERE
+        ${imageStyleConfig.name}: ${imageStyleConfig.atmosphere}
+      `,
+      dedent`
+        ## CAMERA & LIGHTING (ORTHOGRAPHIC)
+        ${imageStyleConfig.cameraDirection || ''}
+
+        **Lighting Setup:**
+        ${lightingText}
+
+        **Optics / Rendering:**
+        ${imageStyleConfig.camera || ''}
+
+        **Color Grading:**
+        ${imageStyleConfig.colorPalette}
+      `,
+      dedent`
+        ## COMPOSITION LAYOUT (ORTHOGRAPHIC - CRITICAL)
+        ${buildTextSafeZoneSection(imageStyleConfig.textSafeZone || 'topLeft')}
+        - Arrange dishes in a clean grid-like spread with generous spacing
+        - Keep top-left cleaner for text overlay
+        ${imageStyleConfig.background}
+      `,
+      dedent`
+        ## FOOD PRESENTATION: ${imageStyleConfig.name}
+        ${imageStyleConfig.materialDescription}
+
+        **Plate Assignments (Verkada Blue & White)**:
+        ${plateAssignments}
+      `,
+      dedent`
+        ## CRITICAL REQUIREMENTS
+        - EXACTLY ${selectedItems.length} dishes MUST be visible - NO MORE, NO LESS
+        - Each dish appears EXACTLY ONCE (no duplicates)
+        - No props, no table styling, no patterns, no text
+      `,
+    ]);
+  }
+
+  // -----------------------------------------------------------------------
+  // Layout: THEATRICAL SPOTLIGHT (Verkada Spotlight)
+  // -----------------------------------------------------------------------
+  if (layout === 'theatrical-spotlight') {
+    return joinSections([
+      dedent`
+        ## PRIMARY OBJECTIVE
+        Generate a photoreal cinematic studio image with exactly ${selectedItems.length} plated dishes under a SINGLE THEATRICAL SPOTLIGHT.
+        - One focused key light, deep falloff into darkness
+        - Minimal props; keep it bold and unmistakable
+      `,
+      buildNoTextConstraintSection(),
+      buildNegativePromptsSection(styleNegatives),
+      dedent`
+        ## MENU THEME CONTEXT
+        ${menuTheme}
+      `,
+      dedent`
+        ## DISHES TO VISUALIZE (SPOTLIGHT SCENE)
+        ${dishDescriptions}
+      `,
+      dedent`
+        ## VISUAL STYLE & ATMOSPHERE
+        ${imageStyleConfig.name}: ${imageStyleConfig.atmosphere}
+      `,
+      dedent`
+        ## CAMERA & LIGHTING (SPOTLIGHT)
+        ${imageStyleConfig.cameraDirection || ''}
+
+        **Lighting Setup:**
+        ${lightingText}
+
+        **Optics / Rendering:**
+        ${imageStyleConfig.camera || ''}
+
+        **Color Grading:**
+        ${imageStyleConfig.colorPalette}
+      `,
+      dedent`
+        ## COMPOSITION LAYOUT (SPOTLIGHT - CRITICAL)
+        ${buildTextSafeZoneSection(imageStyleConfig.textSafeZone || 'leftThird')}
+        - Keep left third as smooth dark gradient (no clutter) for text overlay
+        - Cluster dishes in the lit area on the right side; keep spacing generous
+        ${imageStyleConfig.background}
+        ${imageStyleConfig.surface}
+      `,
+      dedent`
+        ## PLATE STYLE: ${imageStyleConfig.name}
+        ${imageStyleConfig.materialDescription}
+
+        **Specific Plate Assignments**:
+        ${plateAssignments}
+      `,
+      dedent`
+        ## CRITICAL REQUIREMENTS
+        - EXACTLY ${selectedItems.length} dishes MUST be visible - NO MORE, NO LESS
+        - Each dish appears EXACTLY ONCE (no duplicates)
+        - Plates remain Verkada blue/white; do not substitute plates
+        - No candles/signage; no text; no logos
+      `,
+    ]);
+  }
+
+  // -----------------------------------------------------------------------
+  // Default: TRADITIONAL TABLETOP LAYOUT
+  // -----------------------------------------------------------------------
   return joinSections([
     dedent`
       ## PRIMARY OBJECTIVE
       Generate a photorealistic, studio-grade professional food photography scene featuring exactly ${selectedItems.length} dishes.
     `,
     buildNoTextConstraintSection(),
-    buildNegativePromptsSection(),
+    buildNegativePromptsSection(styleNegatives),
     dedent`
       ## MENU THEME CONTEXT
       ${menuTheme}
@@ -307,49 +613,25 @@ export function buildMenuFoodGenerationPrompt(
       ${imageStyleConfig.name}: ${imageStyleConfig.atmosphere}
     `,
     dedent`
-      ## CAMERA DIRECTION (Cinematographer-Style - CRITICAL FOR GEMINI 3 PRO IMAGE)
+      ## CAMERA DIRECTION (Style-Driven - CRITICAL)
+      ${imageStyleConfig.cameraDirection || dedent`
       **Shot Composition:**
-      - **Camera Angle**: High-angle overhead shot at 50-60 degrees from horizontal, positioned as if photographer standing and looking down at dining table
-      - **Lens**: 50mm prime lens at f/2.8 aperture for natural compression and selective focus
-      - **Focus Point**: Sharp focus on central/front dishes, gradual bokeh falloff toward background dishes
-      - **Depth of Field**: Shallow depth (f/2.8) - foreground dishes crystal sharp, background dishes naturally blurred
-      - **Framing**: Full table spread composition showing spatial depth from back to front
-      - **Perspective**: Strong linear perspective - back dishes smaller/higher in frame, front dishes larger/lower
+        - **Camera Angle**: High-angle overhead shot at 50-60 degrees from horizontal
+        - **Lens**: 50mm prime lens at f/2.8 (natural compression)
+        - **Focus**: Sharp focus on near/hero dishes; natural bokeh falloff
+        - **Perspective**: Back dishes smaller/higher, front dishes larger/lower
+      `}
 
       **Lighting Setup:**
       ${lightingText}
-      - **Key Light**: ${keyLight}
-      - **Fill Light**: Gentle ambient bounce light to soften shadows without eliminating depth
-      - **Rim/Back Light**: Subtle backlighting on dish edges for separation and dimension
-      - **Light Quality**: Diffused, soft shadows creating depth without harshness
-      - **Color Temperature**: ${colorTemperature}
+
+      **Optics / Rendering:**
+      ${imageStyleConfig.camera || ''}
 
       **Color Grading:**
       ${imageStyleConfig.colorPalette}
-      - **Tone Curve**: ${toneCurve}
-      - **Saturation**: Vibrant but natural - not oversaturated or artificial looking
-      - **White Balance**: Consistent across all dishes, matching lighting color temperature
     `,
-    dedent`
-      ## COMPOSITION LAYOUT (CRITICAL)
-      - **TOP 1/3 of image**: Soft, clean background space (for menu text overlay)
-        * This area MUST be kept completely clear and simple
-        ${imageStyleConfig.background}
-        * ABSOLUTELY NO food elements in this upper third - leave space for text
-        * Background fades naturally into the surface below
-
-      - **BOTTOM 2/3 of image**: Food presentation area
-        * This is where ALL ${selectedItems.length} dishes should be arranged
-        * Food occupies the lower two-thirds of the frame only
-        * GENEROUS spacing between dishes - avoid crowding
-        ${imageStyleConfig.surface}
-
-      **Spatial Distribution & Perspective**:
-      - TOP 1/3 = empty background wall/space (for menu text)
-      - BOTTOM 2/3 = table surface with food dishes spread out
-      - Strong perspective: dishes further back appear smaller (natural depth)
-      - Dishes arranged with breathing room - not touching or overlapping too much
-    `,
+    buildTabletopCompositionLayout(imageStyleConfig, selectedItems.length),
     dedent`
       ## PLATE STYLE: ${imageStyleConfig.name}
       ${imageStyleConfig.materialDescription}
@@ -364,34 +646,7 @@ export function buildMenuFoodGenerationPrompt(
       - DO NOT create multiple versions of the same dish
       - Use the exact plate types specified for each dish
       - Maintain the ${imageStyleConfig.name} aesthetic throughout
-      - Keep the scene clean and uncluttered
-      - Make the food the star - background supports but doesn't compete
-      - Final image should make viewers hungry and excited to eat
-    `,
-    dedent`
-      ## ANTI-DUPLICATION CHECK
-      Before generating, verify:
-      1. Are there exactly ${selectedItems.length} distinct dishes in the scene?
-      2. Does each dish match one from the list above?
-      3. Are there any duplicate dishes? (If yes, remove duplicates)
-    `,
-    dedent`
-      ## COMPOSITION VERIFICATION
-      Before finalizing the image, verify this critical layout:
-      1. **Top 1/3 check**: Is the upper third of the image clear background space (no food)?
-      2. **Bottom 2/3 check**: Are ALL ${selectedItems.length} dishes positioned in the lower two-thirds only?
-      3. **Text space**: Is there sufficient empty space at the top for menu text overlay?
-      4. **Count verification**: Are there EXACTLY ${selectedItems.length} dishes visible (not more, not less)?
-      5. **Perspective**: Do back dishes appear smaller/higher and front dishes larger/lower?
-      6. **Depth**: Does the scene show natural 3D table-top perspective?
-    `,
-    dedent`
-      ## OUTPUT DELIVERABLE
-      A single, high-resolution PHOTOREALISTIC image (not CGI or 3D render) with the following layout:
-      - **Top 1/3**: Clean gradient background styled for ${imageStyleConfig.name} (space for menu text)
-      - **Bottom 2/3**: All ${selectedItems.length} dishes in ${imageStyleConfig.name} presentation with generous spacing and natural perspective depth
-
-      The image should look like a professional food photograph taken with a real camera, showing real food that actually exists.
+      - Keep the scene clean and uncluttered (no signage, no text)
     `,
   ]);
 }

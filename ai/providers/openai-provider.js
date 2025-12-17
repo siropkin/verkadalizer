@@ -28,7 +28,7 @@ const MODELS = {
 
 
 /**
- * OpenAI GPT-Image-1 supported sizes for edits endpoint
+ * OpenAI GPT-Image-1.5 supported sizes for edits endpoint
  */
 const OPENAI_IMAGE_SIZES = [
   { width: 1024, height: 1024, ratio: 1.000, name: '1024x1024' },     // Square
@@ -172,7 +172,7 @@ export async function parseMenuWithOpenAI({ imageUrl, dietaryPreference, apiKey,
 }
 
 /**
- * Generate menu image with OpenAI GPT-Image-1
+ * Generate menu image with OpenAI GPT-Image-1.5
  * @param {Object} params - Parameters
  * @param {string} params.prompt - Image generation prompt
  * @param {Blob} params.imageBlob - Image blob for reference
@@ -193,7 +193,7 @@ export async function generateMenuImageWithOpenAI({ prompt, imageBlob, apiKey, s
     const dimensions = await getImageDimensions(imageBlob);
     const size = selectOpenAISize(dimensions.width, dimensions.height);
 
-    // Build request for GPT-Image-1
+    // Build request for GPT-Image-1.5
     const formData = new FormData();
     formData.append('model', modelName);
     formData.append('prompt', prompt);
@@ -234,7 +234,7 @@ export async function generateMenuImageWithOpenAI({ prompt, imageBlob, apiKey, s
 }
 
 /**
- * Translate menu image with OpenAI GPT-Image-1 (layout-preserving translation)
+ * Translate menu image with OpenAI GPT-Image-1.5 (layout-preserving translation)
  * This is a dedicated entrypoint so the pipeline can run translation in parallel with food generation.
  *
  * @param {Object} params - Parameters

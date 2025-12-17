@@ -184,7 +184,7 @@ The extension uses a sophisticated three-stage AI processing pipeline with optio
 │  • Builds dynamic prompt from parsed menu data          │
 │  • Includes unified image style (plates + aesthetics)   │
 │  • AI generates photorealistic visualization            │
-│  • (GPT-Image-1 or Gemini 3 Pro Image)                  │
+│  • (GPT-Image-1.5 or Gemini 3 Pro Image)               │
 └─────────────────────────────────────────────────────────┘
                         ↓
 ┌─────────────────────────────────────────────────────────┐
@@ -224,10 +224,16 @@ IMAGE_STYLES = {
 }
 ```
 
-**Available Styles:**
+**Available Styles (examples):**
 
-- Verkada Classic, Verkada Cyberpunk, Verkada Grandmillennial
-- Verkada Rustic (Filmic)
+- Verkada Classic (Tabletop Editorial)
+- Verkada Cyberpunk (Neon Gel Studio)
+- Verkada Grandmillennial (Maximalist Patterns)
+- Verkada Air (Floating Collage)
+- Verkada Orbit (Floating Ring)
+- Verkada Pedestals (Museum Plinths)
+- Verkada Scan (Orthographic Catalog)
+- Verkada Spotlight (Theatrical Stage Light)
 
 **Benefits:**
 

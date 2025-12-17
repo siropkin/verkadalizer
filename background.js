@@ -2,7 +2,7 @@
 // IMPORTS - External modules
 // ============================================================================
 
-import { DIETARY_PREFERENCES, IMAGE_STYLES, TRANSLATION_LANGUAGES } from './ai/prompts.js';
+import { DIETARY_PREFERENCES, IMAGE_STYLES, TRANSLATION_LANGUAGES, normalizeImageStyleId } from './ai/prompts.js';
 import { buildMenuFoodGenerationPrompt } from './ai/prompts/menu-food-generation.js';
 import { buildMenuTranslationPrompt } from './ai/prompts/menu-translation.js';
 import { parseMenuWithAI, generateImageWithAI, translateMenuImageWithAI, PROVIDERS } from './ai/providers/ai-providers.js';
@@ -118,6 +118,7 @@ async function processImageRequest({ imageUrl, requestId, signal }) {
     const imageStyle = stored[STORAGE_KEYS.SETTINGS.IMAGE_STYLE]
       || stored[LEGACY_KEYS.IMAGE_STYLE]
       || 'verkada-classic';
+    const normalizedImageStyle = normalizeImageStyleId(imageStyle);
     const menuLanguage = stored[STORAGE_KEYS.SETTINGS.MENU_LANGUAGE]
       || stored[LEGACY_KEYS.MENU_LANGUAGE]
       || 'none';
@@ -164,7 +165,7 @@ async function processImageRequest({ imageUrl, requestId, signal }) {
       logInfo('background', 'pipeline', 'Stage 2: Building dynamic prompt');
       dynamicPrompt = buildMenuFoodGenerationPrompt(
         parsedMenuData,
-        imageStyle
+        normalizedImageStyle
       );
       logInfo('background', 'pipeline', 'Stage 2 complete');
     } catch (parseError) {
