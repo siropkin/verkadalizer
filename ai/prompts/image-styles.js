@@ -209,6 +209,70 @@ export const IMAGE_STYLES = {
       - Rich, bold rendering showing patterns and textures with depth
     `
   },
+
+  'verkada-air': {
+    id: 'verkada-air',
+    name: 'Verkada Air',
+    displayName: 'Verkada Air (Floating)',
+    emoji: '🌬️',
+    description: 'Airy floating food cutouts on a clean pastel gradient tech-hero background (no plates, no table)',
+
+    // Floating-collage layout flag — prompt builder uses this to switch composition
+    layout: 'floating-collage',
+
+    // Same Verkada plates as other styles, but flying through air
+    plates: {
+      'soup': 'Medium Deep Blue Plate (9-inch, 4-inch depth) — flying, tilted dynamically',
+      'salad': 'Large Flat White Plate (12-inch) — flying, tilted at angle',
+      'main': 'Large Flat White Plate (12-inch) — flying, tilted dynamically',
+      'pasta': 'Large Deep Blue Plate (12-inch, 2-inch depth) — flying, tilted at angle',
+      'sandwich': 'Large Flat White Plate (12-inch) — flying, tilted dynamically',
+      'pizza': 'Large Flat White Plate (12-inch) — flying, tilted at angle',
+      'dessert': 'Large Flat White Plate (12-inch) — flying, tilted dynamically',
+      'side': 'Medium Deep Blue Plate (9-inch, 4-inch depth) — flying, tilted at angle',
+    },
+    materialDescription: 'Classic Verkada ceramic plates in blue and white finishes, flying through air WITH the food. Each dish tilted at dynamic angles as if caught mid-flight.',
+
+    lighting: dedent`
+      **Lighting**: Bright, clean, high-key studio lighting
+      - Even illumination with soft shadows (subtle ambient occlusion under each flying item)
+      - Gentle rim lighting to separate items from gradient background
+      - Crisp, modern "product photography" clarity (no moody/filmic darkness)
+      - Subtle specular highlights on food surfaces for appetizing sheen
+    `,
+    background: dedent`
+      - Rich, saturated gradient background: deep violet/purple (#7B68EE) transitioning to bright cyan/teal (#00CED1)
+        * Vibrant, not washed out or pastel — strong color saturation
+        * PURE, FLAT, SMOOTH gradient from purple to cyan
+        * Simple seamless color transition — nothing else
+        * NO patterns, NO rays, NO glows, NO sparkles, NO stars, NO particles
+        * NO horizon line, NO surface edge
+        * Clean negative space in top-left for text overlay
+    `,
+    surface: dedent`
+      - NO surface, NO table, NO horizon line. Pure continuous gradient background.
+      - Items float freely in 3D space with nothing beneath them.
+    `,
+    colorPalette: dedent`
+      - Rich, saturated purple-to-cyan gradient (NOT pale/washed out)
+      - Deep violet (#7B68EE), electric purple, bright cyan (#00CED1), teal accents
+      - Food stays natural and vibrant with appetizing colors
+      - Clean whites and smooth tones; avoid warm "rustic" casts
+    `,
+    atmosphere: `Dynamic SaaS hero-banner aesthetic: PLATED dishes scattered in RADIAL pattern — spreading outward from center. Food flies ON Verkada blue/white plates. Background is a FLAT, SMOOTH purple-cyan gradient with NO effects. Modern, playful, dynamic — like a premium food delivery app hero image.`,
+    camera: dedent`
+      - Sharp, high-resolution product photography look (no film grain)
+      - DRAMATIC depth layering: large dishes in foreground, smaller dishes in background
+      - **RADIAL SCATTER PATTERN**: Dishes scattered outward from center
+      - All plated dishes SPREAD OUTWARD from an invisible center point
+      - Each dish tilted OUTWARD — left dishes tilt left, right dishes tilt right
+      - Food stays INTACT on plates — NO loose debris, just clean flying dishes
+      - **BACKGROUND IS FLAT GRADIENT ONLY**: 
+        * Just a FLAT, SMOOTH purple-to-cyan gradient
+        * NO patterns, NO rays, NO glows, NO effects of any kind
+      - Subtle drop shadows under flying plates for grounding
+    `
+  },
 };
 
 /**
