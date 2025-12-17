@@ -55,14 +55,16 @@ export function getMenuParser(providerType = 'openai') {
  * @param {string} params.apiKey - API key
  * @param {Function} params.updateProgress - Progress update callback (receives step and extra data)
  * @param {string} params.providerType - Provider type (default: 'openai')
- * @returns {Promise<Object>} Parsed menu data
+ * @param {string|null} params.translationLanguage - Translation language ID (e.g., 'fr', 'es') or null for no translation
+ * @returns {Promise<Object>} Parsed menu data (includes detectedLanguage, and translated fields if translation enabled)
  */
 export async function parseMenuWithAI({
   imageUrl,
   dietaryPreference,
   apiKey,
   updateProgress,
-  providerType = 'openai'
+  providerType = 'openai',
+  translationLanguage = null
 }) {
   const parser = getMenuParser(providerType);
 
@@ -71,6 +73,7 @@ export async function parseMenuWithAI({
     dietaryPreference,
     apiKey,
     updateProgress,
+    translationLanguage,
   });
 }
 

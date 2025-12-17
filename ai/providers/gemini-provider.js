@@ -83,9 +83,10 @@ function selectGeminiConfig(width, height) {
  * @param {string} params.dietaryPreference - Dietary preference ID
  * @param {string} params.apiKey - Gemini API key
  * @param {Function} params.updateProgress - Progress update callback (receives step and optional extra data)
- * @returns {Promise<Object>} Parsed menu data
+ * @param {string|null} params.translationLanguage - Translation language ID (e.g., 'fr', 'es') or null for no translation
+ * @returns {Promise<Object>} Parsed menu data (includes detectedLanguage, and translated fields if translation enabled)
  */
-export async function parseMenuWithGemini({ imageUrl, dietaryPreference, apiKey, updateProgress }) {
+export async function parseMenuWithGemini({ imageUrl, dietaryPreference, apiKey, updateProgress, translationLanguage = null }) {
   logInfo('provider', 'gemini', 'Starting menu parsing');
 
   try {
@@ -103,9 +104,9 @@ export async function parseMenuWithGemini({ imageUrl, dietaryPreference, apiKey,
     // Get dietary preference context
     const preference = DIETARY_PREFERENCES[dietaryPreference] || DIETARY_PREFERENCES['regular'];
 
-    // Build the menu parsing prompt
+    // Build the menu parsing prompt (with optional translation)
     updateProgress(PROGRESS_STEPS.PREPARING_AI_ANALYSIS, { preferenceName: preference.name });
-    const parsingPrompt = buildMenuParsingPrompt(preference);
+    const parsingPrompt = buildMenuParsingPrompt(preference, translationLanguage);
 
     const modelName = MODELS.parse;
 

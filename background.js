@@ -125,6 +125,10 @@ async function processImageRequest({ imageUrl, requestId, signal }) {
     let parsedMenuData;
     let dynamicPrompt;
 
+    // Determine effective translation language for parsing
+    // Pass the language to parser so it can detect + translate in one pass
+    const translationLanguageForParse = (menuLanguage && menuLanguage !== 'none') ? menuLanguage : null;
+
     try {
       // Create a wrapped updateProgress for providers
       const wrappedUpdateProgress = (step, extra = {}) => {
@@ -132,14 +136,16 @@ async function processImageRequest({ imageUrl, requestId, signal }) {
       };
 
       // Use the selected AI provider from settings
+      // translationLanguage enables integrated language detection + translation in parse stage
       parsedMenuData = await parseMenuWithAI({
         imageUrl,
         dietaryPreference,
         apiKey: settings.apiKey,
         updateProgress: wrappedUpdateProgress,
-        providerType: settings.aiProvider || 'openai'
+        providerType: settings.aiProvider || 'openai',
+        translationLanguage: translationLanguageForParse
       });
-      logInfo('background', 'pipeline', `Stage 1 complete: ${parsedMenuData.selectedItems?.length || 0} items selected`);
+      logInfo('background', 'pipeline', `Stage 1 complete: ${parsedMenuData.selectedItems?.length || 0} items selected, detectedLanguage=${parsedMenuData.detectedLanguage || 'unknown'}`);
 
       // Validate that we have at least some items
       if (!parsedMenuData.selectedItems || parsedMenuData.selectedItems.length < 3) {
@@ -153,9 +159,13 @@ async function processImageRequest({ imageUrl, requestId, signal }) {
       }
 
       // STAGE 2: Build dynamic prompt from parsed data
+      // Always use original dish names for food image generation (better model training on English names)
       updateProgress(requestId, PROGRESS_STEPS.BUILDING_PROMPT);
       logInfo('background', 'pipeline', 'Stage 2: Building dynamic prompt');
-      dynamicPrompt = buildMenuFoodGenerationPrompt(parsedMenuData, imageStyle, dietaryPreference, settings.aiProvider);
+      dynamicPrompt = buildMenuFoodGenerationPrompt(
+        parsedMenuData,
+        imageStyle
+      );
       logInfo('background', 'pipeline', 'Stage 2 complete');
     } catch (parseError) {
       logError('background', 'pipeline', 'Menu parsing failed', parseError.message);
@@ -175,10 +185,34 @@ async function processImageRequest({ imageUrl, requestId, signal }) {
 
     throwIfAborted(signal);
 
-    const isTranslationEnabled = menuLanguage && menuLanguage !== 'none';
+    // Determine if translation is needed based on detected language vs target language
+    // Skip translation when menu is already in the target language (primary-language match)
+    const detectedLanguage = parsedMenuData.detectedLanguage || null;
+    const requestedTranslation = menuLanguage && menuLanguage !== 'none';
+
+    // Primary-language match: e.g., 'en' matches 'en_US', 'pt' matches 'pt_BR'
+    const getPrimaryLanguage = (langCode) => {
+      if (!langCode) return null;
+      // Handle codes like 'en_US', 'pt_BR', 'ko-KR', 'da-DK'
+      return langCode.split(/[-_]/)[0].toLowerCase();
+    };
+
+    const detectedPrimary = getPrimaryLanguage(detectedLanguage);
+    const targetPrimary = getPrimaryLanguage(menuLanguage);
+    const languagesMatch = detectedPrimary && targetPrimary && detectedPrimary === targetPrimary;
+
+    // Skip translation if languages match
+    const isTranslationEnabled = requestedTranslation && !languagesMatch;
+
+    if (requestedTranslation && languagesMatch) {
+      logInfo('background', 'pipeline', `Skipping translation: menu already in target language (detected=${detectedLanguage}, target=${menuLanguage})`);
+    }
+
     updateProgress(requestId, PROGRESS_STEPS.GENERATING_IMAGE, {
       translationEnabled: isTranslationEnabled,
-      translationLanguage: menuLanguage || 'none'
+      translationLanguage: menuLanguage || 'none',
+      detectedLanguage: detectedLanguage,
+      translationSkipped: requestedTranslation && languagesMatch
     });
     logInfo('background', 'pipeline', 'Calling image generation API');
 
@@ -193,7 +227,7 @@ async function processImageRequest({ imageUrl, requestId, signal }) {
 
     const translationPromise = isTranslationEnabled
       ? translateMenuImageWithAI({
-        prompt: buildMenuTranslationPrompt(menuLanguage),
+        prompt: buildMenuTranslationPrompt(menuLanguage, parsedMenuData),
         imageBlob,
         apiKey: settings.apiKey,
         signal,

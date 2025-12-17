@@ -257,8 +257,9 @@ The menu translation system allows users to translate menu text into 12 language
 │  Translation Prompt Builder                              │
 │  (ai/prompts/menu-translation.js)                       │
 │  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  │
-│  • buildMenuTranslationPrompt(language)                 │
+│  • buildMenuTranslationPrompt(translationLanguage, parsedMenuData?) │
 │  • Generates AI prompt for layout-preserving translation│
+│  • Optionally embeds a reference glossary from parse     │
 │  • Enforces typography and spacing preservation         │
 └─────────────────────────────────────────────────────────┘
                         ↓
@@ -340,14 +341,14 @@ The extension supports 12 languages:
 
 ### Implementation Files
 
-| File                              | Responsibility               | Key Exports                      |
-| --------------------------------- | ---------------------------- | -------------------------------- |
-| `ai/prompts.js`                   | Translation language configs | `TRANSLATION_LANGUAGES`          |
-| `ai/prompts/menu-translation.js`  | Translation prompt builder   | `buildMenuTranslationPrompt()`   |
-| `ai/providers/openai-provider.js` | OpenAI translation handler   | `translateMenuImageWithOpenAI()` |
-| `ai/providers/gemini-provider.js` | Gemini translation handler   | `translateMenuImageWithGemini()` |
-| `ai/providers/ai-providers.js`    | Provider routing             | `translateMenuImageWithAI()`     |
-| `background.js`                   | Translation orchestration    | Request handling                 |
+| File                              | Responsibility               | Key Exports                                                        |
+| --------------------------------- | ---------------------------- | ------------------------------------------------------------------ |
+| `ai/prompts.js`                   | Translation language configs | `TRANSLATION_LANGUAGES`                                            |
+| `ai/prompts/menu-translation.js`  | Translation prompt builder   | `buildMenuTranslationPrompt(translationLanguage, parsedMenuData?)` |
+| `ai/providers/openai-provider.js` | OpenAI translation handler   | `translateMenuImageWithOpenAI()`                                   |
+| `ai/providers/gemini-provider.js` | Gemini translation handler   | `translateMenuImageWithGemini()`                                   |
+| `ai/providers/ai-providers.js`    | Provider routing             | `translateMenuImageWithAI()`                                       |
+| `background.js`                   | Translation orchestration    | Request handling                                                   |
 
 ### Benefits
 
