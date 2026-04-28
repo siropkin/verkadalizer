@@ -214,3 +214,34 @@ Using the parsed menu data and selected image style:
 - **AbortController Integration**: Cancellable requests with proper cleanup
 - **Progress State Machine**: Real-time updates via message passing
 - **Canvas Manipulation**: Intelligent image resizing and rendering
+
+
+## Releasing
+
+Releases are automated by `.github/workflows/release.yml`, which triggers on any `v*` tag.
+
+```bash
+# 1. Bump manifest.json version on a release branch, open a PR, merge to main.
+# 2. Tag the merge commit and push:
+git checkout main && git pull
+git tag v4.1.0
+git push origin v4.1.0
+```
+
+The workflow will:
+
+1. Verify `manifest.json` version matches the tag (fails if not)
+2. Build a clean extension zip (excludes `.git`, `.github`, `.cursor`, `.claude`, `*.md`, old zips)
+3. Create a GitHub Release with auto-generated notes and the zip attached
+
+### Optional: auto-upload to the Chrome Web Store
+
+The workflow can also push the zip to the Chrome Web Store as a **draft** (you still click Publish in the CWS dashboard for safety). To enable:
+
+1. Set repository variable `CHROME_PUBLISH=true`
+2. Add four repository secrets:
+   - `CHROME_EXTENSION_ID` — listing id from the dashboard URL
+   - `CHROME_CLIENT_ID`, `CHROME_CLIENT_SECRET` — OAuth credentials from Google Cloud Console (Chrome Web Store API enabled)
+   - `CHROME_REFRESH_TOKEN` — generated via the [Web Store API quickstart](https://developer.chrome.com/docs/webstore/using-api)
+
+Flip the workflow's `publish: false` to `publish: true` once you trust the pipeline; CWS still runs its own review either way.

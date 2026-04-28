@@ -1,0 +1,80 @@
+# Release pipeline: triggered when a `v*` tag is pushed.
+#
+# Steps:
+#   1. Verify manifest.json version matches the tag
+#   2. Build a clean extension zip (excludes IDE config, docs, old zips, .git)
+#   3. Create a GitHub Release with the zip attached
+#   4. (Optional) Upload + publish to the Chrome Web Store
+#
+# To enable Chrome Web Store auto-publish, set repository variable
+# CHROME_PUBLISH=true and add four secrets:
+#   CHROME_EXTENSION_ID  — listing id from the developer dashboard URL
+#   CHROME_CLIENT_ID     — OAuth client id (Google Cloud Console)
+#   CHROME_CLIENT_SECRET — OAuth client secret
+#   CHROME_REFRESH_TOKEN — refresh token from the Web Store API quickstart
+# See: https://developer.chrome.com/docs/webstore/using-api
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify manifest version matches tag
+        run: |
+          TAG="${GITHUB_REF#refs/tags/v}"
+          MANIFEST_VERSION=$(node -p "require('./manifest.json').version")
+          if [ "$TAG" != "$MANIFEST_VERSION" ]; then
+            echo "::error::tag v$TAG does not match manifest.json version $MANIFEST_VERSION"
+            exit 1
+          fi
+          echo "VERSION=$TAG" >> "$GITHUB_ENV"
+
+      - name: Build extension zip
+        run: |
+          ZIP_NAME="verkadalizer-extension-v${VERSION}.zip"
+          zip -r "$ZIP_NAME" . \
+            -x "*.git*" \
+            -x ".github/*" \
+            -x ".cursor/*" \
+            -x ".claude/*" \
+            -x ".idea/*" \
+            -x ".DS_Store" \
+            -x "*/.DS_Store" \
+            -x "*.zip" \
+            -x "*.md"
+          echo "ZIP_NAME=$ZIP_NAME" >> "$GITHUB_ENV"
+          ls -lh "$ZIP_NAME"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: v${{ env.VERSION }}
+          generate_release_notes: true
+          files: ${{ env.ZIP_NAME }}
+
+      - name: Publish to Chrome Web Store
+        if: ${{ vars.CHROME_PUBLISH == 'true' }}
+        uses: mnao305/chrome-extension-upload@v5.0.0
+        continue-on-error: true
+        with:
+          file-path: ${{ env.ZIP_NAME }}
+          extension-id: ${{ secrets.CHROME_EXTENSION_ID }}
+          client-id: ${{ secrets.CHROME_CLIENT_ID }}
+          client-secret: ${{ secrets.CHROME_CLIENT_SECRET }}
+          refresh-token: ${{ secrets.CHROME_REFRESH_TOKEN }}
+          # `publish: false` uploads as a draft so you can review in the
+          # CWS dashboard before clicking Publish. Flip to `true` once you
+          # trust the pipeline.
+          publish: false
