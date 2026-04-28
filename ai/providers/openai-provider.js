@@ -18,8 +18,8 @@ import { logInfo, logWarn, logError } from '../../lib/logger.js';
 // ============================================================================
 
 const MODELS = {
-  parse: 'gpt-4o',           // Menu parsing (vision + JSON)
-  image: 'gpt-image-1.5',    // Image generation/editing (upgraded Dec 2025)
+  parse: 'gpt-4o',          // Menu parsing (vision + JSON)
+  image: 'gpt-image-2',     // Image generation/editing (released Apr 2026)
 };
 
 // ============================================================================
@@ -28,7 +28,10 @@ const MODELS = {
 
 
 /**
- * OpenAI GPT-Image-1.5 supported sizes for edits endpoint
+ * OpenAI gpt-image-2 sizes used for the edits endpoint.
+ * gpt-image-2 accepts arbitrary resolutions (multiples of 16, up to 3840px on
+ * the longest edge), but we lock to these three so that the output matches the
+ * common menu aspect ratios — square, landscape 3:2, portrait 2:3.
  */
 const OPENAI_IMAGE_SIZES = [
   { width: 1024, height: 1024, ratio: 1.000, name: '1024x1024' },     // Square
@@ -172,7 +175,7 @@ export async function parseMenuWithOpenAI({ imageUrl, dietaryPreference, apiKey,
 }
 
 /**
- * Generate menu image with OpenAI GPT-Image-1.5
+ * Generate menu image with OpenAI gpt-image-2
  * @param {Object} params - Parameters
  * @param {string} params.prompt - Image generation prompt
  * @param {Blob} params.imageBlob - Image blob for reference
@@ -193,12 +196,12 @@ export async function generateMenuImageWithOpenAI({ prompt, imageBlob, apiKey, s
     const dimensions = await getImageDimensions(imageBlob);
     const size = selectOpenAISize(dimensions.width, dimensions.height);
 
-    // Build request for GPT-Image-1.5
+    // gpt-image-2 always processes inputs at high fidelity, so input_fidelity
+    // is no longer accepted.
     const formData = new FormData();
     formData.append('model', modelName);
     formData.append('prompt', prompt);
     formData.append('n', '1');
-    formData.append('input_fidelity', 'high');
     formData.append('quality', 'high');
     formData.append('size', size);
     formData.append('image', imageBlob, 'image.png');
@@ -234,7 +237,7 @@ export async function generateMenuImageWithOpenAI({ prompt, imageBlob, apiKey, s
 }
 
 /**
- * Translate menu image with OpenAI GPT-Image-1.5 (layout-preserving translation)
+ * Translate menu image with OpenAI gpt-image-2 (layout-preserving translation)
  * This is a dedicated entrypoint so the pipeline can run translation in parallel with food generation.
  *
  * @param {Object} params - Parameters

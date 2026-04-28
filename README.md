@@ -2,7 +2,7 @@
 
 <img src="images/verkadalizer.png" alt="Verkadalizer Chrome Extension"/>
 
-A Chrome extension that transforms food menu images on Verkada Menu pages into beautiful, appetizing visualizations using a sophisticated two-stage AI pipeline powered by OpenAI (GPT-4o + GPT-Image-1.5) or Google Gemini (Gemini 3 Pro + Gemini 3 Pro Image).
+A Chrome extension that transforms food menu images on Verkada Menu pages into beautiful, appetizing visualizations using a sophisticated two-stage AI pipeline powered by OpenAI (GPT-4o + gpt-image-2) or Google Gemini (Gemini 3 Pro + Gemini 3 Pro Image).
 
 ## Features
 
@@ -14,7 +14,7 @@ A Chrome extension that transforms food menu images on Verkada Menu pages into b
     - **OpenAI**: GPT-4o vision model
     - **Google Gemini**: Gemini 3 Pro
   - **Stage 2**: AI generates a photorealistic visualization of the selected dishes
-    - **OpenAI**: GPT-Image-1.5 for high-quality image generation
+    - **OpenAI**: gpt-image-2 for high-quality image generation with agentic reasoning and accurate text rendering
     - **Google Gemini**: Gemini 3 Pro Image for professional 2K/4K image generation with superior text rendering
 - **Smart Image Controls**: Interactive buttons for each menu image:
   - ✨🍕 **Generate** - Process the menu image with AI
@@ -100,7 +100,7 @@ Translate menu text into multiple languages while preserving the original layout
 Click the extension icon to access settings:
 
 - **AI Provider**: Choose between OpenAI or Google Gemini
-  - **OpenAI**: Uses GPT-4o for menu analysis and GPT-Image-1.5 for image generation
+  - **OpenAI**: Uses GPT-4o for menu analysis and gpt-image-2 for image generation
   - **Google Gemini**: Uses Gemini 3 Pro for menu analysis and Gemini 3 Pro Image for generation
 - **API Key**: Your personal API key for the selected provider (stored securely in local browser storage)
   - **OpenAI API Key**: Required when using OpenAI provider
@@ -145,7 +145,7 @@ Using the parsed menu data and selected image style:
   - Photorealism requirements (textures, lighting, organic presentation)
   - **Optional Translation**: If translation is enabled, AI translates menu text while preserving original layout/typography
 - Sends to your selected AI provider for image creation:
-  - **OpenAI**: GPT-Image-1.5 for high-quality photorealistic images
+  - **OpenAI**: gpt-image-2 for high-quality photorealistic images (released April 2026, with agentic reasoning and high-fidelity input handling by default)
   - **Google Gemini**: Gemini 3 Pro Image for professional 2K resolution with native text rendering and "thinking mode" for optimal composition
 - Receives professional-quality food photography visualization in your chosen unified style
 - **Translation Processing** (if enabled):
@@ -178,7 +178,7 @@ Using the parsed menu data and selected image style:
 #### OpenAI Provider
 
 - **GPT-4o**: Vision-based menu text analysis and intelligent dish selection
-- **GPT-Image-1.5**: High-quality photorealistic image generation with advanced control
+- **gpt-image-2**: High-quality photorealistic image generation with agentic reasoning, accurate multilingual text rendering, and automatic high-fidelity input processing
 
 #### Google Gemini Provider
 
