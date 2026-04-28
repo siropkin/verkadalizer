@@ -105,6 +105,7 @@ async function processImageRequest({ imageUrl, requestId, signal }) {
     const settingsKeys = [
       STORAGE_KEYS.SETTINGS.DIETARY_PREFERENCE,
       STORAGE_KEYS.SETTINGS.IMAGE_STYLE,
+      STORAGE_KEYS.SETTINGS.IMAGE_QUALITY,
       STORAGE_KEYS.SETTINGS.MENU_LANGUAGE,
       LEGACY_KEYS.DIETARY_PREFERENCE,
       LEGACY_KEYS.IMAGE_STYLE,
@@ -119,6 +120,8 @@ async function processImageRequest({ imageUrl, requestId, signal }) {
       || stored[LEGACY_KEYS.IMAGE_STYLE]
       || 'verkada-classic';
     const normalizedImageStyle = normalizeImageStyleId(imageStyle);
+    // gpt-image-2 quality knob — 'medium' is the default sweet spot post-upgrade.
+    const imageQuality = stored[STORAGE_KEYS.SETTINGS.IMAGE_QUALITY] || 'medium';
     const menuLanguage = stored[STORAGE_KEYS.SETTINGS.MENU_LANGUAGE]
       || stored[LEGACY_KEYS.MENU_LANGUAGE]
       || 'none';
@@ -223,7 +226,8 @@ async function processImageRequest({ imageUrl, requestId, signal }) {
       imageBlob,
       apiKey: settings.apiKey,
       signal,
-      providerType: settings.aiProvider
+      providerType: settings.aiProvider,
+      imageQuality,
     });
 
     const translationPromise = isTranslationEnabled
@@ -232,7 +236,8 @@ async function processImageRequest({ imageUrl, requestId, signal }) {
         imageBlob,
         apiKey: settings.apiKey,
         signal,
-        providerType: settings.aiProvider
+        providerType: settings.aiProvider,
+        imageQuality,
       }).catch((err) => {
         logWarn('background', 'pipeline', 'Menu translation failed, using original layer', err?.message || err);
         return null;

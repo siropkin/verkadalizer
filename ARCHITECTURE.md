@@ -184,7 +184,7 @@ The extension uses a sophisticated three-stage AI processing pipeline with optio
 │  • Builds dynamic prompt from parsed menu data          │
 │  • Includes unified image style (plates + aesthetics)   │
 │  • AI generates photorealistic visualization            │
-│  • (GPT-Image-1.5 or Gemini 3 Pro Image)               │
+│  • (gpt-image-2 or Gemini 3 Pro Image)                  │
 └─────────────────────────────────────────────────────────┘
                         ↓
 ┌─────────────────────────────────────────────────────────┐

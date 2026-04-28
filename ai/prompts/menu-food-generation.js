@@ -40,6 +40,36 @@ function buildNoTextConstraintSection() {
   `;
 }
 
+function buildFoodAuthenticitySection() {
+  // gpt-image-2 follows the styling sections very literally and tends to
+  // produce Michelin-tier plating unless we explicitly anchor the food itself
+  // to a workplace-cafeteria register. The cinematography / lighting /
+  // background stay polished — only the FOOD itself is constrained here.
+  return dedent`
+    ### FOOD AUTHENTICITY (CRITICAL)
+    The food is from a WORKPLACE CAFETERIA / EMPLOYEE CANTEEN — not a fine-dining restaurant.
+    Render the dishes as REAL, hearty, recognizable cafeteria food that an employee would actually be served at lunch.
+
+    **DO:**
+    - Generous, normal lunch-size portions (filling, not tasting-menu sized)
+    - Honest, recognizable plating — food looks like food, not sculpture
+    - Casual home-style / canteen / catering-tray presentation
+    - Real ingredients in their natural form: visible noodles, chunks of meat, whole vegetables, normal sauces, ladled-on toppings
+    - Slightly imperfect, lived-in plating is fine and preferred over perfection
+
+    **AVOID — fine-dining tells that DO NOT belong here:**
+    - Tweezer-plated micro-portions, tiny dollops, smears, swooshes, quenelles
+    - Microgreens, edible flowers, gold leaf, tweezed herbs as garnish
+    - Foams, gels, powders, dehydrated dusts, molecular-gastronomy spheres
+    - Architecturally stacked or sculpted food, deconstructed presentation
+    - Plates with vast negative space and one tiny element in the center
+    - Michelin / haute-cuisine / tasting-menu / fine-dining aesthetics
+
+    Cinematography (lighting, optics, background) may be polished, but the
+    FOOD ITSELF should look like what you'd actually pick up on a cafeteria tray.
+  `;
+}
+
 function buildNegativePromptsSection(styleNegatives = '') {
   // Named section to make it obvious what is "rules" vs "avoid list".
   return dedent`
@@ -290,6 +320,7 @@ export function buildMenuFoodGenerationPrompt(
       `,
       buildNoTextConstraintSection(),
       buildNegativePromptsSection(styleNegatives),
+      buildFoodAuthenticitySection(),
       dedent`
         ## MENU THEME CONTEXT
         ${menuTheme}
@@ -354,6 +385,7 @@ export function buildMenuFoodGenerationPrompt(
       `,
       buildNoTextConstraintSection(),
       buildNegativePromptsSection(styleNegatives),
+      buildFoodAuthenticitySection(),
       dedent`
         ## MENU THEME CONTEXT
         ${menuTheme}
@@ -417,6 +449,7 @@ export function buildMenuFoodGenerationPrompt(
       `,
       buildNoTextConstraintSection(),
       buildNegativePromptsSection(styleNegatives),
+      buildFoodAuthenticitySection(),
       dedent`
         ## MENU THEME CONTEXT
         ${menuTheme}
@@ -479,6 +512,7 @@ export function buildMenuFoodGenerationPrompt(
       `,
       buildNoTextConstraintSection(),
       buildNegativePromptsSection(styleNegatives),
+      buildFoodAuthenticitySection(),
       dedent`
         ## MENU THEME CONTEXT
         ${menuTheme}
@@ -540,6 +574,7 @@ export function buildMenuFoodGenerationPrompt(
       `,
       buildNoTextConstraintSection(),
       buildNegativePromptsSection(styleNegatives),
+      buildFoodAuthenticitySection(),
       dedent`
         ## MENU THEME CONTEXT
         ${menuTheme}
@@ -596,10 +631,12 @@ export function buildMenuFoodGenerationPrompt(
   return joinSections([
     dedent`
       ## PRIMARY OBJECTIVE
-      Generate a photorealistic, studio-grade professional food photography scene featuring exactly ${selectedItems.length} dishes.
+      Generate a photorealistic, well-lit food photography scene of exactly ${selectedItems.length} workplace-cafeteria dishes.
+      Cinematography (lighting, optics, background) is polished, but the food itself is real cafeteria food — see FOOD AUTHENTICITY below.
     `,
     buildNoTextConstraintSection(),
     buildNegativePromptsSection(styleNegatives),
+    buildFoodAuthenticitySection(),
     dedent`
       ## MENU THEME CONTEXT
       ${menuTheme}
