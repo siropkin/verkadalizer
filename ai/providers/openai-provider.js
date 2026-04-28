@@ -39,8 +39,22 @@ const OPENAI_IMAGE_SIZES = [
   { width: 1024, height: 1536, ratio: 0.667, name: '1024x1536' }      // Portrait
 ];
 
+const VALID_QUALITIES = new Set(['low', 'medium', 'high']);
+
 /**
- * Select optimal OpenAI image size based on input image aspect ratio
+ * Penalty applied to non-square sizes when picking the closest aspect ratio.
+ * 1024x1024 has ~2.25x fewer pixels than 1536x1024, so square renders meaningfully
+ * faster on gpt-image-2. The result is downscaled into the page DOM anyway, so
+ * for near-square menus the larger rectangle rarely adds visible value. The
+ * penalty shifts the crossover so square wins for any ratio in roughly
+ * [0.74, 1.35], and only clearly landscape / portrait menus pay for the bigger size.
+ */
+const NON_SQUARE_SIZE_PENALTY = 0.2;
+
+/**
+ * Select optimal OpenAI image size based on input image aspect ratio.
+ * Biased toward 1024x1024 because pixel count drives gpt-image-2 latency.
+ *
  * @param {number} width - Input image width
  * @param {number} height - Input image height
  * @returns {string} Best matching size (e.g., '1536x1024')
@@ -53,7 +67,9 @@ function selectOpenAISize(width, height) {
   let smallestDifference = Infinity;
 
   for (const size of OPENAI_IMAGE_SIZES) {
-    const difference = Math.abs(targetRatio - size.ratio);
+    const baseDiff = Math.abs(targetRatio - size.ratio);
+    const penalty = size.ratio === 1 ? 0 : NON_SQUARE_SIZE_PENALTY;
+    const difference = baseDiff + penalty;
     if (difference < smallestDifference) {
       smallestDifference = difference;
       closestSize = size;
@@ -181,11 +197,13 @@ export async function parseMenuWithOpenAI({ imageUrl, dietaryPreference, apiKey,
  * @param {Blob} params.imageBlob - Image blob for reference
  * @param {string} params.apiKey - OpenAI API key
  * @param {AbortSignal} params.signal - Abort signal
+ * @param {string} [params.imageQuality] - 'low' | 'medium' | 'high' (default 'medium')
  * @returns {Promise<string>} Base64 encoded image
  */
-export async function generateMenuImageWithOpenAI({ prompt, imageBlob, apiKey, signal }) {
+export async function generateMenuImageWithOpenAI({ prompt, imageBlob, apiKey, signal, imageQuality }) {
   const modelName = MODELS.image;
-  logInfo('provider', 'openai', `Starting image generation with ${modelName}`);
+  const quality = VALID_QUALITIES.has(imageQuality) ? imageQuality : 'medium';
+  logInfo('provider', 'openai', `Starting image generation with ${modelName} (quality=${quality})`);
 
   try {
     if (!apiKey) {
@@ -202,7 +220,7 @@ export async function generateMenuImageWithOpenAI({ prompt, imageBlob, apiKey, s
     formData.append('model', modelName);
     formData.append('prompt', prompt);
     formData.append('n', '1');
-    formData.append('quality', 'high');
+    formData.append('quality', quality);
     formData.append('size', size);
     formData.append('image', imageBlob, 'image.png');
 
@@ -245,9 +263,10 @@ export async function generateMenuImageWithOpenAI({ prompt, imageBlob, apiKey, s
  * @param {Blob} params.imageBlob - Original menu image blob (reference)
  * @param {string} params.apiKey - OpenAI API key
  * @param {AbortSignal} params.signal - Abort signal
+ * @param {string} [params.imageQuality] - 'low' | 'medium' | 'high' (default 'medium')
  * @returns {Promise<string>} Base64 encoded translated menu image
  */
-export async function translateMenuImageWithOpenAI({ prompt, imageBlob, apiKey, signal }) {
+export async function translateMenuImageWithOpenAI({ prompt, imageBlob, apiKey, signal, imageQuality }) {
   // Same endpoint/model as generation; prompt differs (text-only translation image).
-  return generateMenuImageWithOpenAI({ prompt, imageBlob, apiKey, signal });
+  return generateMenuImageWithOpenAI({ prompt, imageBlob, apiKey, signal, imageQuality });
 }

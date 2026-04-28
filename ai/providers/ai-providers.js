@@ -94,6 +94,7 @@ export function getImageGenerator(providerType = 'openai') {
  * @param {string} params.apiKey - API key
  * @param {AbortSignal} params.signal - Abort signal
  * @param {string} params.providerType - Provider type (default: 'openai')
+ * @param {string} [params.imageQuality] - 'low' | 'medium' | 'high' (OpenAI only; ignored by Gemini)
  * @returns {Promise<string>} Base64 encoded image
  */
 export async function generateImageWithAI({
@@ -101,7 +102,8 @@ export async function generateImageWithAI({
   imageBlob,
   apiKey,
   signal,
-  providerType = 'openai'
+  providerType = 'openai',
+  imageQuality
 }) {
   const generator = getImageGenerator(providerType);
 
@@ -110,6 +112,7 @@ export async function generateImageWithAI({
     imageBlob,
     apiKey,
     signal,
+    imageQuality,
   });
 }
 
@@ -130,6 +133,7 @@ export function getMenuTranslator(providerType = 'openai') {
  * @param {string} params.apiKey - API key
  * @param {AbortSignal} params.signal - Abort signal
  * @param {string} params.providerType - Provider type (default: 'openai')
+ * @param {string} [params.imageQuality] - 'low' | 'medium' | 'high' (OpenAI only; ignored by Gemini)
  * @returns {Promise<string>} Base64 encoded translated menu image
  */
 export async function translateMenuImageWithAI({
@@ -137,8 +141,9 @@ export async function translateMenuImageWithAI({
   imageBlob,
   apiKey,
   signal,
-  providerType = 'openai'
+  providerType = 'openai',
+  imageQuality
 }) {
   const translator = getMenuTranslator(providerType);
-  return translator({ prompt, imageBlob, apiKey, signal });
+  return translator({ prompt, imageBlob, apiKey, signal, imageQuality });
 }

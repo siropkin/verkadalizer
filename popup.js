@@ -99,7 +99,7 @@ function populateAiProviders(providerInput, providers) {
   }
 }
 
-async function loadSettingsIntoUi(aiProviderInput, openaiApiKeyInput, geminiApiKeyInput, dietaryPreferenceInput, imageStyleInput, menuLanguageInput) {
+async function loadSettingsIntoUi(aiProviderInput, openaiApiKeyInput, geminiApiKeyInput, dietaryPreferenceInput, imageStyleInput, imageQualityInput, menuLanguageInput) {
   const aiProviders = await loadAiProviders();
   populateAiProviders(aiProviderInput, aiProviders);
 
@@ -117,6 +117,7 @@ async function loadSettingsIntoUi(aiProviderInput, openaiApiKeyInput, geminiApiK
     STORAGE_KEYS.SETTINGS.AI_PROVIDER,
     STORAGE_KEYS.SETTINGS.DIETARY_PREFERENCE,
     STORAGE_KEYS.SETTINGS.IMAGE_STYLE,
+    STORAGE_KEYS.SETTINGS.IMAGE_QUALITY,
     STORAGE_KEYS.SETTINGS.MENU_LANGUAGE,
     STORAGE_KEYS.API_KEYS.OPENAI,
     STORAGE_KEYS.API_KEYS.GEMINI,
@@ -188,6 +189,12 @@ async function loadSettingsIntoUi(aiProviderInput, openaiApiKeyInput, geminiApiK
     menuLanguageInput.value = selectedMenuLanguage;
   }
 
+  // gpt-image-2 is materially slower than gpt-image-1.5 at quality=high because of
+  // its agentic-reasoning pass, so default to 'medium' for new installs. Existing
+  // users who want the slower/sharper default can pick "High" explicitly.
+  const selectedImageQuality = stored[STORAGE_KEYS.SETTINGS.IMAGE_QUALITY] || 'medium';
+  imageQualityInput.value = selectedImageQuality;
+
   // Show/hide appropriate API key section
   toggleApiKeySection(selectedProvider);
 }
@@ -205,12 +212,13 @@ function toggleApiKeySection(provider) {
   }
 }
 
-async function saveSettings(aiProviderInput, openaiApiKeyInput, geminiApiKeyInput, dietaryPreferenceInput, imageStyleInput, menuLanguageInput, statusDiv) {
+async function saveSettings(aiProviderInput, openaiApiKeyInput, geminiApiKeyInput, dietaryPreferenceInput, imageStyleInput, imageQualityInput, menuLanguageInput, statusDiv) {
   const aiProvider = aiProviderInput.value.trim();
   const openaiApiKey = openaiApiKeyInput.value.trim();
   const geminiApiKey = geminiApiKeyInput.value.trim();
   const dietaryPreference = dietaryPreferenceInput.value.trim();
   const imageStyle = normalizeImageStyleId(imageStyleInput.value.trim());
+  const imageQuality = imageQualityInput.value.trim();
   const menuLanguage = menuLanguageInput.value.trim();
 
   // Validate that the selected provider has an API key
@@ -228,6 +236,7 @@ async function saveSettings(aiProviderInput, openaiApiKeyInput, geminiApiKeyInpu
       [STORAGE_KEYS.SETTINGS.AI_PROVIDER]: aiProvider,
       [STORAGE_KEYS.SETTINGS.DIETARY_PREFERENCE]: dietaryPreference,
       [STORAGE_KEYS.SETTINGS.IMAGE_STYLE]: imageStyle,
+      [STORAGE_KEYS.SETTINGS.IMAGE_QUALITY]: imageQuality,
       [STORAGE_KEYS.SETTINGS.MENU_LANGUAGE]: menuLanguage,
       [STORAGE_KEYS.API_KEYS.OPENAI]: openaiApiKey,
       [STORAGE_KEYS.API_KEYS.GEMINI]: geminiApiKey,
@@ -244,40 +253,45 @@ document.addEventListener('DOMContentLoaded', async () => {
   const geminiApiKeyInput = document.getElementById('geminiApiKey');
   const dietaryPreferenceInput = document.getElementById('dietaryPreference');
   const imageStyleInput = document.getElementById('imageStyle');
+  const imageQualityInput = document.getElementById('imageQuality');
   const menuLanguageInput = document.getElementById('menuLanguage');
   const menuLinkBtn = document.getElementById('menuLink');
   const statusDiv = document.getElementById('status');
 
-  // Handle AI provider change
+  const persist = () => saveSettings(
+    aiProviderInput,
+    openaiApiKeyInput,
+    geminiApiKeyInput,
+    dietaryPreferenceInput,
+    imageStyleInput,
+    imageQualityInput,
+    menuLanguageInput,
+    statusDiv,
+  );
+
   aiProviderInput.addEventListener('change', async () => {
     toggleApiKeySection(aiProviderInput.value);
-    await saveSettings(aiProviderInput, openaiApiKeyInput, geminiApiKeyInput, dietaryPreferenceInput, imageStyleInput, menuLanguageInput, statusDiv);
+    await persist();
   });
 
-  // Auto-save on input change
-  openaiApiKeyInput.addEventListener('input', async () => {
-    await saveSettings(aiProviderInput, openaiApiKeyInput, geminiApiKeyInput, dietaryPreferenceInput, imageStyleInput, menuLanguageInput, statusDiv);
-  });
-
-  geminiApiKeyInput.addEventListener('input', async () => {
-    await saveSettings(aiProviderInput, openaiApiKeyInput, geminiApiKeyInput, dietaryPreferenceInput, imageStyleInput, menuLanguageInput, statusDiv);
-  });
-
-  dietaryPreferenceInput.addEventListener('change', async () => {
-    await saveSettings(aiProviderInput, openaiApiKeyInput, geminiApiKeyInput, dietaryPreferenceInput, imageStyleInput, menuLanguageInput, statusDiv);
-  });
-
-  imageStyleInput.addEventListener('change', async () => {
-    await saveSettings(aiProviderInput, openaiApiKeyInput, geminiApiKeyInput, dietaryPreferenceInput, imageStyleInput, menuLanguageInput, statusDiv);
-  });
-
-  menuLanguageInput.addEventListener('change', async () => {
-    await saveSettings(aiProviderInput, openaiApiKeyInput, geminiApiKeyInput, dietaryPreferenceInput, imageStyleInput, menuLanguageInput, statusDiv);
-  });
+  openaiApiKeyInput.addEventListener('input', persist);
+  geminiApiKeyInput.addEventListener('input', persist);
+  dietaryPreferenceInput.addEventListener('change', persist);
+  imageStyleInput.addEventListener('change', persist);
+  imageQualityInput.addEventListener('change', persist);
+  menuLanguageInput.addEventListener('change', persist);
 
   menuLinkBtn.addEventListener('click', () => {
     chrome.tabs.create({ url: 'https://sites.google.com/verkada.com/verkada-menu' });
   });
 
-  await loadSettingsIntoUi(aiProviderInput, openaiApiKeyInput, geminiApiKeyInput, dietaryPreferenceInput, imageStyleInput, menuLanguageInput);
+  await loadSettingsIntoUi(
+    aiProviderInput,
+    openaiApiKeyInput,
+    geminiApiKeyInput,
+    dietaryPreferenceInput,
+    imageStyleInput,
+    imageQualityInput,
+    menuLanguageInput,
+  );
 });

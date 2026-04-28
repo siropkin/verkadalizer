@@ -107,6 +107,7 @@ Click the extension icon to access settings:
   - **Gemini API Key**: Required when using Google Gemini provider
 - **Dietary Preference**: Select your dietary preference from 8 options (affects dish selection in Stage 1)
 - **Image Style**: Choose a unified style preset (plates stay corporate Verkada; composition/rendering varies by style)
+- **Image Quality**: ⚡ Fast / ⚖️ Balanced / 💎 High — controls the OpenAI `quality` param for gpt-image-2 (default: Balanced; ignored by Gemini)
 - **Translation Language**: Translate menu text into 12 languages while preserving original layout (default: No Translation)
 
 ## How It Works
